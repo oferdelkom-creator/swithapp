@@ -28,7 +28,7 @@ export default async function BusinessPage() {
       <h1 className="text-2xl font-semibold mb-1">חשבון עסקי</h1>
       <p className="text-neutral-500 mb-8 text-sm">{me.business_name ?? "-"}</p>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6 space-y-2 text-sm">
+      <div className="card p-6 space-y-2 text-sm">
         <p>
           תוכנית: <span className="font-medium">{me.billing_plan ?? "לא הוגדרה"}</span>
         </p>

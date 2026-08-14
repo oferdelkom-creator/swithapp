@@ -45,21 +45,21 @@ export default function CarAdminActions({
       <button
         onClick={() => run({ listing_fee_paid: !listingFeePaid })}
         disabled={loading}
-        className="text-xs rounded-md bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
+        className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
       >
         {listingFeePaid ? "עמלה שולמה ✓" : "סימון עמלה כשולמה"}
       </button>
       <button
         onClick={boost}
         disabled={loading}
-        className="text-xs rounded-md bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
+        className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
       >
         {isBoosted ? "מקודם ✓" : "קידום ל-7 ימים"}
       </button>
       <button
         onClick={remove}
         disabled={loading}
-        className="text-xs rounded-md bg-red-700 text-white px-3 py-1.5 hover:bg-red-800 disabled:opacity-50"
+        className="text-xs rounded-full bg-red-700 text-white px-3 py-1.5 hover:bg-red-800 disabled:opacity-50"
       >
         הסר
       </button>

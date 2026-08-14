@@ -39,7 +39,7 @@ export default async function MatchesPage() {
               <Link
                 key={m.id}
                 href={`/matches/${m.id}`}
-                className="block rounded-lg border border-neutral-200 bg-white px-6 py-4 hover:border-brand-blue"
+                className="block card px-6 py-4 hover:border-brand-blue"
               >
                 <p className="font-medium">{otherName ?? "משתמש"}</p>
                 <p className="text-sm text-neutral-500">

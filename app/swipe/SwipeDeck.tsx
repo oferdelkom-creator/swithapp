@@ -147,20 +147,20 @@ export default function SwipeDeck({
       <div className="flex gap-2 mb-6 text-sm">
         <button
           onClick={() => setMode("sale")}
-          className={`px-3 py-1.5 rounded-md ${mode === "sale" ? "bg-brand-blue text-white" : "bg-neutral-100"}`}
+          className={mode === "sale" ? "btn-primary" : "btn-secondary"}
         >
           למכירה
         </button>
         <button
           onClick={() => setMode("swap")}
-          className={`px-3 py-1.5 rounded-md ${mode === "swap" ? "bg-brand-blue text-white" : "bg-neutral-100"}`}
+          className={mode === "swap" ? "btn-primary" : "btn-secondary"}
         >
           להחלפה
         </button>
       </div>
 
       {banner && (
-        <div className="mb-4 rounded-md bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">
+        <div className="mb-4 rounded-full bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">
           {banner}{" "}
           <Link href="/matches" className="underline">
             למסך ההתאמות
@@ -170,11 +170,11 @@ export default function SwipeDeck({
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {mode === "swap" && (lat === null || lon === null) ? (
-        <div className="rounded-lg border border-neutral-200 bg-white p-6 text-center">
+        <div className="card p-6 text-center">
           <p className="text-sm text-neutral-600 mb-4">כדי לראות רכבים להחלפה לפי מרחק, יש לשתף מיקום.</p>
           <button
             onClick={requestLocation}
-            className="rounded-md bg-brand-blue text-white px-4 py-2 text-sm"
+            className="rounded-full bg-brand-blue text-white px-4 py-2 text-sm"
           >
             שיתוף מיקום
           </button>
@@ -200,7 +200,7 @@ function SwipeCard({
   const photo = candidate.photo_urls?.[0];
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+    <div className="card overflow-hidden">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photo} alt={`${candidate.make} ${candidate.model}`} className="w-full h-56 object-cover" />
@@ -228,13 +228,13 @@ function SwipeCard({
         <div className="flex gap-3 mt-5">
           <button
             onClick={() => onSwipe("left")}
-            className="flex-1 rounded-md bg-neutral-100 text-neutral-700 px-4 py-2.5"
+            className="flex-1 rounded-full bg-neutral-100 text-neutral-700 px-4 py-2.5"
           >
             דילוג
           </button>
           <button
             onClick={() => onSwipe("right")}
-            className="flex-1 rounded-md bg-brand-blue text-white px-4 py-2.5"
+            className="flex-1 rounded-full bg-brand-blue text-white px-4 py-2.5"
           >
             מעניין אותי
           </button>

@@ -37,7 +37,7 @@ export default async function LikesPage() {
       <h1 className="text-2xl font-semibold mb-6">מי אהב אותך</h1>
 
       {!isPremium ? (
-        <div className="rounded-lg border border-neutral-200 bg-white p-6 text-center">
+        <div className="card p-6 text-center">
           <p className="text-sm text-neutral-600">
             הצפייה במי שסיווייפ ימינה עליך זמינה למשתמשי פרימיום בלבד. אין עדיין תשלום עצמאי
             באפליקציה - פנו לתמיכה כדי לשדרג.
@@ -48,7 +48,7 @@ export default async function LikesPage() {
           {likes.map((l) => (
             <div
               key={l.from_user_id + l.car_id}
-              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-6 py-4"
+              className="flex items-center justify-between card px-6 py-4"
             >
               <div>
                 <p className="font-medium">{l.from_user_name}</p>

@@ -55,7 +55,7 @@ export default async function AdminPage() {
         <div className="space-y-3">
           {reports?.length ? (
             reports.map((r) => (
-              <div key={r.id} className="rounded-lg border border-neutral-200 bg-white px-6 py-5">
+              <div key={r.id} className="card px-6 py-5">
                 <p className="text-sm text-neutral-500">
                   מאת {r.sender?.name ?? "לא ידוע"} · {new Date(r.created_at).toLocaleString("he-IL")}
                 </p>
@@ -133,7 +133,7 @@ export default async function AdminPage() {
           {cars?.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-6 py-4"
+              className="flex items-center justify-between card px-6 py-4"
             >
               <div>
                 <p className="font-medium">

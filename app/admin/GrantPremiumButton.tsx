@@ -24,7 +24,7 @@ export default function GrantPremiumButton({ userId }: { userId: string }) {
     <button
       onClick={grant}
       disabled={loading}
-      className="text-xs rounded-md bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
+      className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
     >
       פרימיום ל-30 יום
     </button>

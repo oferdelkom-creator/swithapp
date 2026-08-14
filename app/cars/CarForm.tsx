@@ -82,7 +82,7 @@ export default function CarForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+    <form onSubmit={handleSubmit} className="card space-y-4 p-5">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">יצרן</label>
@@ -90,7 +90,7 @@ export default function CarForm() {
             required
             value={make}
             onChange={(e) => setMake(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           />
         </div>
         <div>
@@ -99,7 +99,7 @@ export default function CarForm() {
             required
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           />
         </div>
         <div>
@@ -108,7 +108,7 @@ export default function CarForm() {
             type="number"
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           />
         </div>
         <div>
@@ -117,7 +117,7 @@ export default function CarForm() {
             type="number"
             value={mileage}
             onChange={(e) => setMileage(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           />
         </div>
         <div>
@@ -125,7 +125,7 @@ export default function CarForm() {
           <select
             value={transmission}
             onChange={(e) => setTransmission(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           >
             <option value="Automatic">אוטומט</option>
             <option value="Manual">ידני</option>
@@ -136,7 +136,7 @@ export default function CarForm() {
           <select
             value={fuelType}
             onChange={(e) => setFuelType(e.target.value as FuelType)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           >
             <option value="">-</option>
             {FUEL_TYPES.map((f) => (
@@ -151,7 +151,7 @@ export default function CarForm() {
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value as CarRegion)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           >
             <option value="">-</option>
             {REGIONS.map((r) => (
@@ -167,7 +167,7 @@ export default function CarForm() {
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="field"
           />
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function CarForm() {
             <input
               value={wantMake}
               onChange={(e) => setWantMake(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2"
+              className="field"
             />
           </div>
           <div>
@@ -198,7 +198,7 @@ export default function CarForm() {
             <input
               value={wantModel}
               onChange={(e) => setWantModel(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2"
+              className="field"
             />
           </div>
         </div>
@@ -206,11 +206,7 @@ export default function CarForm() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-md bg-brand-blue text-white px-4 py-2 text-sm disabled:opacity-50"
-      >
+      <button type="submit" disabled={loading} className="btn-primary">
         {loading ? "מוסיף..." : "הוספת מודעה"}
       </button>
     </form>

@@ -8,62 +8,23 @@ export default async function HomePage() {
     supabase.auth.getUser(),
   ]);
 
-  const profile = auth.user
-    ? (
-        await supabase
-          .from("users")
-          .select("is_admin, role")
-          .eq("id", auth.user.id)
-          .maybeSingle<{ is_admin: boolean; role: string }>()
-      ).data
-    : null;
-  const isAdmin = profile?.is_admin ?? false;
-  const isBusiness = profile?.role === "dealer" || profile?.role === "importer";
-
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-brand-blue-dark">SwitchApp</h1>
-        <nav className="flex gap-4 text-sm">
-          {auth.user ? (
-            <>
-              <Link href="/swipe" className="underline text-brand-blue">
-                סווייפ
-              </Link>
-              <Link href="/cars" className="underline text-brand-blue">
-                הרכבים שלי
-              </Link>
-              <Link href="/matches" className="underline text-brand-blue">
-                התאמות
-              </Link>
-              <Link href="/likes" className="underline text-brand-blue">
-                מי אהב אותך
-              </Link>
-              {isBusiness && (
-                <Link href="/business" className="underline text-brand-blue">
-                  חשבון עסקי
-                </Link>
-              )}
-              {isAdmin && (
-                <Link href="/admin" className="underline text-brand-blue">
-                  אדמין
-                </Link>
-              )}
-            </>
-          ) : (
-            <Link href="/login" className="underline text-brand-blue">
-              התחברות
-            </Link>
-          )}
-        </nav>
-      </div>
-      <p className="mt-2 text-neutral-600">
+    <div className="mx-auto max-w-2xl px-6 py-16 text-center">
+      <h1 className="text-4xl font-bold text-brand-blue-dark tracking-tight">SwitchApp</h1>
+      <p className="mt-3 text-lg text-muted">
         סווייפ ימינה או שמאלה כדי למכור, לקנות או להחליף רכב עם בעלים אחרים.
       </p>
 
-      <div className="mt-8 rounded-lg border border-neutral-200 bg-white p-6">
-        <p className="text-sm text-neutral-500">
-          מחובר ל-Supabase (switchapp) — {count ?? 0} רכבים רשומים כרגע.
+      <div className="mt-8">
+        <Link href={auth.user ? "/swipe" : "/login"} className="btn-primary text-base px-6 py-3">
+          {auth.user ? "למסך הסווייפ" : "בואו נתחיל"}
+        </Link>
+      </div>
+
+      <div className="mt-12 card px-6 py-4 inline-block">
+        <p className="text-sm text-muted">
+          מחובר ל-Supabase (switchapp) — <span className="font-medium text-foreground">{count ?? 0}</span>{" "}
+          רכבים רשומים כרגע.
         </p>
       </div>
     </div>

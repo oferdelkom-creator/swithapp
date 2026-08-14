@@ -90,7 +90,7 @@ export default function ChatThread({
         </button>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white h-96 overflow-y-auto p-4 space-y-2">
+      <div className="card h-96 overflow-y-auto p-4 space-y-2">
         {messages
           .filter((m) => m.kind !== "report")
           .map((m) => (
@@ -117,13 +117,9 @@ export default function ChatThread({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="הודעה..."
-          className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          className="field flex-1"
         />
-        <button
-          type="submit"
-          disabled={sending}
-          className="rounded-md bg-brand-blue text-white px-4 py-2 text-sm disabled:opacity-50"
-        >
+        <button type="submit" disabled={sending} className="btn-primary">
           שליחה
         </button>
       </form>

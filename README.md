@@ -84,6 +84,17 @@ functional Tailwind defaults only):
   subscription date) pointing them at manual renewal, since there's no self-serve
   payment yet.
 
+**Design pass** (the last requested item):
+- `components/Header.tsx`: a shared, sticky nav rendered once in the root layout instead
+  of each page inventing its own links (most inner pages - `/cars`, `/swipe`, `/matches`,
+  `/admin`, etc - previously had *no* way back except typing a URL).
+- `app/globals.css`: a real token set (`background`/`foreground`/`surface`/`border`/
+  `muted` alongside the existing brand-blue/orange) and reusable component classes -
+  `.card`, `.btn-primary`/`.btn-secondary`/`.btn-danger`, `.field` - applied across every
+  screen built above, replacing one-off Tailwind strings repeated per file.
+- Landing page rebuilt as an actual hero (headline, one CTA that goes straight to
+  `/swipe` or `/login`) instead of a debug-looking connection-check line.
+
 **Not built yet:** car-listing edit, photo upload, an actual payment gateway (everything
 billing-related is admin-granted for now). See "Next steps".
 
@@ -152,8 +163,9 @@ Roughly in build order:
 4. ~~Matches list + realtime chat + mutual phone-reveal + report action.~~ Done.
 5. ~~Premium ("who liked you", swipe cap UI) + dealer/importer billing (admin-granted,
    no payment gateway).~~ Done.
-6. Design pass (requested last, on purpose) - brand palette, real visual design across
-   every screen above, replacing the plain Tailwind defaults.
+6. ~~Design pass - shared header/nav, real color/component tokens, hero landing page.~~
+   Done. Still a first pass, not a full brand identity (no logo, no illustration, no
+   dark mode) - see below.
 7. Car-listing edit, photo upload (needs a Supabase storage bucket that doesn't exist
    yet), an actual payment gateway.
 

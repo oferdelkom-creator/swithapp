@@ -35,13 +35,13 @@ export default async function CarsPage() {
         <div className="space-y-4">
           {cars?.length ? (
             cars.map((c) => (
-              <div key={c.id} className="rounded-lg border border-neutral-200 bg-white p-5">
+              <div key={c.id} className="card p-5">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">
                       {c.make} {c.model} {c.year ?? ""}
                     </p>
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted">
                       {c.for_sale ? "למכירה" : ""}
                       {c.for_sale && c.for_swap ? " · " : ""}
                       {c.for_swap ? "להחלפה" : ""}

@@ -31,7 +31,7 @@ export default function LikeBackButton({ toUserId, carId }: { toUserId: string; 
     <button
       onClick={likeBack}
       disabled={loading}
-      className="text-xs rounded-md bg-brand-blue text-white px-3 py-1.5 disabled:opacity-50"
+      className="text-xs rounded-full bg-brand-blue text-white px-3 py-1.5 disabled:opacity-50"
     >
       אהבתי בחזרה
     </button>
