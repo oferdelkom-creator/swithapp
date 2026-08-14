@@ -14,7 +14,10 @@ create type car_region as enum (
   'North', 'Haifa', 'Center', 'Tel Aviv', 'Jerusalem', 'Shfela', 'South',
   'Judea and Samaria'
 );
-create type message_kind as enum ('report', 'hello');
+-- 'chat' added 2026-08-14: ordinary between-match messages. 'report' is reserved for
+-- actual user reports (surfaced in /admin); 'hello' is unused in switchapp (leftover
+-- from cross-contamination with a different Supabase project - see README).
+create type message_kind as enum ('report', 'hello', 'chat');
 
 -- ── Tables ───────────────────────────────────────────────────────────────
 
@@ -91,7 +94,7 @@ create table public.messages (
   match_id uuid not null references public.matches (id),
   sender_id uuid not null references public.users (id),
   text text not null,
-  kind message_kind not null default 'report',
+  kind message_kind not null default 'chat',
   created_at timestamptz not null default now()
 );
 

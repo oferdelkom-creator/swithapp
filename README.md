@@ -49,8 +49,20 @@ functional Tailwind defaults only):
   `pg_get_functiondef`). Fixed now - if you called these RPCs from client code using the
   file as written before, the argument names wouldn't have matched.
 
-**Not built yet:** matches list + chat, premium, dealer billing, car-listing edit, photo
-upload. See "Next steps".
+- `/matches`: list of the caller's matches (other side's name, status). `/matches/[id]`:
+  chat thread, realtime (`messages` was already in the `supabase_realtime` publication -
+  confirmed, not changed), plus a mutual "agree to reveal phone" button per side and a
+  "Report" action.
+- **New migrations** `add_chat_message_kind` (adds `'chat'` to the `message_kind` enum)
+  and `default_messages_kind_to_chat` (changes the column default from `'report'` to
+  `'chat'`): the original enum only had `'report'`/`'hello'`, both leftover from the
+  CARBOOK cross-contamination (see below) - using `'report'` as the default meant every
+  ordinary chat message would have silently landed in the admin's reports queue. `'chat'`
+  is now the real default; `'report'` is reserved for actual reports (the chat screen's
+  "Report" button is the first thing that actually inserts one).
+
+**Not built yet:** premium ("who liked you", swipe cap UI), dealer billing, car-listing
+edit, photo upload. See "Next steps".
 
 ## Product concept (reverse-engineered from the schema)
 
@@ -114,8 +126,7 @@ Roughly in build order:
 2. ~~Admin panel (moderation) + the backend flags/policies it needs.~~ Done.
 3. ~~Car listing CRUD (create/delete) + swipe deck (sale and swap modes).~~ Done -
    edit and photo upload still missing, see above.
-4. Matches list + chat (`messages`), with the mutual phone-reveal flow
-   (`user_contacts` + `user_a_agreed_to_call`/`user_b_agreed_to_call`).
+4. ~~Matches list + realtime chat + mutual phone-reveal + report action.~~ Done.
 5. Premium: "who liked you" screen (`get_incoming_likes()`), swipe cap UI, upgrade flow.
 6. Dealer/importer billing (`billing_plan`, `subscription_valid_until`,
    `listing_fee_paid`, `boosted_until` for paid listing boosts).

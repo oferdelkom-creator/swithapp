@@ -12,7 +12,7 @@ export type CarRegion =
   | "Judea and Samaria";
 export type MatchStatus = "negotiating" | "closed";
 export type SwipeDirection = "left" | "right";
-export type MessageKind = "report" | "hello";
+export type MessageKind = "report" | "hello" | "chat";
 
 export interface AppUser {
   id: string;

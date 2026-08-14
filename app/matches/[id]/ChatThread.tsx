@@ -1,0 +1,132 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Message } from "@/lib/types";
+
+export default function ChatThread({
+  matchId,
+  myId,
+  initialMessages,
+  myAgreedToCall,
+  isUserA,
+}: {
+  matchId: string;
+  myId: string;
+  otherId: string;
+  initialMessages: Message[];
+  myAgreedToCall: boolean;
+  isUserA: boolean;
+}) {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [agreed, setAgreed] = useState(myAgreedToCall);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`match-${matchId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
+        (payload) => {
+          const incoming = payload.new as Message;
+          setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [matchId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function send() {
+    if (!text.trim()) return;
+    setSending(true);
+    const supabase = createClient();
+    const body = text;
+    setText("");
+    const { data } = await supabase
+      .from("messages")
+      .insert({ match_id: matchId, sender_id: myId, text: body, kind: "chat" })
+      .select()
+      .single();
+    if (data) setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data as Message]));
+    setSending(false);
+  }
+
+  async function agreeToCall() {
+    const supabase = createClient();
+    const field = isUserA ? "user_a_agreed_to_call" : "user_b_agreed_to_call";
+    await supabase.from("matches").update({ [field]: true }).eq("id", matchId);
+    setAgreed(true);
+  }
+
+  async function reportUser() {
+    const reason = prompt("מה הבעיה? (הדיווח יישלח לאדמין)");
+    if (!reason) return;
+    const supabase = createClient();
+    await supabase.from("messages").insert({ match_id: matchId, sender_id: myId, text: reason, kind: "report" });
+    alert("הדיווח נשלח.");
+  }
+
+  return (
+    <div>
+      <div className="flex justify-end gap-3 mb-3 text-xs">
+        {!agreed && (
+          <button onClick={agreeToCall} className="underline text-brand-blue">
+            הסכמה לחשוף טלפון
+          </button>
+        )}
+        <button onClick={reportUser} className="underline text-red-600">
+          דיווח
+        </button>
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white h-96 overflow-y-auto p-4 space-y-2">
+        {messages
+          .filter((m) => m.kind !== "report")
+          .map((m) => (
+            <div
+              key={m.id}
+              className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                m.sender_id === myId ? "bg-brand-blue text-white ms-auto" : "bg-neutral-100"
+              }`}
+            >
+              {m.text}
+            </div>
+          ))}
+        <div ref={bottomRef} />
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+        className="mt-3 flex gap-2"
+      >
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="הודעה..."
+          className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={sending}
+          className="rounded-md bg-brand-blue text-white px-4 py-2 text-sm disabled:opacity-50"
+        >
+          שליחה
+        </button>
+      </form>
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "sale" | "swap";
@@ -126,7 +127,7 @@ export default function SwipeDeck({
           `and(user_a_id.eq.${userId},user_b_id.eq.${candidate.user_id}),and(user_a_id.eq.${candidate.user_id},user_b_id.eq.${userId})`
         )
         .maybeSingle();
-      if (match) setBanner("יש התאמה! אפשר לראות אותה במסך ההתאמות.");
+      if (match) setBanner("יש התאמה!");
     }
 
     setIndex((i) => i + 1);
@@ -150,7 +151,12 @@ export default function SwipeDeck({
       </div>
 
       {banner && (
-        <div className="mb-4 rounded-md bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">{banner}</div>
+        <div className="mb-4 rounded-md bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">
+          {banner}{" "}
+          <Link href="/matches" className="underline">
+            למסך ההתאמות
+          </Link>
+        </div>
       )}
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 

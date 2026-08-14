@@ -29,6 +29,9 @@ export default async function HomePage() {
               <Link href="/cars" className="underline text-brand-blue">
                 הרכבים שלי
               </Link>
+              <Link href="/matches" className="underline text-brand-blue">
+                התאמות
+              </Link>
               {isAdmin && (
                 <Link href="/admin" className="underline text-brand-blue">
                   אדמין
