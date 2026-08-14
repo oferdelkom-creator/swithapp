@@ -26,6 +26,8 @@ export interface AppUser {
   subscription_valid_until: string | null;
   premium_until: string | null;
   accepts_hello_messages: boolean;
+  is_admin: boolean;
+  is_banned: boolean;
   created_at: string;
 }
 
