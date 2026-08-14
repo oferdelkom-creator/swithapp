@@ -30,6 +30,8 @@ create table public.users (
   subscription_valid_until timestamptz,
   premium_until timestamptz,
   accepts_hello_messages boolean not null default true,
+  is_admin boolean not null default false,
+  is_banned boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -190,9 +192,9 @@ create trigger on_swipe_created
   for each row execute function public.handle_new_swipe();
 
 -- RPC: swap-deck candidates near the caller, excluding already-swiped cars.
-create or replace function public.nearby_swap_cars(my_id uuid, my_lat double precision, my_lon double precision)
+create or replace function public.nearby_swap_cars(my_lat double precision, my_lon double precision, my_id uuid)
 returns table (
-  owner_id uuid, owner_name text, owner_lat double precision, owner_lon double precision,
+  user_id uuid, name text, lat double precision, lon double precision,
   distance_km double precision,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
   photo_urls text[], want_make text, want_notes text, price numeric
@@ -229,7 +231,7 @@ create or replace function public.cars_for_sale(
   p_fuel_type fuel_type default null, p_region car_region default null, p_max_hand integer default null
 )
 returns table (
-  owner_id uuid, owner_name text, owner_role user_role,
+  user_id uuid, seller_name text, seller_role user_role,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
   category text, color text, photo_urls text[], price numeric, hand integer,
   fuel_type fuel_type, region car_region
@@ -271,8 +273,8 @@ $$;
 -- RPC: "who liked you" - premium-only, shows right-swipes the caller hasn't reciprocated yet.
 create or replace function public.get_incoming_likes(my_id uuid)
 returns table (
-  from_user_id uuid, name text, car_id uuid, make text, model text, year integer,
-  photo_urls text[], created_at timestamptz
+  from_user_id uuid, from_user_name text, car_id uuid, make text, model text, year integer,
+  photo_urls text[], liked_at timestamptz
 )
 language sql
 stable
@@ -400,3 +402,55 @@ create policy "Users can block someone" on public.blocks
   for insert with check (auth.uid() = blocker_id and blocker_id <> blocked_id);
 create policy "Users can unblock someone" on public.blocks
   for delete using (auth.uid() = blocker_id);
+
+-- ── Admin/auth support (added 2026-08-14, migration add_admin_and_ban_flags) ───────
+
+create or replace function public.is_admin(uid uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select is_admin from public.users where id = uid), false);
+$$;
+
+-- Auto-creates the public.users row on signup (DB trigger, not a client-side insert,
+-- so it can't be skipped or raced by the client).
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.users (id, name, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    'private'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_auth_user();
+
+create policy "Admins can update any user" on public.users
+  for update using (public.is_admin(auth.uid()));
+
+create policy "Admins can delete any car" on public.cars
+  for delete using (public.is_admin(auth.uid()));
+create policy "Admins can update any car" on public.cars
+  for update using (public.is_admin(auth.uid()));
+
+create policy "Admins can view all messages" on public.messages
+  for select using (public.is_admin(auth.uid()));
+create policy "Admins can delete any message" on public.messages
+  for delete using (public.is_admin(auth.uid()));
+
+create policy "Admins can view all matches" on public.matches
+  for select using (public.is_admin(auth.uid()));

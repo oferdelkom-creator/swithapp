@@ -8,13 +8,39 @@ export default async function HomePage() {
     supabase.auth.getUser(),
   ]);
 
+  const isAdmin = auth.user
+    ? (
+        await supabase.from("users").select("is_admin").eq("id", auth.user.id).maybeSingle<{
+          is_admin: boolean;
+        }>()
+      ).data?.is_admin
+    : false;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-brand-blue-dark">SwitchApp</h1>
-        <Link href={auth.user ? "/admin" : "/login"} className="text-sm underline text-brand-blue">
-          {auth.user ? "פאנל אדמין" : "התחברות"}
-        </Link>
+        <nav className="flex gap-4 text-sm">
+          {auth.user ? (
+            <>
+              <Link href="/swipe" className="underline text-brand-blue">
+                סווייפ
+              </Link>
+              <Link href="/cars" className="underline text-brand-blue">
+                הרכבים שלי
+              </Link>
+              {isAdmin && (
+                <Link href="/admin" className="underline text-brand-blue">
+                  אדמין
+                </Link>
+              )}
+            </>
+          ) : (
+            <Link href="/login" className="underline text-brand-blue">
+              התחברות
+            </Link>
+          )}
+        </nav>
       </div>
       <p className="mt-2 text-neutral-600">
         סווייפ ימינה או שמאלה כדי למכור, לקנות או להחליף רכב עם בעלים אחרים.
@@ -25,10 +51,6 @@ export default async function HomePage() {
           מחובר ל-Supabase (switchapp) — {count ?? 0} רכבים רשומים כרגע.
         </p>
       </div>
-
-      <p className="mt-8 text-sm text-neutral-400">
-        זהו שלד ראשוני. מסכי הסווייפ, ההתאמות והצ&apos;אט עדיין לא בנויים — ראו README.
-      </p>
     </div>
   );
 }

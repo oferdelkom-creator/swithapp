@@ -33,9 +33,24 @@ functional Tailwind defaults only):
   - Users table: role, business name, premium status, ban/unban.
   - Car listings: owner, sale/swap flags, price, delete.
 - `lib/types.ts`: TypeScript types matching the schema (including the new columns).
+- `/cars` (own listings): add a car (make/model/year/mileage/transmission/fuel/region/
+  price, `for_sale`/`for_swap`, `want_make`/`want_model` when swapping) and delete it.
+  No edit yet, no photo upload (no storage bucket exists for this project - listings work
+  without photos, the swipe deck just shows a placeholder).
+- `/swipe`: toggles between the two RPCs - `cars_for_sale()` for the sale deck,
+  `nearby_swap_cars()` for the swap deck (prompts for browser geolocation the first time,
+  since that RPC needs `lat`/`lon` and saves it to the user's profile). Swiping right
+  inserts into `swipes`; the existing `handle_new_swipe` trigger decides whether that
+  creates a match, and the deck checks `matches` right after to show an "it's a match"
+  banner.
+- **Correction to `supabase/schema.sql`**: the first pass at reconstructing it had the
+  wrong parameter order for `nearby_swap_cars()` and wrong return-column names for
+  `cars_for_sale()`/`get_incoming_likes()` (guessed instead of read from the live
+  `pg_get_functiondef`). Fixed now - if you called these RPCs from client code using the
+  file as written before, the argument names wouldn't have matched.
 
-**Not built yet:** the actual marketplace UI - car listing CRUD for regular users, the
-swipe deck, matches/chat, premium, dealer billing. See "Next steps".
+**Not built yet:** matches list + chat, premium, dealer billing, car-listing edit, photo
+upload. See "Next steps".
 
 ## Product concept (reverse-engineered from the schema)
 
@@ -97,14 +112,23 @@ Roughly in build order:
 
 1. ~~Auth (signup/login) + `users` profile row creation.~~ Done.
 2. ~~Admin panel (moderation) + the backend flags/policies it needs.~~ Done.
-3. Car listing CRUD for the logged-in user (create/edit/delete own cars, set
-   `for_sale`/`for_swap`/`want_*`).
-4. Swipe deck: two modes (sale browse via `cars_for_sale()`, swap browse via
-   `nearby_swap_cars()`), calling `swipes` insert on each swipe.
-5. Matches list + chat (`messages`), with the mutual phone-reveal flow
+3. ~~Car listing CRUD (create/delete) + swipe deck (sale and swap modes).~~ Done -
+   edit and photo upload still missing, see above.
+4. Matches list + chat (`messages`), with the mutual phone-reveal flow
    (`user_contacts` + `user_a_agreed_to_call`/`user_b_agreed_to_call`).
-6. Premium: "who liked you" screen (`get_incoming_likes()`), swipe cap UI, upgrade flow.
-7. Dealer/importer billing (`billing_plan`, `subscription_valid_until`,
+5. Premium: "who liked you" screen (`get_incoming_likes()`), swipe cap UI, upgrade flow.
+6. Dealer/importer billing (`billing_plan`, `subscription_valid_until`,
    `listing_fee_paid`, `boosted_until` for paid listing boosts).
-8. Design pass (requested last, on purpose) - brand palette, real visual design across
+7. Design pass (requested last, on purpose) - brand palette, real visual design across
    every screen above, replacing the plain Tailwind defaults.
+
+## Note on testing in this environment
+
+I could not run a live functional test of `/login`, `/cars`, `/swipe`, or `/admin`
+against the real Supabase project from the sandbox this was built in - outbound network
+calls to `supabase.co` are blocked by its network policy (confirmed both via direct curl
+and via the app's own server-side calls, which silently returned empty/zero results
+instead of erroring). `npm run build`, `tsc --noEmit`, and `eslint` all pass clean, and
+the Supabase schema/RPC signatures were verified independently via the Supabase
+management API (not blocked). Worth clicking through by hand once deployed or run
+locally before trusting it fully.
