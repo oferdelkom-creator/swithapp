@@ -8,13 +8,17 @@ export default async function HomePage() {
     supabase.auth.getUser(),
   ]);
 
-  const isAdmin = auth.user
+  const profile = auth.user
     ? (
-        await supabase.from("users").select("is_admin").eq("id", auth.user.id).maybeSingle<{
-          is_admin: boolean;
-        }>()
-      ).data?.is_admin
-    : false;
+        await supabase
+          .from("users")
+          .select("is_admin, role")
+          .eq("id", auth.user.id)
+          .maybeSingle<{ is_admin: boolean; role: string }>()
+      ).data
+    : null;
+  const isAdmin = profile?.is_admin ?? false;
+  const isBusiness = profile?.role === "dealer" || profile?.role === "importer";
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -32,6 +36,14 @@ export default async function HomePage() {
               <Link href="/matches" className="underline text-brand-blue">
                 התאמות
               </Link>
+              <Link href="/likes" className="underline text-brand-blue">
+                מי אהב אותך
+              </Link>
+              {isBusiness && (
+                <Link href="/business" className="underline text-brand-blue">
+                  חשבון עסקי
+                </Link>
+              )}
               {isAdmin && (
                 <Link href="/admin" className="underline text-brand-blue">
                   אדמין

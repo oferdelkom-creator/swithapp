@@ -110,14 +110,23 @@ export default function SwipeDeck({
     const candidate = deck[index];
     if (!candidate) return;
     setBanner(null);
+    setError(null);
     const supabase = createClient();
 
-    await supabase.from("swipes").insert({
+    const { error: swipeError } = await supabase.from("swipes").insert({
       from_user_id: userId,
       to_user_id: candidate.user_id,
       car_id: candidate.car_id,
       direction,
     });
+
+    if (swipeError) {
+      // RLS doesn't distinguish *why* the insert was blocked, but the daily-cap check
+      // is the only one a normal free user hits in practice (role/ownership checks
+      // shouldn't fail for candidates the deck itself returned).
+      setError("הגעת למכסת הסווייפים היומית. שדרוג לפרימיום מסיר את ההגבלה - פנו לתמיכה.");
+      return;
+    }
 
     if (direction === "right") {
       const { data: match } = await supabase

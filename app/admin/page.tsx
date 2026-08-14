@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AppUser, Car, Message } from "@/lib/types";
 import UserBanButton from "./UserBanButton";
-import CarDeleteButton from "./CarDeleteButton";
+import GrantPremiumButton from "./GrantPremiumButton";
+import ActivateSubscriptionButton from "./ActivateSubscriptionButton";
+import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
 
 type CarRow = Car & { users: { name: string } | null };
@@ -77,6 +79,7 @@ export default async function AdminPage() {
                 <th className="py-2 pe-4">תפקיד</th>
                 <th className="py-2 pe-4">עסק</th>
                 <th className="py-2 pe-4">פרימיום עד</th>
+                <th className="py-2 pe-4">מנוי עד</th>
                 <th className="py-2 pe-4">נרשם</th>
                 <th className="py-2 pe-4">סטטוס</th>
                 <th className="py-2"></th>
@@ -91,6 +94,11 @@ export default async function AdminPage() {
                   <td className="py-2 pe-4">
                     {u.premium_until ? new Date(u.premium_until).toLocaleDateString("he-IL") : "-"}
                   </td>
+                  <td className="py-2 pe-4">
+                    {u.subscription_valid_until
+                      ? new Date(u.subscription_valid_until).toLocaleDateString("he-IL")
+                      : "-"}
+                  </td>
                   <td className="py-2 pe-4">{new Date(u.created_at).toLocaleDateString("he-IL")}</td>
                   <td className="py-2 pe-4">
                     {u.is_admin ? (
@@ -102,7 +110,15 @@ export default async function AdminPage() {
                     )}
                   </td>
                   <td className="py-2">
-                    {!u.is_admin && <UserBanButton userId={u.id} isBanned={u.is_banned} />}
+                    {!u.is_admin && (
+                      <div className="flex gap-2">
+                        <UserBanButton userId={u.id} isBanned={u.is_banned} />
+                        {u.role === "private" && <GrantPremiumButton userId={u.id} />}
+                        {(u.role === "dealer" || u.role === "importer") && (
+                          <ActivateSubscriptionButton userId={u.id} />
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -130,7 +146,11 @@ export default async function AdminPage() {
                   {c.price ? ` · ₪${c.price}` : ""}
                 </p>
               </div>
-              <CarDeleteButton carId={c.id} />
+              <CarAdminActions
+                carId={c.id}
+                listingFeePaid={c.listing_fee_paid}
+                boostedUntil={c.boosted_until}
+              />
             </div>
           ))}
         </div>

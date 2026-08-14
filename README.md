@@ -61,8 +61,31 @@ functional Tailwind defaults only):
   is now the real default; `'report'` is reserved for actual reports (the chat screen's
   "Report" button is the first thing that actually inserts one).
 
-**Not built yet:** premium ("who liked you", swipe cap UI), dealer billing, car-listing
-edit, photo upload. See "Next steps".
+- `/likes` ("who liked you"): premium-gated read of `get_incoming_likes()`; non-premium
+  users see an upsell message instead of a silently-empty list (the RPC itself just
+  filters non-premium callers to zero rows, so the page checks `premium_until` itself to
+  tell "no likes yet" apart from "not premium"). "Like back" inserts a right-swipe.
+- Swipe cap: the deck now catches the RLS failure when a free user hits the 20/day limit
+  and shows a real message instead of silently doing nothing.
+- **Two more security fixes, same shape as the admin migration** - found while wiring up
+  premium/billing, fixed before building anything on top of them:
+  - `protect_privileged_user_columns` (trigger on `users`): the existing "update own
+    profile" policy has no column restriction, so any signed-in user could have set
+    `is_admin`, `is_banned`, `premium_until`, or `subscription_valid_until` on themselves
+    via a plain client call. Now blocked unless the actor is already an admin.
+  - `protect_privileged_car_columns` (trigger on `cars`): same gap for
+    `listing_fee_paid`/`boosted_until` - an owner could have self-marked their listing
+    fee paid or self-boosted. Same fix.
+- Premium/subscription grants are admin-only for now (no payment gateway, same gap
+  hotel-trust has): `/admin` gets "פרימיום ל-30 יום" per private user and "הפעלת מנוי
+  ל-30 יום" per dealer/importer, plus per-car "listing fee paid" and "boost 7 days"
+  toggles.
+- `/business`: read-only billing status page for dealer/importer users (plan, active
+  subscription date) pointing them at manual renewal, since there's no self-serve
+  payment yet.
+
+**Not built yet:** car-listing edit, photo upload, an actual payment gateway (everything
+billing-related is admin-granted for now). See "Next steps".
 
 ## Product concept (reverse-engineered from the schema)
 
@@ -127,11 +150,12 @@ Roughly in build order:
 3. ~~Car listing CRUD (create/delete) + swipe deck (sale and swap modes).~~ Done -
    edit and photo upload still missing, see above.
 4. ~~Matches list + realtime chat + mutual phone-reveal + report action.~~ Done.
-5. Premium: "who liked you" screen (`get_incoming_likes()`), swipe cap UI, upgrade flow.
-6. Dealer/importer billing (`billing_plan`, `subscription_valid_until`,
-   `listing_fee_paid`, `boosted_until` for paid listing boosts).
-7. Design pass (requested last, on purpose) - brand palette, real visual design across
+5. ~~Premium ("who liked you", swipe cap UI) + dealer/importer billing (admin-granted,
+   no payment gateway).~~ Done.
+6. Design pass (requested last, on purpose) - brand palette, real visual design across
    every screen above, replacing the plain Tailwind defaults.
+7. Car-listing edit, photo upload (needs a Supabase storage bucket that doesn't exist
+   yet), an actual payment gateway.
 
 ## Note on testing in this environment
 

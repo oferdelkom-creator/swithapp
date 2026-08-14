@@ -457,3 +457,55 @@ create policy "Admins can delete any message" on public.messages
 
 create policy "Admins can view all matches" on public.matches
   for select using (public.is_admin(auth.uid()));
+
+-- ── Column-level protection (added 2026-08-14, migration protect_privileged_user_columns)
+
+-- "Users can update their own profile" above has no column restriction, so without this
+-- a signed-in user could self-promote to admin or self-grant premium via a plain client
+-- update call. Blocks non-admins from touching these columns on any update, including
+-- their own row.
+create or replace function public.protect_privileged_user_columns()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    if new.is_admin is distinct from old.is_admin
+       or new.is_banned is distinct from old.is_banned
+       or new.premium_until is distinct from old.premium_until
+       or new.subscription_valid_until is distinct from old.subscription_valid_until then
+      raise exception 'Only an admin can change these fields';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger before_users_update_protect
+  before update on public.users
+  for each row execute function public.protect_privileged_user_columns();
+
+-- Same gap on cars: "Users can update their own car" has no column restriction, so an
+-- owner could self-set listing_fee_paid or boosted_until, bypassing admin-only billing.
+create or replace function public.protect_privileged_car_columns()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    if new.listing_fee_paid is distinct from old.listing_fee_paid
+       or new.boosted_until is distinct from old.boosted_until then
+      raise exception 'Only an admin can change these fields';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger before_cars_update_protect
+  before update on public.cars
+  for each row execute function public.protect_privileged_car_columns();
