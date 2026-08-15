@@ -25,7 +25,7 @@ export default async function CarsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold mb-1">{t("cars.title")}</h1>
+        <h1 className="text-2xl font-bold mb-1">{t("cars.title")}</h1>
         <p className="text-neutral-500">{t("cars.subtitle")}</p>
       </div>
 
@@ -39,7 +39,10 @@ export default async function CarsPage() {
         <div className="space-y-4">
           {cars?.length ? (
             cars.map((c) => (
-              <div key={c.id} className={`card p-5 flex items-start gap-4 ${c.sold_at ? "opacity-60" : ""}`}>
+              <div
+                key={c.id}
+                className={`rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white p-5 flex items-start gap-4 ${c.sold_at ? "opacity-60" : ""}`}
+              >
                 {c.photo_urls?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.photo_urls[0]} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" />
