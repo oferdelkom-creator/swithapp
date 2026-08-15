@@ -301,7 +301,7 @@ export default function SwipeDeck({
         <>
           <div className="relative h-[65vh] max-h-[560px] min-h-[380px]">
             {peek && (
-              <div className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
+              <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
                 <CardVisual candidate={peek} />
               </div>
             )}
@@ -340,16 +340,18 @@ export default function SwipeDeck({
 
 function CardVisual({ candidate }: { candidate: Candidate }) {
   const { t } = useLocale();
+  const [broken, setBroken] = useState(false);
   const photo = candidate.photo_urls?.[0];
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-xl bg-neutral-200">
-      {photo ? (
+      {photo && !broken ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={photo}
           alt={`${candidate.make} ${candidate.model}`}
           draggable={false}
+          onError={() => setBroken(true)}
           className="absolute inset-0 w-full h-full object-cover select-none"
         />
       ) : (
