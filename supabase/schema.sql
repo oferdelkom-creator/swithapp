@@ -89,6 +89,12 @@ create table public.cars (
   want_notes text,
   listing_fee_paid boolean not null default false,
   boosted_until timestamptz,
+  -- Added 2026-08-15 (migration add_sold_at_to_cars) - there was previously no way to
+  -- mark a listing sold. Owner-settable, unlike listing_fee_paid/boosted_until below
+  -- (not added to protect_privileged_car_columns' blocklist). MarkSoldButton also
+  -- flips for_sale/for_swap off, which is what actually drops it out of
+  -- cars_for_sale()/nearby_swap_cars() - no RPC changes needed for this.
+  sold_at timestamptz,
   is_seed boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

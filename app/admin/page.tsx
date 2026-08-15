@@ -157,9 +157,16 @@ export default async function AdminPage() {
                   {c.make} {c.model} {c.year ?? ""}
                 </p>
                 <p className="text-sm text-neutral-500">
-                  {c.users?.name ?? t("admin.unknown")} · {c.for_sale ? t("cars.forSale") : ""}
-                  {c.for_sale && c.for_swap ? " / " : ""}
-                  {c.for_swap ? t("cars.forSwap") : ""}
+                  {c.users?.name ?? t("admin.unknown")} ·{" "}
+                  {c.sold_at ? (
+                    <span className="text-neutral-700 font-medium">{t("cars.sold")}</span>
+                  ) : (
+                    <>
+                      {c.for_sale ? t("cars.forSale") : ""}
+                      {c.for_sale && c.for_swap ? " / " : ""}
+                      {c.for_swap ? t("cars.forSwap") : ""}
+                    </>
+                  )}
                   {c.price ? ` · ₪${c.price}` : ""}
                 </p>
               </div>

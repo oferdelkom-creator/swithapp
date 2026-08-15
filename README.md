@@ -303,6 +303,19 @@ Further follow-up feedback, in order:
   - `DraggableCard` gained a third exit direction (`"up"`, mapped to `'maybe'`) with its
     own translateY-and-fade animation, alongside the existing left/right translateX
     exits.
+- **Leftward drag not registering** ("swipe only gives green via drag, red only via
+  tap"). The browser's own edge-swipe-back/forward gesture was almost certainly
+  intercepting a leftward drag before our pointer handlers finished, since only
+  rightward drags reliably completed. Switched `touch-action` on the draggable card
+  from `pan-y` to `none` (hands *all* touch interpretation to our own pointer events,
+  not just the vertical axis) and added `overscroll-behavior-x: none`/`contain` as a
+  second layer against the same conflict.
+- **"Is there a way to mark a car as sold?"** There wasn't. Added `cars.sold_at`
+  (migration `add_sold_at_to_cars`) and a "Mark as sold" button in `/cars` - it also
+  flips `for_sale`/`for_swap` off, which is what actually removes it from
+  `cars_for_sale()`/`nearby_swap_cars()` (no RPC changes needed). Sold listings show a
+  "Sold" badge and dim slightly in both `/cars` and `/admin` instead of disappearing -
+  existing matches/chat history on that car are untouched.
 
 ## Status (as of 2026-08-14)
 

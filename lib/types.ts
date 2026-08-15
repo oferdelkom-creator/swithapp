@@ -71,6 +71,7 @@ export interface Car {
   want_notes: string | null;
   listing_fee_paid: boolean;
   boosted_until: string | null;
+  sold_at: string | null;
   is_seed: boolean;
   created_at: string;
   updated_at: string;

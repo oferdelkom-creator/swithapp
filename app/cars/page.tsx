@@ -5,6 +5,7 @@ import { getT } from "@/lib/i18n/server";
 import type { Car } from "@/lib/types";
 import CarForm from "./CarForm";
 import DeleteCarButton from "./DeleteCarButton";
+import MarkSoldButton from "./MarkSoldButton";
 
 export default async function CarsPage() {
   const supabase = await createClient();
@@ -38,7 +39,7 @@ export default async function CarsPage() {
         <div className="space-y-4">
           {cars?.length ? (
             cars.map((c) => (
-              <div key={c.id} className="card p-5 flex items-start gap-4">
+              <div key={c.id} className={`card p-5 flex items-start gap-4 ${c.sold_at ? "opacity-60" : ""}`}>
                 {c.photo_urls?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.photo_urls[0]} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" />
@@ -51,6 +52,10 @@ export default async function CarsPage() {
                       {c.make} {c.model} {c.year ?? ""}
                     </p>
                     <p className="text-sm text-muted">
+                      {c.sold_at && (
+                        <span className="text-neutral-700 font-medium">{t("cars.sold")}</span>
+                      )}
+                      {c.sold_at && (c.for_sale || c.for_swap) ? " · " : ""}
                       {c.for_sale ? t("cars.forSale") : ""}
                       {c.for_sale && c.for_swap ? " · " : ""}
                       {c.for_swap ? t("cars.forSwap") : ""}
@@ -64,6 +69,7 @@ export default async function CarsPage() {
                     <Link href={`/cars/${c.id}/edit`} className="text-xs text-brand-blue underline">
                       {t("cars.edit")}
                     </Link>
+                    {!c.sold_at && <MarkSoldButton carId={c.id} />}
                     <DeleteCarButton carId={c.id} />
                   </div>
                 </div>
