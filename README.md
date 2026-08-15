@@ -8,6 +8,16 @@ Next.js (App Router, TypeScript, Tailwind) + Supabase.
 Vercel tools available couldn't set them); it runs on the fallback Supabase config in
 `lib/supabase/config.ts` instead - see that file's comment.
 
+## Internationalization
+
+English is the default language; Hebrew is fully supported and a click away (EN/עב
+toggle in the header). First visit picks a locale from the browser's `Accept-Language`
+header (closest available proxy to "location of use" without a geo-IP service) and
+defaults to English if nothing matches; after that, an explicit cookie (`locale`) wins.
+Everything - every screen, every button, dates, `car_region`/`fuel_type` labels - runs
+through `lib/i18n/translations.ts`. Adding a third language is one more entry in that
+file's dictionary, nothing else needs to change. See `lib/i18n/` for the implementation.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase
