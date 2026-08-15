@@ -8,10 +8,12 @@ export default function BottomNav({
   isAdmin,
   isBusiness,
   likesCount,
+  unreadMatches,
 }: {
   isAdmin: boolean;
   isBusiness: boolean;
   likesCount: number | null;
+  unreadMatches: number | null;
 }) {
   const { t } = useLocale();
   const pathname = usePathname();
@@ -19,7 +21,7 @@ export default function BottomNav({
   const items = [
     { href: "/swipe", label: t("nav.swipe"), icon: SwipeIcon },
     { href: "/cars", label: t("nav.cars"), icon: CarIcon },
-    { href: "/matches", label: t("nav.matches"), icon: MatchIcon },
+    { href: "/matches", label: t("nav.matches"), icon: MatchIcon, badge: unreadMatches },
     { href: "/likes", label: t("nav.likes"), icon: LikeIcon, badge: likesCount },
     ...(isBusiness ? [{ href: "/business", label: t("nav.business"), icon: BusinessIcon }] : []),
     ...(isAdmin ? [{ href: "/admin", label: t("nav.admin"), icon: AdminIcon }] : []),

@@ -37,6 +37,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const likesCount = user
     ? ((await supabase.rpc("count_incoming_likes", { my_id: user.id })).data as number | null)
     : null;
+  const unreadMatches = user
+    ? ((await supabase.rpc("count_unread_matches", { my_id: user.id })).data as number | null)
+    : null;
 
   return (
     <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className="h-full antialiased">
@@ -44,7 +47,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LocaleProvider locale={locale}>
           <Header loggedIn={!!user} />
           <main className={`flex-1 ${user ? "pb-20" : ""}`}>{children}</main>
-          {user && <BottomNav isAdmin={isAdmin} isBusiness={isBusiness} likesCount={likesCount} />}
+          {user && (
+            <BottomNav
+              isAdmin={isAdmin}
+              isBusiness={isBusiness}
+              likesCount={likesCount}
+              unreadMatches={unreadMatches}
+            />
+          )}
           {user && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
         </LocaleProvider>
       </body>

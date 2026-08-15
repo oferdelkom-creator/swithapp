@@ -455,6 +455,36 @@ anything unspecified):
   details I should guess at. Say the word on any of these and I'll scope it properly
   instead of half-building something and needing to redo it.
 
+## Blocking, matches redesign, unread badge (2026-08-15, later)
+
+Prompted by "take inspiration from Airbnb's account settings / menu / messages screens
+and think about what else could go into Profile and the system" - proposed a
+prioritized list (block users, message previews/unread/filters, a stats dashboard) and
+built the first two on confirmation:
+
+- **Block users - it existed in the schema but did nothing.** `public.blocks` (blocker_id/
+  blocked_id, RLS already correct) had no UI anywhere and nothing actually consulted it.
+  Added a "Block" button next to "Report" in the chat thread
+  (`app/matches/[id]/ChatThread.tsx`) and a "Blocked users" list with unblock on
+  `/profile` (migration `enforce_blocks_in_messages_and_decks`). Wired it in three
+  places: the "Match participants can send messages" RLS policy now also checks neither
+  side has blocked the other, and both `cars_for_sale()`/`nearby_swap_cars()` exclude
+  candidates with a block in either direction - blocking previously had zero effect on
+  any of these.
+- **Matches list redesign** (`app/matches/page.tsx` + new `MatchesList.tsx`), inspired
+  directly by Airbnb's Messages screen: last-message preview under each name, an unread
+  dot, a car-photo thumbnail, and All/Sale/Swap filter tabs (client-side, no refetch -
+  the per-user match list is never large enough to need it). Backed by a new RPC,
+  `get_matches_with_previews()`, and two new per-match columns,
+  `user_a_last_read_at`/`user_b_last_read_at` (migration
+  `add_match_read_tracking_and_preview_rpc`) - each side marks their own copy read on
+  opening the thread (`ChatThread.tsx`, on mount), guarded the same way
+  `agreed_to_call` already was so one side can't clear the other's unread state.
+  `count_unread_matches()` powers a badge on the bottom nav's Matches tab, same pattern
+  as the existing Likes badge.
+- **Deferred for now**: a stats dashboard on `/profile` (likes-received history, listing
+  views) - proposed as the third item but not yet built; happy to pick it up next.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

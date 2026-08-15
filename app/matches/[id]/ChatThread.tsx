@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import type { Message } from "@/lib/types";
@@ -8,6 +9,7 @@ import type { Message } from "@/lib/types";
 export default function ChatThread({
   matchId,
   myId,
+  otherId,
   initialMessages,
   myAgreedToCall,
   isUserA,
@@ -19,12 +21,24 @@ export default function ChatThread({
   myAgreedToCall: boolean;
   isUserA: boolean;
 }) {
+  const router = useRouter();
   const { t } = useLocale();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [agreed, setAgreed] = useState(myAgreedToCall);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const field = isUserA ? "user_a_last_read_at" : "user_b_last_read_at";
+    supabase
+      .from("matches")
+      .update({ [field]: new Date().toISOString() })
+      .eq("id", matchId)
+      .then(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -79,6 +93,18 @@ export default function ChatThread({
     alert(t("chat.reportSent"));
   }
 
+  async function blockUser() {
+    if (!confirm(t("chat.confirmBlock"))) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("blocks").insert({ blocker_id: myId, blocked_id: otherId });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    router.push("/matches");
+    router.refresh();
+  }
+
   return (
     <div>
       <div className="flex justify-end gap-3 mb-3 text-xs">
@@ -89,6 +115,9 @@ export default function ChatThread({
         )}
         <button onClick={reportUser} className="underline text-red-600">
           {t("chat.report")}
+        </button>
+        <button onClick={blockUser} className="underline text-red-600">
+          {t("chat.block")}
         </button>
       </div>
 

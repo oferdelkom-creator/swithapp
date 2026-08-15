@@ -124,6 +124,11 @@ create table public.matches (
   status text not null default 'negotiating' check (status in ('negotiating', 'closed')),
   user_a_agreed_to_call boolean not null default false,
   user_b_agreed_to_call boolean not null default false,
+  -- Added 2026-08-15 (migration add_match_read_tracking_and_preview_rpc) - each side's
+  -- own read receipt. Powers the unread badge on /matches and the bottom-nav Matches
+  -- tab; only the owning side may set their own (see enforce_match_consent_update).
+  user_a_last_read_at timestamptz,
+  user_b_last_read_at timestamptz,
   created_at timestamptz not null default now(),
   unique (user_a_id, user_b_id)
 );
@@ -160,7 +165,9 @@ as $$
   );
 $$;
 
--- Enforces that each side of a match can only set their own "agreed to call" flag.
+-- Enforces that each side of a match can only set their own "agreed to call" flag
+-- (and, added 2026-08-15 migration add_match_read_tracking_and_preview_rpc, their own
+-- last_read_at - otherwise either side could clear the other's unread badge).
 create or replace function public.enforce_match_consent_update()
 returns trigger
 language plpgsql
@@ -174,6 +181,14 @@ begin
   if new.user_b_agreed_to_call is distinct from old.user_b_agreed_to_call
      and auth.uid() <> old.user_b_id then
     raise exception 'Only user_b can set user_b_agreed_to_call';
+  end if;
+  if new.user_a_last_read_at is distinct from old.user_a_last_read_at
+     and auth.uid() <> old.user_a_id then
+    raise exception 'Only user_a can set user_a_last_read_at';
+  end if;
+  if new.user_b_last_read_at is distinct from old.user_b_last_read_at
+     and auth.uid() <> old.user_b_id then
+    raise exception 'Only user_b can set user_b_last_read_at';
   end if;
   return new;
 end;
@@ -292,6 +307,12 @@ as $$
       select 1 from public.swipes s
       where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
     )
+    -- Added 2026-08-15 (migration enforce_blocks_in_messages_and_decks).
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = my_id and b.blocked_id = u.id)
+         or (b.blocker_id = u.id and b.blocked_id = my_id)
+    )
     and (
       (select role from public.users where id = my_id) = 'private'
       or u.role in ('dealer', 'importer')
@@ -348,6 +369,12 @@ as $$
     and not exists (
       select 1 from public.swipes s
       where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
+    )
+    -- Added 2026-08-15 (migration enforce_blocks_in_messages_and_decks).
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = my_id and b.blocked_id = c.user_id)
+         or (b.blocker_id = c.user_id and b.blocked_id = my_id)
     )
     and (
       (select role from public.users where id = my_id) = 'private'
@@ -419,6 +446,93 @@ as $$
       where s2.from_user_id = my_id
         and s2.to_user_id = s.from_user_id
         and s2.direction = 'right'
+    );
+$$;
+
+-- RPC: matches list with a last-message preview, unread flag, and enough car info to
+-- tell sale vs swap deals apart and show a thumbnail (added 2026-08-15, migration
+-- add_match_read_tracking_and_preview_rpc) - the list was a flat name+date table before.
+create or replace function public.get_matches_with_previews(my_id uuid)
+returns table (
+  match_id uuid,
+  other_id uuid,
+  other_name text,
+  status text,
+  created_at timestamptz,
+  my_car_id uuid,
+  my_car_make text,
+  my_car_model text,
+  other_car_id uuid,
+  other_car_make text,
+  other_car_model text,
+  other_car_price numeric,
+  other_car_photo text,
+  last_message_text text,
+  last_message_at timestamptz,
+  last_message_from_me boolean,
+  unread boolean
+)
+language sql
+stable
+as $$
+  select
+    m.id,
+    other.id,
+    other.name,
+    m.status,
+    m.created_at,
+    my_c.id, my_c.make, my_c.model,
+    other_c.id, other_c.make, other_c.model, other_c.price, other_c.photo_urls[1],
+    lm.text,
+    lm.created_at,
+    lm.sender_id = my_id,
+    (
+      lm.created_at is not null
+      and lm.sender_id <> my_id
+      and lm.created_at > coalesce(
+        case when m.user_a_id = my_id then m.user_a_last_read_at else m.user_b_last_read_at end,
+        m.created_at
+      )
+    )
+  from public.matches m
+  join public.users other
+    on other.id = case when m.user_a_id = my_id then m.user_b_id else m.user_a_id end
+  left join public.cars my_c
+    on my_c.id = case when m.user_a_id = my_id then m.user_a_car_id else m.user_b_car_id end
+  left join public.cars other_c
+    on other_c.id = case when m.user_a_id = my_id then m.user_b_car_id else m.user_a_car_id end
+  left join lateral (
+    select msg.text, msg.created_at, msg.sender_id
+    from public.messages msg
+    where msg.match_id = m.id and msg.kind = 'chat'
+    order by msg.created_at desc
+    limit 1
+  ) lm on true
+  where m.user_a_id = my_id or m.user_b_id = my_id
+  order by coalesce(lm.created_at, m.created_at) desc;
+$$;
+
+-- RPC: unread-match count for the bottom-nav Matches badge (added 2026-08-15, same
+-- migration as get_matches_with_previews above).
+create or replace function public.count_unread_matches(my_id uuid)
+returns integer
+language sql
+stable
+as $$
+  select count(distinct m.id)::integer
+  from public.matches m
+  join lateral (
+    select msg.created_at, msg.sender_id
+    from public.messages msg
+    where msg.match_id = m.id and msg.kind = 'chat'
+    order by msg.created_at desc
+    limit 1
+  ) lm on true
+  where (m.user_a_id = my_id or m.user_b_id = my_id)
+    and lm.sender_id <> my_id
+    and lm.created_at > coalesce(
+      case when m.user_a_id = my_id then m.user_a_last_read_at else m.user_b_last_read_at end,
+      m.created_at
     );
 $$;
 
@@ -512,6 +626,8 @@ create policy "Match participants can view messages" on public.messages
         and (m.user_a_id = auth.uid() or m.user_b_id = auth.uid())
     )
   );
+-- Updated 2026-08-15 (migration enforce_blocks_in_messages_and_decks) to also check
+-- neither side has blocked the other - blocking previously had no effect anywhere.
 create policy "Match participants can send messages" on public.messages
   for insert with check (
     auth.uid() = sender_id
@@ -519,6 +635,11 @@ create policy "Match participants can send messages" on public.messages
       select 1 from public.matches m
       where m.id = messages.match_id
         and (m.user_a_id = auth.uid() or m.user_b_id = auth.uid())
+        and not exists (
+          select 1 from public.blocks b
+          where (b.blocker_id = m.user_a_id and b.blocked_id = m.user_b_id)
+             or (b.blocker_id = m.user_b_id and b.blocked_id = m.user_a_id)
+        )
     )
   );
 
