@@ -356,28 +356,37 @@ export default function SwipeDeck({
               <CardVisual candidate={current} />
             </DraggableCard>
 
-            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center gap-4 pointer-events-none">
-              <button
-                onClick={() => cardRef.current?.triggerExit("left")}
-                aria-label={t("swipe.skip")}
-                className="pointer-events-auto w-14 h-14 rounded-full bg-red-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-red-600 transition-transform"
-              >
-                ✕
-              </button>
-              <button
-                onClick={() => cardRef.current?.triggerExit("up")}
-                aria-label={t("swipe.maybe")}
-                className="pointer-events-auto w-12 h-12 self-center rounded-full bg-amber-400 shadow-lg text-white text-lg flex items-center justify-center hover:scale-105 hover:bg-amber-500 transition-transform"
-              >
-                ?
-              </button>
-              <button
-                onClick={() => cardRef.current?.triggerExit("right")}
-                aria-label={t("swipe.interested")}
-                className="pointer-events-auto w-14 h-14 rounded-full bg-emerald-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-emerald-600 transition-transform"
-              >
-                ♥
-              </button>
+            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
+              <div className="pointer-events-auto flex flex-col items-center gap-1">
+                <button
+                  onClick={() => cardRef.current?.triggerExit("left")}
+                  aria-label={t("swipe.skip")}
+                  className="w-14 h-14 rounded-full bg-neutral-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-neutral-500 transition-transform"
+                >
+                  ✕
+                </button>
+                <span className="text-xs font-medium text-neutral-500">{t("swipe.passLabel")}</span>
+              </div>
+              <div className="pointer-events-auto flex flex-col items-center gap-1">
+                <button
+                  onClick={() => cardRef.current?.triggerExit("up")}
+                  aria-label={t("swipe.maybe")}
+                  className="w-12 h-12 rounded-full bg-amber-400 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-500 transition-transform"
+                >
+                  <TradeIcon />
+                </button>
+                <span className="text-xs font-medium text-amber-600">{t("swipe.tradeLabel")}</span>
+              </div>
+              <div className="pointer-events-auto flex flex-col items-center gap-1">
+                <button
+                  onClick={() => cardRef.current?.triggerExit("right")}
+                  aria-label={t("swipe.interested")}
+                  className="w-14 h-14 rounded-full bg-emerald-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-emerald-600 transition-transform"
+                >
+                  ♥
+                </button>
+                <span className="text-xs font-medium text-emerald-600">{t("swipe.buyLabel")}</span>
+              </div>
             </div>
           </div>
         </>
@@ -438,6 +447,15 @@ function CardVisual({ candidate }: { candidate: Candidate }) {
         )}
       </div>
     </div>
+  );
+}
+
+function TradeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h11l-3-3" />
+      <path d="M17 17H6l3 3" />
+    </svg>
   );
 }
 
