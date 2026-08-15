@@ -70,13 +70,19 @@ car's actual owner account, neither of which is available here.
 
 ## Internationalization
 
-English is the default language; Hebrew is fully supported and a click away (EN/עב
-toggle in the header). First visit picks a locale from the browser's `Accept-Language`
-header (closest available proxy to "location of use" without a geo-IP service) and
-defaults to English if nothing matches; after that, an explicit cookie (`locale`) wins.
-Everything - every screen, every button, dates, `car_region`/`fuel_type` labels - runs
-through `lib/i18n/translations.ts`. Adding a third language is one more entry in that
-file's dictionary, nothing else needs to change. See `lib/i18n/` for the implementation.
+English is the default language; Hebrew and Russian are fully supported and a click
+away (EN/עב/RU toggle in the header) - Russian added 2026-08-15 ahead of a planned
+Russia launch. First visit picks a locale from the browser's `Accept-Language` header
+(closest available proxy to "location of use" without a geo-IP service) and defaults to
+English if nothing matches; after that, an explicit cookie (`locale`) wins. Everything -
+every screen, every button, dates, `car_region`/`fuel_type` labels - runs through
+`lib/i18n/translations.ts`. Adding a language is one more entry in that file's
+dictionary (plus `enumLabels.ts` for the region/fuel-type labels and `format.ts` for
+date formatting) - confirmed by actually doing it for Russian rather than just claiming
+it's easy: `tsc` enforces that every locale object has exactly the same keys as `en`, so
+a missing translation is a build failure, not a silent English fallback in production.
+Russian is left-to-right like English, so the existing `dir="rtl"` (Hebrew-only) logic
+in `app/layout.tsx` needed no changes. See `lib/i18n/` for the implementation.
 
 ## Auth, notifications, and a Tinder-style swipe screen (2026-08-15)
 

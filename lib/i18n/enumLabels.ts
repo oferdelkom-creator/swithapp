@@ -14,6 +14,17 @@ const regionLabelsHe: Record<CarRegion, string> = {
   "Judea and Samaria": "יהודה ושומרון",
 };
 
+const regionLabelsRu: Record<CarRegion, string> = {
+  North: "Север",
+  Haifa: "Хайфа",
+  Center: "Центр",
+  "Tel Aviv": "Тель-Авив",
+  Jerusalem: "Иерусалим",
+  Shfela: "Шфела",
+  South: "Юг",
+  "Judea and Samaria": "Иудея и Самария",
+};
+
 const fuelTypeLabelsHe: Record<FuelType, string> = {
   Petrol: "בנזין",
   Diesel: "דיזל",
@@ -22,10 +33,22 @@ const fuelTypeLabelsHe: Record<FuelType, string> = {
   Gas: "גז",
 };
 
+const fuelTypeLabelsRu: Record<FuelType, string> = {
+  Petrol: "Бензин",
+  Diesel: "Дизель",
+  Hybrid: "Гибрид",
+  Electric: "Электро",
+  Gas: "Газ",
+};
+
 export function regionLabel(region: CarRegion, locale: Locale): string {
-  return locale === "he" ? regionLabelsHe[region] : region;
+  if (locale === "he") return regionLabelsHe[region];
+  if (locale === "ru") return regionLabelsRu[region];
+  return region;
 }
 
 export function fuelTypeLabel(fuel: FuelType, locale: Locale): string {
-  return locale === "he" ? fuelTypeLabelsHe[fuel] : fuel;
+  if (locale === "he") return fuelTypeLabelsHe[fuel];
+  if (locale === "ru") return fuelTypeLabelsRu[fuel];
+  return fuel;
 }
