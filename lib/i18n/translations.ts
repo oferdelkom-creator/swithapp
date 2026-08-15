@@ -26,6 +26,10 @@ const en = {
   "login.title": "Sign In",
   "login.subtitle":
     'The same form creates a new account too - if you don’t have one, switch to the "Create Account" tab.',
+  "login.heroTagline": "Swipe. Match. Swap your car.",
+  "login.termsDisclaimer": "By continuing you agree to SwitchApp's terms of use.",
+  "login.continueWithEmail": "Continue with email",
+  "login.backToWelcome": "← Back",
   "login.signIn": "Sign In",
   "login.signUp": "Create Account",
   "login.fullName": "Full Name",
@@ -282,6 +286,10 @@ const he: Record<Key, string> = {
   "login.title": "התחברות",
   "login.subtitle":
     'אותו טופס גם יוצר חשבון חדש - אם אין לך חשבון, עברו ללשונית "יצירת חשבון".',
+  "login.heroTagline": "מחליקים. מתאימים. מחליפים רכב.",
+  "login.termsDisclaimer": "בהמשך אתם מסכימים לתנאי השימוש של SwitchApp.",
+  "login.continueWithEmail": "המשך עם אימייל",
+  "login.backToWelcome": "→ חזרה",
   "login.signIn": "התחברות",
   "login.signUp": "יצירת חשבון",
   "login.fullName": "שם מלא",
@@ -535,6 +543,10 @@ const ru: Record<Key, string> = {
   "login.title": "Вход",
   "login.subtitle":
     'Та же форма создаёт и новый аккаунт — если у вас его ещё нет, переключитесь на вкладку "Создать аккаунт".',
+  "login.heroTagline": "Свайпайте. Находите совпадения. Меняйте авто.",
+  "login.termsDisclaimer": "Продолжая, вы соглашаетесь с условиями использования SwitchApp.",
+  "login.continueWithEmail": "Продолжить с эл. почтой",
+  "login.backToWelcome": "← Назад",
   "login.signIn": "Войти",
   "login.signUp": "Создать аккаунт",
   "login.fullName": "Полное имя",

@@ -19,7 +19,7 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLocale();
-  const [authMethod, setAuthMethod] = useState<"password" | "phone">("password");
+  const [authMethod, setAuthMethod] = useState<"welcome" | "password" | "phone">("welcome");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -129,9 +129,50 @@ export default function LoginForm() {
     }
   }
 
+  if (authMethod === "welcome") {
+    return (
+      <div className="min-h-[calc(100dvh-3.5rem)] bg-gradient-to-b from-brand-blue to-brand-blue-dark flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center text-white">
+          <div className="flex items-center gap-2">
+            <SwapIcon />
+            <span className="text-4xl font-extrabold tracking-tight">SwitchApp</span>
+          </div>
+          <p className="mt-3 text-white/80 text-sm max-w-xs">{t("login.heroTagline")}</p>
+        </div>
+        <div className="px-6 pb-10 space-y-4">
+          <p className="text-center text-[11px] leading-relaxed text-white/70">{t("login.termsDisclaimer")}</p>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="w-full rounded-full bg-white text-neutral-900 py-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-100 transition-colors"
+            >
+              <GoogleIcon />
+              {t("login.continueWithGoogle")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMethod("phone")}
+              className="w-full rounded-full bg-white/15 text-white py-3 text-sm font-medium hover:bg-white/25 transition-colors"
+            >
+              {t("login.continueWithPhone")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMethod("password")}
+              className="w-full rounded-full bg-white/15 text-white py-3 text-sm font-medium hover:bg-white/25 transition-colors"
+            >
+              {t("login.continueWithEmail")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (authMethod === "phone") {
     return (
-      <div className="card p-6">
+      <div className="max-w-md mx-auto px-4 py-16">
         <button
           type="button"
           onClick={() => {
@@ -144,122 +185,154 @@ export default function LoginForm() {
           {t("login.backToEmail")}
         </button>
 
-        {phoneStep === "enter" ? (
-          <form onSubmit={handleSendCode} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">{t("login.phoneNumber")}</label>
-              <input
-                required
-                type="tel"
-                placeholder={t("login.phoneNumberPlaceholder")}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="field"
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? t("login.wait") : t("login.sendCode")}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyCode} className="space-y-4">
-            <p className="text-sm text-muted">{t("login.codeSent", { phone: toE164Israel(phone) })}</p>
-            <div>
-              <label className="block text-sm font-medium mb-1">{t("login.verificationCode")}</label>
-              <input
-                required
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="field"
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? t("login.wait") : t("login.verifyAndContinue")}
-            </button>
-            <button type="button" onClick={() => setPhoneStep("enter")} className="text-sm text-brand-blue">
-              {t("login.changeNumber")}
-            </button>
-          </form>
-        )}
+        <div className="card p-6">
+          {phoneStep === "enter" ? (
+            <form onSubmit={handleSendCode} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">{t("login.phoneNumber")}</label>
+                <input
+                  required
+                  type="tel"
+                  placeholder={t("login.phoneNumberPlaceholder")}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="field"
+                />
+              </div>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-primary w-full">
+                {loading ? t("login.wait") : t("login.sendCode")}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <p className="text-sm text-muted">{t("login.codeSent", { phone: toE164Israel(phone) })}</p>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t("login.verificationCode")}</label>
+                <input
+                  required
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="field"
+                />
+              </div>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-primary w-full">
+                {loading ? t("login.wait") : t("login.verifyAndContinue")}
+              </button>
+              <button type="button" onClick={() => setPhoneStep("enter")} className="text-sm text-brand-blue">
+                {t("login.changeNumber")}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="card p-6">
-      <div className="flex gap-2 mb-6 text-sm">
-        <button
-          type="button"
-          onClick={() => setMode("signin")}
-          className={mode === "signin" ? "btn-primary" : "btn-secondary"}
-        >
-          {t("login.signIn")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={mode === "signup" ? "btn-primary" : "btn-secondary"}
-        >
-          {t("login.signUp")}
-        </button>
-      </div>
+    <div className="max-w-md mx-auto px-4 py-16">
+      <button type="button" onClick={() => setAuthMethod("welcome")} className="text-sm text-brand-blue mb-4">
+        {t("login.backToWelcome")}
+      </button>
+      <h1 className="text-2xl font-semibold mb-2">{t("login.title")}</h1>
+      <p className="text-neutral-500 mb-8 text-sm">{t("login.subtitle")}</p>
+      <div className="card p-6">
+        <div className="flex gap-2 mb-6 text-sm">
+          <button
+            type="button"
+            onClick={() => setMode("signin")}
+            className={mode === "signin" ? "btn-primary" : "btn-secondary"}
+          >
+            {t("login.signIn")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("signup")}
+            className={mode === "signup" ? "btn-primary" : "btn-secondary"}
+          >
+            {t("login.signUp")}
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === "signup" && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("login.fullName")}</label>
+              <input required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium mb-1">{t("login.fullName")}</label>
-            <input required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+            <label className="block text-sm font-medium mb-1">{t("login.email")}</label>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field"
+            />
           </div>
-        )}
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("login.email")}</label>
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="field"
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("login.password")}</label>
+            <input
+              required
+              type="password"
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <button type="submit" disabled={loading} className="btn-primary w-full">
+            {loading ? t("login.wait") : mode === "signup" ? t("login.signUp") : t("login.signIn")}
+          </button>
+        </form>
+
+        <div className="flex items-center gap-3 my-4 text-xs text-muted">
+          <div className="flex-1 border-t border-neutral-200" />
+          {t("login.orContinueWith")}
+          <div className="flex-1 border-t border-neutral-200" />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("login.password")}</label>
-          <input
-            required
-            type="password"
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="field"
-          />
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="btn-secondary w-full flex items-center justify-center gap-2"
+          >
+            <GoogleIcon />
+            {t("login.continueWithGoogle")}
+          </button>
+          <button type="button" onClick={() => setAuthMethod("phone")} className="btn-secondary w-full">
+            {t("login.continueWithPhone")}
+          </button>
         </div>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? t("login.wait") : mode === "signup" ? t("login.signUp") : t("login.signIn")}
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3 my-4 text-xs text-muted">
-        <div className="flex-1 border-t border-neutral-200" />
-        {t("login.orContinueWith")}
-        <div className="flex-1 border-t border-neutral-200" />
-      </div>
-
-      <div className="space-y-2">
-        <button type="button" onClick={handleGoogle} className="btn-secondary w-full flex items-center justify-center gap-2">
-          <GoogleIcon />
-          {t("login.continueWithGoogle")}
-        </button>
-        <button type="button" onClick={() => setAuthMethod("phone")} className="btn-secondary w-full">
-          {t("login.continueWithPhone")}
-        </button>
       </div>
     </div>
+  );
+}
+
+function SwapIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 7h11l-3-3" />
+      <path d="M17 17H6l3 3" />
+    </svg>
   );
 }
 
