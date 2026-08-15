@@ -527,10 +527,10 @@ const ru: Record<Key, string> = {
   "meta.description": "Приложение для продажи и обмена автомобилями по системе свайпов, с учётом вашего местоположения.",
 
   "nav.swipe": "Свайп",
-  "nav.cars": "Мои автомобили",
+  "nav.cars": "Мои авто",
   "nav.matches": "Совпадения",
-  "nav.likes": "Кто вас лайкнул",
-  "nav.business": "Бизнес-аккаунт",
+  "nav.likes": "Лайки",
+  "nav.business": "Бизнес",
   "nav.admin": "Админ",
   "nav.profile": "Профиль",
   "nav.signIn": "Войти",
