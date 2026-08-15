@@ -240,8 +240,17 @@ export default function CarForm({ car }: { car?: Car }) {
             </div>
           ))}
         </div>
-        <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} disabled={uploading} />
-        {uploading && <p className="text-xs text-muted mt-1">{t("carForm.uploading")}</p>}
+        <label className="btn-secondary text-sm cursor-pointer inline-block">
+          {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotoSelect}
+            disabled={uploading}
+            className="hidden"
+          />
+        </label>
       </div>
 
       <div>

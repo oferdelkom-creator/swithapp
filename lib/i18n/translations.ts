@@ -53,6 +53,7 @@ const en = {
   "cars.editTitle": "Edit Listing",
 
   "carForm.photos": "Photos",
+  "carForm.addPhotos": "Add photos",
   "carForm.uploading": "Uploading...",
   "carForm.vehicleType": "Vehicle type",
   "carForm.plateNumber": "License plate number",
@@ -283,6 +284,7 @@ const he: Record<Key, string> = {
   "cars.editTitle": "עריכת מודעה",
 
   "carForm.photos": "תמונות",
+  "carForm.addPhotos": "הוספת תמונות",
   "carForm.uploading": "מעלה...",
   "carForm.vehicleType": "סוג רכב",
   "carForm.plateNumber": "מספר רכב",

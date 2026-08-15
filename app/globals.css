@@ -22,6 +22,15 @@
   --color-muted: var(--muted);
 }
 
+html {
+  /* Safety net: a single overflowing element anywhere on the page (e.g. an
+     unstyled native <input type="file">) can push the whole document wider than
+     the viewport, and in RTL that shows up as the page resting scrolled away
+     from its natural start instead of a visible horizontal scrollbar. Individual
+     wide content (tables, code blocks) should scroll in its own container. */
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
