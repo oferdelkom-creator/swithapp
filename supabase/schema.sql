@@ -35,6 +35,10 @@ create table public.users (
   accepts_hello_messages boolean not null default true,
   is_admin boolean not null default false,
   is_banned boolean not null default false,
+  -- Marks bulk-generated test/demo rows (added 2026-08-15, migration
+  -- add_is_seed_flags_for_test_data) so they can be found and removed later without
+  -- guessing from names/emails. See delete_seed_data() below.
+  is_seed boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -65,6 +69,7 @@ create table public.cars (
   want_notes text,
   listing_fee_paid boolean not null default false,
   boosted_until timestamptz,
+  is_seed boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -564,3 +569,43 @@ $$;
 create trigger before_cars_update_protect
   before update on public.cars
   for each row execute function public.protect_privileged_car_columns();
+
+-- ── Test/seed data support (added 2026-08-15, migration add_is_seed_flags_for_test_data)
+
+create index if not exists users_is_seed_idx on public.users (is_seed) where is_seed;
+create index if not exists cars_is_seed_idx on public.cars (is_seed) where is_seed;
+
+-- One-call cleanup for bulk-generated test users/cars (is_seed = true) - explicitly clears
+-- dependents in FK-safe order (none of swipes/matches/messages/blocks/user_contacts cascade
+-- from auth.users), then deletes auth.users, which cascades to public.users.
+create or replace function public.delete_seed_data()
+returns table (deleted_users integer, deleted_cars integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  seed_ids uuid[];
+  car_count integer;
+  user_count integer;
+begin
+  select array_agg(id) into seed_ids from public.users where is_seed;
+  if seed_ids is null then
+    return query select 0, 0;
+    return;
+  end if;
+
+  delete from public.messages where sender_id = any(seed_ids)
+    or match_id in (select id from public.matches where user_a_id = any(seed_ids) or user_b_id = any(seed_ids));
+  delete from public.matches where user_a_id = any(seed_ids) or user_b_id = any(seed_ids);
+  delete from public.swipes where from_user_id = any(seed_ids) or to_user_id = any(seed_ids);
+  delete from public.blocks where blocker_id = any(seed_ids) or blocked_id = any(seed_ids);
+  delete from public.user_contacts where user_id = any(seed_ids);
+  delete from public.cars where user_id = any(seed_ids);
+  get diagnostics car_count = row_count;
+  delete from auth.users where id = any(seed_ids); -- cascades to public.users and auth.identities
+  get diagnostics user_count = row_count;
+
+  return query select user_count, car_count;
+end;
+$$;

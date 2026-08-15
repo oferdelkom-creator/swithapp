@@ -8,6 +8,7 @@ import GrantPremiumButton from "./GrantPremiumButton";
 import ActivateSubscriptionButton from "./ActivateSubscriptionButton";
 import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
+import RemoveSeedDataButton from "./RemoveSeedDataButton";
 
 type CarRow = Car & { users: { name: string } | null };
 type ReportRow = Message & {
@@ -31,11 +32,17 @@ export default async function AdminPage() {
 
   if (!me?.is_admin) redirect("/");
 
-  const [{ data: users }, { data: cars }, { data: reports }] = await Promise.all([
-    supabase.from("users").select("*").order("created_at", { ascending: false }).returns<AppUser[]>(),
+  const [{ data: users }, { data: cars }, { data: reports }, { count: seedUserCount }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("*")
+      .eq("is_seed", false)
+      .order("created_at", { ascending: false })
+      .returns<AppUser[]>(),
     supabase
       .from("cars")
       .select("*, users(name)")
+      .eq("is_seed", false)
       .order("created_at", { ascending: false })
       .returns<CarRow[]>(),
     supabase
@@ -44,6 +51,7 @@ export default async function AdminPage() {
       .eq("kind", "report")
       .order("created_at", { ascending: false })
       .returns<ReportRow[]>(),
+    supabase.from("users").select("id", { count: "exact", head: true }).eq("is_seed", true),
   ]);
 
   return (
@@ -52,6 +60,16 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-semibold mb-1">{t("admin.title")}</h1>
         <p className="text-neutral-500">{t("admin.subtitle")}</p>
       </div>
+
+      {!!seedUserCount && (
+        <section className="card px-6 py-5 flex items-center justify-between">
+          <div>
+            <p className="font-medium">{t("admin.seedDataTitle", { count: seedUserCount })}</p>
+            <p className="text-sm text-muted mt-1">{t("admin.seedDataDescription")}</p>
+          </div>
+          <RemoveSeedDataButton />
+        </section>
+      )}
 
       <section>
         <h2 className="font-medium mb-4">{t("admin.reports", { count: reports?.length ?? 0 })}</h2>

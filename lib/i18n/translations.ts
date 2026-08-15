@@ -181,6 +181,11 @@ const en = {
   "admin.banSender": "Ban sender",
   "admin.confirmRemoveListing": "Remove this listing?",
   "admin.confirmBanSender": "Ban the sender?",
+  "admin.seedDataTitle": "{{count}} test users are seeded in for testing",
+  "admin.seedDataDescription":
+    "Generated for load/UX testing, all located in central Israel, excluded from the tables below. Safe to remove once you're done.",
+  "admin.removeSeedData": "Remove test data",
+  "admin.confirmRemoveSeedData": "Remove all seeded test users and their listings? This can't be undone.",
 } as const;
 
 type Key = keyof typeof en;
@@ -363,6 +368,11 @@ const he: Record<Key, string> = {
   "admin.banSender": "חסום שולח",
   "admin.confirmRemoveListing": "להסיר את המודעה הזו?",
   "admin.confirmBanSender": "לחסום את השולח?",
+  "admin.seedDataTitle": "{{count}} משתמשי בדיקה נטענו למערכת",
+  "admin.seedDataDescription":
+    "נוצרו לצורך בדיקת עומס/חוויית משתמש, כולם ממוקמים במרכז ישראל, לא מוצגים בטבלאות למטה. ניתן להסיר בבטחה בסיום.",
+  "admin.removeSeedData": "הסרת נתוני בדיקה",
+  "admin.confirmRemoveSeedData": "להסיר את כל משתמשי הבדיקה והמודעות שלהם? לא ניתן לבטל.",
 };
 
 export const translations: Record<Locale, Record<Key, string>> = { en, he };

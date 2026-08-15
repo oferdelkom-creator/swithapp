@@ -8,6 +8,37 @@ Next.js (App Router, TypeScript, Tailwind) + Supabase.
 Vercel tools available couldn't set them); it runs on the fallback Supabase config in
 `lib/supabase/config.ts` instead - see that file's comment.
 
+### 1000 test users (for load/UX testing)
+
+Requested: 1000 users already in the system, all in central Israel, clearly marked as
+test data with an easy way to remove it later.
+
+- Migration `add_is_seed_flags_for_test_data` adds `users.is_seed`/`cars.is_seed`
+  (default false) and `delete_seed_data()`, a one-call cleanup that removes every
+  seeded user/car and their dependent rows (swipes, matches, messages, etc - none of
+  which cascade from `auth.users`, so the function clears them explicitly in FK-safe
+  order before deleting the `auth.users` rows, which then cascades to `public.users`).
+- Generated 1000 `auth.users` + `public.users` + `public.cars` rows directly via SQL
+  (`do $$ ... loop ... $$`) - random Israeli first/last name pairs, one car each from a
+  ~37-model pool (Toyota/Kia/Hyundai/Mazda/Skoda/Suzuki/Honda/Renault/VW/Ford/Nissan/
+  Peugeot/etc), `lat`/`lon` jittered around Tel Aviv (32.0853, 34.7818) within about
+  ±0.15° so every one of them is genuinely central Israel (verified after the fact:
+  actual spread came out lat 31.94-32.24, lon 34.63-34.93), region `Center`/`Tel Aviv`/
+  `Shfela`, ~8% dealer/importer and the rest private. All emails follow
+  `seed_user_<n>@switchapp.test` with a throwaway password - not meant to be logged into,
+  just data for the swipe deck, filters, and matching to chew on.
+- `/admin` shows a "N test users are seeded in" card with a **Remove test data** button
+  (calls `delete_seed_data()`) - only appears when seed rows exist. The main admin
+  users/car tables exclude `is_seed` rows entirely (1000 rows of nothing to moderate
+  would've swamped them) - real users and their listings show normally.
+- **Could not verify the generation SQL executes cleanly on a first try** in the sense of
+  getting it right blind - first attempt used a genuine Postgres 2D array
+  (`array[array['Toyota','Corolla'], ...]`) for make/model pairs, which doesn't support
+  the "extract one row" indexing I assumed; it failed on `not-null constraint` for
+  `make`/`model` after the whole `do $$` block's transaction (correctly) rolled back
+  everything from that run, seed users included - confirmed zero partial rows before
+  fixing it with two parallel arrays instead and re-running.
+
 ### Demo photos on the 10 seed cars
 
 The 10 seed cars had empty `photo_urls` (nothing had ever uploaded to them - photo

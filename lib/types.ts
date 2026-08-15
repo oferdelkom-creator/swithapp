@@ -28,6 +28,7 @@ export interface AppUser {
   accepts_hello_messages: boolean;
   is_admin: boolean;
   is_banned: boolean;
+  is_seed: boolean;
   created_at: string;
 }
 
@@ -58,6 +59,7 @@ export interface Car {
   want_notes: string | null;
   listing_fee_paid: boolean;
   boosted_until: string | null;
+  is_seed: boolean;
   created_at: string;
   updated_at: string;
 }
