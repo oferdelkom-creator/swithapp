@@ -98,6 +98,22 @@ functional Tailwind defaults only):
 **Not built yet:** car-listing edit, photo upload, an actual payment gateway (everything
 billing-related is admin-granted for now). See "Next steps".
 
+**Swap price difference** (clarified by the product owner after the above was built,
+already at "final stage" scope - see "Product concept" for the full picture): a swap
+match is between two *specific* car listings, each with its own price, and the cheaper
+car's owner pays the difference to complete the trade. The schema didn't actually record
+*which two cars* matched (only which two users), so this needed a real fix, not just a
+UI addition:
+- **New migration `add_matched_cars_and_price_diff`**: adds `matches.user_a_car_id` /
+  `user_b_car_id`, and rewrites `handle_new_swipe()` to populate them - for a sale match
+  only the seller's side is set (the buyer isn't offering a car); for a swap match both
+  sides are set, using the reciprocal right-swipe's `car_id` to identify the caller's own
+  car (that data already existed in `swipes`, it just wasn't being carried into `matches`).
+- `/matches/[id]` gets a `DealSummary` card above the chat: for a sale match, the price;
+  for a swap match, both cars' prices and which side pays the difference (or "add a price
+  to both listings" if either is missing one). `/matches` list now also shows which two
+  cars matched, not just who.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
@@ -107,7 +123,9 @@ billing-related is admin-granted for now). See "Next steps".
 - Swiping right on a **for-sale** car creates an instant match (like contacting a
   seller). Swiping right on a **for-swap** car only creates a match once *both* sides
   have swiped right on each other (mutual interest, like Tinder) - see
-  `handle_new_swipe()`.
+  `handle_new_swipe()`. A swap match records both cars involved; since each car can have
+  its own price, the deal is "swap + the cheaper car's owner pays the difference," not a
+  strict 1:1 trade.
 - Matches gate a real-time chat (`messages`) and a mutual-consent phone reveal
   (`user_contacts` - both sides must agree via `user_a_agreed_to_call` /
   `user_b_agreed_to_call` before either can see the other's number).

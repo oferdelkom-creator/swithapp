@@ -82,6 +82,11 @@ create table public.matches (
   id uuid primary key default gen_random_uuid(),
   user_a_id uuid not null references public.users (id),
   user_b_id uuid not null references public.users (id),
+  -- The car each side brought to this match (added 2026-08-14, migration
+  -- add_matched_cars_and_price_diff). Sale match: only the seller's side is set.
+  -- Swap match: both sides are set - used to compute the price difference.
+  user_a_car_id uuid references public.cars (id),
+  user_b_car_id uuid references public.cars (id),
   status text not null default 'negotiating' check (status in ('negotiating', 'closed')),
   user_a_agreed_to_call boolean not null default false,
   user_b_agreed_to_call boolean not null default false,
@@ -144,18 +149,25 @@ create trigger before_match_consent_update
   before update on public.matches
   for each row execute function public.enforce_match_consent_update();
 
--- On a right-swipe: instant match for "for sale" cars, mutual-swipe match for "for swap" cars.
+-- On a right-swipe: instant match for "for sale" cars, mutual-swipe match for "for swap"
+-- cars. Also records which car each side brought (added 2026-08-14, migration
+-- add_matched_cars_and_price_diff) so the app can compute the swap price difference.
+-- Sale match: new.car_id is the seller's (to_user's) car - the buyer isn't offering one.
+-- Swap match: new.car_id is the target's car; the reciprocal right-swipe (already
+-- required to reach this branch) tells us the caller's own car that was offered back.
 create or replace function public.handle_new_swipe()
 returns trigger
 language plpgsql
 security definer
 as $$
 declare
-  reciprocal_exists boolean;
+  reciprocal_car_id uuid;
   car_for_sale boolean;
   car_for_swap boolean;
   a uuid;
   b uuid;
+  a_car uuid;
+  b_car uuid;
 begin
   if new.direction = 'right' then
     select for_sale, for_swap into car_for_sale, car_for_swap
@@ -168,20 +180,33 @@ begin
     end if;
 
     if car_for_sale then
-      insert into public.matches (user_a_id, user_b_id)
-      values (a, b)
+      if a = new.to_user_id then
+        a_car := new.car_id; b_car := null;
+      else
+        b_car := new.car_id; a_car := null;
+      end if;
+
+      insert into public.matches (user_a_id, user_b_id, user_a_car_id, user_b_car_id)
+      values (a, b, a_car, b_car)
       on conflict (user_a_id, user_b_id) do nothing;
     elsif car_for_swap then
-      select exists (
-        select 1 from public.swipes
-        where from_user_id = new.to_user_id
-          and to_user_id = new.from_user_id
-          and direction = 'right'
-      ) into reciprocal_exists;
+      select car_id into reciprocal_car_id
+      from public.swipes
+      where from_user_id = new.to_user_id
+        and to_user_id = new.from_user_id
+        and direction = 'right'
+      order by created_at desc
+      limit 1;
 
-      if reciprocal_exists then
-        insert into public.matches (user_a_id, user_b_id)
-        values (a, b)
+      if reciprocal_car_id is not null then
+        if a = new.from_user_id then
+          a_car := reciprocal_car_id; b_car := new.car_id;
+        else
+          a_car := new.car_id; b_car := reciprocal_car_id;
+        end if;
+
+        insert into public.matches (user_a_id, user_b_id, user_a_car_id, user_b_car_id)
+        values (a, b, a_car, b_car)
         on conflict (user_a_id, user_b_id) do nothing;
       end if;
     end if;

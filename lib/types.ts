@@ -75,6 +75,10 @@ export interface Match {
   id: string;
   user_a_id: string;
   user_b_id: string;
+  // The car each side brought to this match. Sale match: only the seller's side is
+  // set. Swap match: both sides are set (used to compute the price difference).
+  user_a_car_id: string | null;
+  user_b_car_id: string | null;
   status: MatchStatus;
   user_a_agreed_to_call: boolean;
   user_b_agreed_to_call: boolean;
