@@ -246,10 +246,16 @@ create trigger on_swipe_created
 
 -- RPC: swap-deck candidates near the caller, excluding already-swiped cars.
 -- p_category added 2026-08-15 (migration add_vehicle_type_to_deck_rpcs) to let the
--- swap deck filter by vehicle type alongside the sale deck.
+-- swap deck filter by vehicle type alongside the sale deck. p_make/p_min_price/
+-- p_max_price/p_min_year/p_max_year/p_max_distance_km added later the same day
+-- (migration add_filters_to_swap_deck_rpc) - the swap deck had no filter UI at all
+-- before that, unlike the sale deck.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
-  p_category vehicle_type default null
+  p_category vehicle_type default null,
+  p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
+  p_min_year integer default null, p_max_year integer default null,
+  p_max_distance_km double precision default null
 )
 returns table (
   user_id uuid, name text, lat double precision, lon double precision,
@@ -278,6 +284,15 @@ as $$
       or u.role in ('dealer', 'importer')
     )
     and (p_category is null or c.category = p_category)
+    and (p_make is null or c.make = p_make)
+    and (p_min_price is null or c.price >= p_min_price)
+    and (p_max_price is null or c.price <= p_max_price)
+    and (p_min_year is null or c.year >= p_min_year)
+    and (p_max_year is null or c.year <= p_max_year)
+    and (
+      p_max_distance_km is null
+      or public.haversine_km(my_lat, my_lon, u.lat, u.lon) <= p_max_distance_km
+    )
   order by (c.boosted_until > now()) desc nulls last, distance_km asc nulls last;
 $$;
 

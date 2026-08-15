@@ -22,22 +22,24 @@ const REGIONS: CarRegion[] = [
   "Judea and Samaria",
 ];
 
-interface SaleFilters {
+interface Filters {
   make: string;
   minPrice: string;
   maxPrice: string;
   minYear: string;
   maxYear: string;
   region: string;
+  radiusKm: string;
 }
 
-const EMPTY_FILTERS: SaleFilters = {
+const EMPTY_FILTERS: Filters = {
   make: "",
   minPrice: "",
   maxPrice: "",
   minYear: "",
   maxYear: "",
   region: "",
+  radiusKm: "",
 };
 
 interface SaleCandidate {
@@ -64,6 +66,7 @@ interface SwapCandidate {
   category: VehicleType;
   want_make: string | null;
   want_notes: string | null;
+  price: number | null;
   photo_urls: string[];
 }
 
@@ -91,7 +94,7 @@ export default function SwipeDeck({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
-  const [filters, setFilters] = useState<SaleFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const cardRef = useRef<DraggableCardHandle>(null);
@@ -125,6 +128,12 @@ export default function SwipeDeck({
         my_lon: lon,
         my_id: userId,
         p_category: vehicleType || null,
+        p_make: filters.make || null,
+        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
+        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
+        p_min_year: filters.minYear ? Number(filters.minYear) : null,
+        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
+        p_max_distance_km: filters.radiusKm ? Number(filters.radiusKm) : null,
       });
       if (rpcError) setError(rpcError.message);
       setDeck((data as SwapCandidate[]) ?? []);
@@ -213,7 +222,7 @@ export default function SwipeDeck({
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 text-sm">
+      <div className="flex gap-2 mb-3 text-sm">
         <button
           onClick={() => setMode("sale")}
           className={mode === "sale" ? "btn-primary" : "btn-secondary"}
@@ -226,20 +235,18 @@ export default function SwipeDeck({
         >
           {t("swipe.forSwap")}
         </button>
-        {mode === "sale" && (
-          <button onClick={() => setShowFilters((s) => !s)} className="btn-secondary">
-            {t("swipe.filters")}
-          </button>
-        )}
+        <button onClick={() => setShowFilters((s) => !s)} className="btn-secondary">
+          {t("swipe.filters")}
+        </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4 text-xs">
+      <div className="flex gap-2 mb-3 text-xs overflow-x-auto no-scrollbar -mx-4 px-4">
         <button
           onClick={() => setVehicleType("")}
           className={
             vehicleType === ""
-              ? "rounded-full bg-brand-blue-dark text-white px-3 py-1"
-              : "rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
+              ? "shrink-0 rounded-full bg-brand-blue-dark text-white px-3 py-1"
+              : "shrink-0 rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
           }
         >
           {t("swipe.allVehicleTypes")}
@@ -250,8 +257,8 @@ export default function SwipeDeck({
             onClick={() => setVehicleType(vt.value)}
             className={
               vehicleType === vt.value
-                ? "rounded-full bg-brand-blue-dark text-white px-3 py-1"
-                : "rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
+                ? "shrink-0 rounded-full bg-brand-blue-dark text-white px-3 py-1"
+                : "shrink-0 rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
             }
           >
             {t(vt.labelKey)}
@@ -259,26 +266,36 @@ export default function SwipeDeck({
         ))}
       </div>
 
-      {mode === "sale" && showFilters && (
-        <div className="card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
+      {showFilters && (
+        <div className="card p-4 mb-3 grid grid-cols-2 gap-3 text-sm">
           <input
             placeholder={t("swipe.make")}
             value={filters.make}
             onChange={(e) => setFilters((f) => ({ ...f, make: e.target.value }))}
             className="field"
           />
-          <select
-            value={filters.region}
-            onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value }))}
-            className="field"
-          >
-            <option value="">{t("swipe.allRegions")}</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {regionLabel(r, locale)}
-              </option>
-            ))}
-          </select>
+          {mode === "sale" ? (
+            <select
+              value={filters.region}
+              onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value }))}
+              className="field"
+            >
+              <option value="">{t("swipe.allRegions")}</option>
+              {REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {regionLabel(r, locale)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="number"
+              placeholder={t("swipe.radiusKm")}
+              value={filters.radiusKm}
+              onChange={(e) => setFilters((f) => ({ ...f, radiusKm: e.target.value }))}
+              className="field"
+            />
+          )}
           <input
             type="number"
             placeholder={t("swipe.priceFrom")}
@@ -318,7 +335,7 @@ export default function SwipeDeck({
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
       {mode === "swap" && (lat === null || lon === null) ? (
         <div className="card p-6 text-center">
@@ -331,7 +348,7 @@ export default function SwipeDeck({
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
       ) : current ? (
         <>
-          <div className="relative h-[65vh] max-h-[560px] min-h-[380px]">
+          <div className="relative h-[58dvh] max-h-[520px] min-h-[320px]">
             {peek && (
               <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
                 <CardVisual candidate={peek} />
@@ -342,7 +359,7 @@ export default function SwipeDeck({
             </DraggableCard>
           </div>
 
-          <div className="flex justify-center gap-6 mt-6">
+          <div className="flex justify-center gap-6 mt-4">
             <button
               onClick={() => cardRef.current?.triggerExit("left")}
               aria-label={t("swipe.skip")}
@@ -407,7 +424,7 @@ function CardVisual({ candidate }: { candidate: Candidate }) {
           </p>
         ) : (
           <p className="text-sm text-white/90 mt-1">
-            {candidate.name}
+            {candidate.name} · {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
             {candidate.distance_km != null
               ? ` · ${t("swipe.distanceKm", { distance: candidate.distance_km.toFixed(0) })}`
               : ""}
