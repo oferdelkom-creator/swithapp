@@ -35,6 +35,8 @@ const en = {
     "Check your email to confirm your account before signing in - we sent a confirmation link.",
   "login.genericError": "Something went wrong",
   "login.mustSignIn": "You must sign in first",
+  "login.orContinueWith": "or continue with",
+  "login.continueWithGoogle": "Continue with Google",
 
   "cars.title": "My Cars",
   "cars.subtitle": "Listings other people will see on the swipe screen.",
@@ -82,7 +84,8 @@ const en = {
   "swipe.applyFilters": "Apply filters",
   "swipe.reset": "Reset",
   "swipe.itsAMatch": "It's a match!",
-  "swipe.toMatches": "Go to matches",
+  "swipe.toMatches": "Send a message",
+  "swipe.keepSwiping": "Keep swiping",
   "swipe.swipeCapReached":
     "You've reached your daily swipe limit. Upgrading to premium removes the limit - contact support.",
   "swipe.shareLocationPrompt": "To see swap cars sorted by distance, share your location.",
@@ -115,6 +118,7 @@ const en = {
   "chat.send": "Send",
   "chat.reportPrompt": "What's the issue? (the report will be sent to an admin)",
   "chat.reportSent": "Report sent.",
+  "chat.icebreaker": "Hello! Interested in your car.",
 
   "deal.saleTitle": "Sale deal",
   "deal.swapTitle": "Swap deal",
@@ -131,6 +135,8 @@ const en = {
   "likes.title": "Who Liked You",
   "likes.premiumOnly":
     "Seeing who swiped right on you is available to premium members only. There's no self-serve payment in the app yet - contact support to upgrade.",
+  "likes.teaserSome": "{{count}} people are interested in swapping with you! Upgrade to premium to see who.",
+  "likes.teaserNone": "No one has shown interest yet - premium unlocks seeing who does.",
   "likes.empty": "No new likes yet.",
   "likes.likeBack": "Like back",
   "likes.sent": "Sent!",
@@ -210,6 +216,8 @@ const he: Record<Key, string> = {
     "בדקו את המייל לאישור החשבון לפני ההתחברות - שלחנו קישור אישור.",
   "login.genericError": "משהו השתבש",
   "login.mustSignIn": "יש להתחבר קודם",
+  "login.orContinueWith": "או המשיכו עם",
+  "login.continueWithGoogle": "המשך עם Google",
 
   "cars.title": "הרכבים שלי",
   "cars.subtitle": "מודעות שאחרים יראו במסך הסווייפ.",
@@ -257,7 +265,8 @@ const he: Record<Key, string> = {
   "swipe.applyFilters": "החלת סינון",
   "swipe.reset": "איפוס",
   "swipe.itsAMatch": "יש התאמה!",
-  "swipe.toMatches": "למסך ההתאמות",
+  "swipe.toMatches": "שליחת הודעה",
+  "swipe.keepSwiping": "להמשיך לסווייפ",
   "swipe.swipeCapReached":
     "הגעת למכסת הסווייפים היומית. שדרוג לפרימיום מסיר את ההגבלה - פנו לתמיכה.",
   "swipe.shareLocationPrompt": "כדי לראות רכבים להחלפה לפי מרחק, יש לשתף מיקום.",
@@ -290,6 +299,7 @@ const he: Record<Key, string> = {
   "chat.send": "שליחה",
   "chat.reportPrompt": "מה הבעיה? (הדיווח יישלח לאדמין)",
   "chat.reportSent": "הדיווח נשלח.",
+  "chat.icebreaker": "שלום! מעוניין/ת ברכב שלך.",
 
   "deal.saleTitle": "עסקת מכירה",
   "deal.swapTitle": "עסקת החלפה",
@@ -307,6 +317,8 @@ const he: Record<Key, string> = {
   "likes.title": "מי אהב אותך",
   "likes.premiumOnly":
     "הצפייה במי שסיוויפ ימינה עליך זמינה למשתמשי פרימיום בלבד. אין עדיין תשלום עצמאי באפליקציה - פנו לתמיכה כדי לשדרג.",
+  "likes.teaserSome": "{{count}} אנשים מעוניינים להחליף איתך! שדרוג לפרימיום יראה לך מי.",
+  "likes.teaserNone": "עדיין אף אחד לא הביע עניין - פרימיום פותח את האפשרות לראות מי כן.",
   "likes.empty": "אין עדיין לייקים חדשים.",
   "likes.likeBack": "אהבתי בחזרה",
   "likes.sent": "נשלח!",

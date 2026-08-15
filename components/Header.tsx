@@ -22,6 +22,10 @@ export default async function Header() {
   const isAdmin = profile?.is_admin ?? false;
   const isBusiness = profile?.role === "dealer" || profile?.role === "importer";
 
+  const likesCount = user
+    ? ((await supabase.rpc("count_incoming_likes", { my_id: user.id })).data as number | null)
+    : null;
+
   return (
     <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -35,7 +39,14 @@ export default async function Header() {
                 <NavLink href="/swipe">{t("nav.swipe")}</NavLink>
                 <NavLink href="/cars">{t("nav.cars")}</NavLink>
                 <NavLink href="/matches">{t("nav.matches")}</NavLink>
-                <NavLink href="/likes">{t("nav.likes")}</NavLink>
+                <NavLink href="/likes">
+                  {t("nav.likes")}
+                  {!!likesCount && (
+                    <span className="ms-1 inline-flex items-center justify-center rounded-full bg-brand-orange text-white text-[10px] min-w-[16px] h-4 px-1">
+                      {likesCount}
+                    </span>
+                  )}
+                </NavLink>
                 {isBusiness && <NavLink href="/business">{t("nav.business")}</NavLink>}
                 {isAdmin && <NavLink href="/admin">{t("nav.admin")}</NavLink>}
               </>

@@ -18,8 +18,8 @@ export default async function SwipePage() {
     .maybeSingle<{ lat: number | null; lon: number | null }>();
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12">
-      <h1 className="text-2xl font-semibold mb-6">{t("swipe.title")}</h1>
+    <div className="max-w-md mx-auto px-4 py-6">
+      <h1 className="text-xl font-semibold mb-4">{t("swipe.title")}</h1>
       <SwipeDeck userId={user.id} initialLat={me?.lat ?? null} initialLon={me?.lon ?? null} />
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
 import type { CarRegion } from "@/lib/types";
+import DraggableCard, { type DraggableCardHandle } from "./DraggableCard";
 
 type Mode = "sale" | "swap";
 
@@ -86,9 +87,10 @@ export default function SwipeDeck({
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [banner, setBanner] = useState<string | null>(null);
+  const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
   const [filters, setFilters] = useState<SaleFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const cardRef = useRef<DraggableCardHandle>(null);
 
   async function loadDeck() {
     if (mode === "swap" && (lat === null || lon === null)) {
@@ -152,7 +154,6 @@ export default function SwipeDeck({
   async function swipe(direction: "left" | "right") {
     const candidate = deck[index];
     if (!candidate) return;
-    setBanner(null);
     setError(null);
     const supabase = createClient();
 
@@ -168,6 +169,7 @@ export default function SwipeDeck({
       // is the only one a normal free user hits in practice (role/ownership checks
       // shouldn't fail for candidates the deck itself returned).
       setError(t("swipe.swipeCapReached"));
+      setIndex((i) => i + 1);
       return;
     }
 
@@ -179,11 +181,29 @@ export default function SwipeDeck({
           `and(user_a_id.eq.${userId},user_b_id.eq.${candidate.user_id}),and(user_a_id.eq.${candidate.user_id},user_b_id.eq.${userId})`
         )
         .maybeSingle();
-      if (match) setBanner(t("swipe.itsAMatch"));
+      if (match) {
+        const name = isSale(candidate) ? candidate.seller_name : candidate.name;
+        setMatchModal({ matchId: match.id, name });
+        // Only the very first swiper to discover this match sends the icebreaker - a
+        // match can only be created once (unique user pair), so an empty thread means
+        // this is that first discovery.
+        const { count } = await supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("match_id", match.id);
+        if (!count) {
+          await supabase
+            .from("messages")
+            .insert({ match_id: match.id, sender_id: userId, text: t("chat.icebreaker"), kind: "chat" });
+        }
+      }
     }
 
     setIndex((i) => i + 1);
   }
+
+  const current = deck[index];
+  const peek = deck[index + 1];
 
   return (
     <div>
@@ -259,26 +279,13 @@ export default function SwipeDeck({
             <button onClick={loadDeck} className="btn-primary flex-1">
               {t("swipe.applyFilters")}
             </button>
-            <button
-              onClick={() => {
-                setFilters(EMPTY_FILTERS);
-              }}
-              className="btn-secondary"
-            >
+            <button onClick={() => setFilters(EMPTY_FILTERS)} className="btn-secondary">
               {t("swipe.reset")}
             </button>
           </div>
         </div>
       )}
 
-      {banner && (
-        <div className="mb-4 rounded-full bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">
-          {banner}{" "}
-          <Link href="/matches" className="underline">
-            {t("swipe.toMatches")}
-          </Link>
-        </div>
-      )}
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {mode === "swap" && (lat === null || lon === null) ? (
@@ -290,45 +297,77 @@ export default function SwipeDeck({
         </div>
       ) : loading ? (
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
-      ) : deck[index] ? (
-        <SwipeCard candidate={deck[index]} onSwipe={swipe} />
+      ) : current ? (
+        <>
+          <div className="relative h-[65vh] max-h-[560px] min-h-[380px]">
+            {peek && (
+              <div className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
+                <CardVisual candidate={peek} />
+              </div>
+            )}
+            <DraggableCard key={current.car_id} ref={cardRef} active onExit={swipe}>
+              <CardVisual candidate={current} />
+            </DraggableCard>
+          </div>
+
+          <div className="flex justify-center gap-6 mt-6">
+            <button
+              onClick={() => cardRef.current?.triggerExit("left")}
+              aria-label={t("swipe.skip")}
+              className="w-16 h-16 rounded-full bg-white shadow-lg border border-neutral-200 text-red-500 text-2xl flex items-center justify-center hover:scale-105 transition-transform"
+            >
+              ✕
+            </button>
+            <button
+              onClick={() => cardRef.current?.triggerExit("right")}
+              aria-label={t("swipe.interested")}
+              className="w-16 h-16 rounded-full bg-brand-blue shadow-lg text-white text-2xl flex items-center justify-center hover:scale-105 transition-transform"
+            >
+              ♥
+            </button>
+          </div>
+        </>
       ) : (
         <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+      )}
+
+      {matchModal && (
+        <MatchModal matchId={matchModal.matchId} name={matchModal.name} onClose={() => setMatchModal(null)} />
       )}
     </div>
   );
 }
 
-function SwipeCard({
-  candidate,
-  onSwipe,
-}: {
-  candidate: Candidate;
-  onSwipe: (direction: "left" | "right") => void;
-}) {
+function CardVisual({ candidate }: { candidate: Candidate }) {
   const { t } = useLocale();
   const photo = candidate.photo_urls?.[0];
 
   return (
-    <div className="card overflow-hidden">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-xl bg-neutral-200">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt={`${candidate.make} ${candidate.model}`} className="w-full h-56 object-cover" />
+        <img
+          src={photo}
+          alt={`${candidate.make} ${candidate.model}`}
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+        />
       ) : (
-        <div className="w-full h-56 bg-neutral-100 flex items-center justify-center text-neutral-400 text-sm">
+        <div className="absolute inset-0 flex items-center justify-center text-neutral-400 text-sm">
           {t("swipe.noPhoto")}
         </div>
       )}
-      <div className="p-5">
-        <p className="font-medium text-lg">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 p-5 text-white">
+        <p className="font-bold text-2xl drop-shadow">
           {candidate.make} {candidate.model} {candidate.year ?? ""}
         </p>
         {isSale(candidate) ? (
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-white/90 mt-1">
             {candidate.seller_name} · {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
           </p>
         ) : (
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-white/90 mt-1">
             {candidate.name}
             {candidate.distance_km != null
               ? ` · ${t("swipe.distanceKm", { distance: candidate.distance_km.toFixed(0) })}`
@@ -336,19 +375,24 @@ function SwipeCard({
             {candidate.want_make ? ` · ${t("swipe.lookingFor", { make: candidate.want_make })}` : ""}
           </p>
         )}
+      </div>
+    </div>
+  );
+}
 
-        <div className="flex gap-3 mt-5">
-          <button
-            onClick={() => onSwipe("left")}
-            className="flex-1 rounded-full bg-neutral-100 text-neutral-700 px-4 py-2.5"
-          >
-            {t("swipe.skip")}
-          </button>
-          <button
-            onClick={() => onSwipe("right")}
-            className="flex-1 rounded-full bg-brand-blue text-white px-4 py-2.5"
-          >
-            {t("swipe.interested")}
+function MatchModal({ matchId, name, onClose }: { matchId: string; name: string; onClose: () => void }) {
+  const { t } = useLocale();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+      <div className="text-center text-white max-w-sm w-full">
+        <p className="text-4xl font-extrabold tracking-tight mb-2">{t("swipe.itsAMatch")}</p>
+        <p className="text-white/80 mb-8">{name}</p>
+        <div className="flex flex-col gap-3">
+          <Link href={`/matches/${matchId}`} className="btn-primary text-center py-3">
+            {t("swipe.toMatches")}
+          </Link>
+          <button onClick={onClose} className="btn-secondary bg-white/10 text-white hover:bg-white/20 py-3">
+            {t("swipe.keepSwiping")}
           </button>
         </div>
       </div>

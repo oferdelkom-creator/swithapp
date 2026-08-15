@@ -30,9 +30,14 @@ export default async function LikesPage() {
 
   const isPremium = !!me?.premium_until && new Date(me.premium_until) > new Date();
 
-  const likes = isPremium
-    ? ((await supabase.rpc("get_incoming_likes", { my_id: user.id })).data as IncomingLike[] | null)
-    : null;
+  const [likesResult, countResult] = await Promise.all([
+    isPremium
+      ? supabase.rpc("get_incoming_likes", { my_id: user.id })
+      : Promise.resolve({ data: null }),
+    !isPremium ? supabase.rpc("count_incoming_likes", { my_id: user.id }) : Promise.resolve({ data: null }),
+  ]);
+  const likes = likesResult.data as IncomingLike[] | null;
+  const teaserCount = (countResult.data as number | null) ?? 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -40,7 +45,12 @@ export default async function LikesPage() {
 
       {!isPremium ? (
         <div className="card p-6 text-center">
-          <p className="text-sm text-neutral-600">{t("likes.premiumOnly")}</p>
+          <p className="text-sm text-neutral-600">
+            {teaserCount > 0
+              ? t("likes.teaserSome", { count: teaserCount })
+              : t("likes.teaserNone")}
+          </p>
+          <p className="text-xs text-muted mt-3">{t("likes.premiumOnly")}</p>
         </div>
       ) : likes?.length ? (
         <div className="space-y-3">

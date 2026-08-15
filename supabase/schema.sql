@@ -324,6 +324,27 @@ as $$
   order by s.from_user_id, s.created_at desc;
 $$;
 
+-- RPC: free-tier teaser count (added 2026-08-15, migration add_count_incoming_likes) - no
+-- premium gate, no identities revealed. get_incoming_likes() above still gates the actual
+-- reveal behind premium; this just lets the system tell a free user "N people are
+-- interested" instead of leaving them with zero signal.
+create or replace function public.count_incoming_likes(my_id uuid)
+returns integer
+language sql
+stable
+as $$
+  select count(distinct s.from_user_id)::int
+  from public.swipes s
+  where s.to_user_id = my_id
+    and s.direction = 'right'
+    and not exists (
+      select 1 from public.swipes s2
+      where s2.from_user_id = my_id
+        and s2.to_user_id = s.from_user_id
+        and s2.direction = 'right'
+    );
+$$;
+
 -- ── Row Level Security ───────────────────────────────────────────────────
 
 alter table public.users enable row level security;
@@ -444,7 +465,11 @@ as $$
 $$;
 
 -- Auto-creates the public.users row on signup (DB trigger, not a client-side insert,
--- so it can't be skipped or raced by the client).
+-- so it can't be skipped or raced by the client). Updated 2026-08-15 (migration
+-- auto_fill_profile_from_oauth_metadata) to also read Google OAuth's metadata keys
+-- ('full_name', 'avatar_url'/'picture') - the original only checked 'name', the
+-- email/password signup convention, so Google sign-ins fell through to the email-prefix
+-- fallback despite Google actually supplying a real name and avatar.
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -452,10 +477,15 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.users (id, name, role)
+  insert into public.users (id, name, avatar_url, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    coalesce(
+      new.raw_user_meta_data->>'name',
+      new.raw_user_meta_data->>'full_name',
+      split_part(new.email, '@', 1)
+    ),
+    coalesce(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture'),
     'private'
   )
   on conflict (id) do nothing;

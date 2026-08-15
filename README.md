@@ -18,6 +18,46 @@ Everything - every screen, every button, dates, `car_region`/`fuel_type` labels 
 through `lib/i18n/translations.ts`. Adding a third language is one more entry in that
 file's dictionary, nothing else needs to change. See `lib/i18n/` for the implementation.
 
+## Auth, notifications, and a Tinder-style swipe screen (2026-08-15)
+
+Product feedback after the above, in order:
+
+- **"Shouldn't need to log in again after registering."** Found the actual bug: signup
+  never told Supabase where the confirmation-email link should redirect
+  (`emailRedirectTo`), so clicking it had nothing to exchange the confirmation code for a
+  session - the user landed back on the site still logged out. Fixed by pointing it at a
+  new `/auth/callback` route (`exchangeCodeForSession`). "Stay logged in" itself was
+  already correct - `createBrowserClient`'s defaults (`persistSession`,
+  `autoRefreshToken`) handle that; nothing needed changing there.
+- **Google sign-in.** `/login` now has a "Continue with Google" button
+  (`signInWithOAuth`), using the same `/auth/callback` route. **This alone doesn't work
+  yet** - the Google provider has to be enabled in the Supabase dashboard
+  (Authentication → Providers → Google) with real OAuth credentials from a Google Cloud
+  Console project, which only the project owner can create - same category of gap as the
+  payment gateway. The profile-creation trigger (`handle_new_auth_user`) was also
+  updated to read Google's metadata keys (`full_name`, `avatar_url`/`picture`) so a name
+  and photo auto-fill correctly once Google sign-in is actually enabled.
+- **"The system should tell the other side someone wants to swap with them."** Previously
+  `get_incoming_likes()` was fully premium-gated - a free user had zero signal that
+  anyone was interested. New migration `add_count_incoming_likes` adds
+  `count_incoming_likes()`, an ungated teaser count (Tinder's actual model: "3 people
+  like you!" for free, identities revealed on premium). Shows as a badge on "Who Liked
+  You" in the header and as real copy on `/likes` instead of a flat "premium only" wall.
+- **Icebreaker message.** "If the other side is also interested, open a match with an
+  immediate chat - or an initial 'hello, interested' message." Implemented as: the moment
+  a match is detected (sale or swap), auto-insert a `chat.icebreaker` message from
+  whichever side just triggered the match, but only if the thread is still empty (a
+  match is created exactly once, so an empty thread reliably means this is the first
+  time either side has seen it - avoids re-sending on a later visit).
+- **"Make the swipe screen look properly like Tinder, this looks unprofessional."** Full
+  rewrite of `/swipe`: `DraggableCard` does real pointer-drag physics (translate + rotate
+  following the finger/cursor, LIKE/NOPE stamps that fade in with drag distance, spring-
+  back or fling-away past a 110px threshold), a peeking second card underneath for stack
+  depth, full-bleed photo cards with a bottom gradient + white text overlay instead of a
+  bordered card with text below, and a full-screen "IT'S A MATCH!" takeover (backdrop,
+  name, straight to that match's chat) replacing the old thin green banner. Buttons at
+  the bottom trigger the same animated exit as a real drag, via an imperative handle.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase
