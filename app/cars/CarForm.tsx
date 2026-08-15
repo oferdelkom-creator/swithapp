@@ -233,7 +233,7 @@ export default function CarForm({ car }: { car?: Car }) {
       onSubmit={handleSubmit}
       className="rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white m-4"
     >
-      <div className="relative w-full aspect-video bg-neutral-100">
+      <div className="relative w-full aspect-[4/5] bg-neutral-100">
         {photoUrls[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -288,6 +288,70 @@ export default function CarForm({ car }: { car?: Car }) {
 
       <div className="p-5 space-y-4">
         <div>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <select
+              required
+              value={make}
+              onChange={(e) => handleMakeChange(e.target.value)}
+              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
+            >
+              <option value="" disabled>
+                {t("carForm.make")}
+              </option>
+              {makeOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m === OTHER ? t("carForm.makeOther") : m}
+                </option>
+              ))}
+            </select>
+            <select
+              required
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
+            >
+              <option value="" disabled>
+                {t("carForm.model")}
+              </option>
+              {modelOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m === OTHER ? t("carForm.modelOther") : m}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder={t("carForm.year")}
+              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1 w-24"
+            />
+          </div>
+          {(make === OTHER || model === OTHER) && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {make === OTHER && (
+                <input
+                  required
+                  value={makeOther}
+                  onChange={(e) => setMakeOther(e.target.value)}
+                  className="field"
+                  placeholder={t("carForm.make")}
+                />
+              )}
+              {model === OTHER && (
+                <input
+                  required
+                  value={modelOther}
+                  onChange={(e) => setModelOther(e.target.value)}
+                  className="field"
+                  placeholder={t("carForm.model")}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.vehicleType")}</label>
           <div className="flex flex-wrap gap-2">
             {VEHICLE_TYPES.map((vt) => (
@@ -303,76 +367,7 @@ export default function CarForm({ car }: { car?: Car }) {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.plateNumber")}</label>
-          <div className="flex gap-2">
-            <input
-              value={plate}
-              onChange={(e) => setPlate(e.target.value)}
-              placeholder={t("carForm.plateNumberPlaceholder")}
-              className="field flex-1"
-            />
-            <button
-              type="button"
-              onClick={lookupPlate}
-              disabled={lookupLoading || !plate.trim()}
-              className="btn-secondary whitespace-nowrap"
-            >
-              {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
-            </button>
-          </div>
-          {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.make")}</label>
-            <select required value={make} onChange={(e) => handleMakeChange(e.target.value)} className="field">
-              <option value="" disabled>
-                -
-              </option>
-              {makeOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m === OTHER ? t("carForm.makeOther") : m}
-                </option>
-              ))}
-            </select>
-            {make === OTHER && (
-              <input
-                required
-                value={makeOther}
-                onChange={(e) => setMakeOther(e.target.value)}
-                className="field mt-2"
-                placeholder={t("carForm.make")}
-              />
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.model")}</label>
-            <select required value={model} onChange={(e) => setModel(e.target.value)} className="field">
-              <option value="" disabled>
-                -
-              </option>
-              {modelOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m === OTHER ? t("carForm.modelOther") : m}
-                </option>
-              ))}
-            </select>
-            {model === OTHER && (
-              <input
-                required
-                value={modelOther}
-                onChange={(e) => setModelOther(e.target.value)}
-                className="field mt-2"
-                placeholder={t("carForm.model")}
-              />
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.year")}</label>
-            <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="field" />
-          </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
             <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
@@ -456,6 +451,27 @@ export default function CarForm({ car }: { car?: Car }) {
             </div>
           </div>
         )}
+
+        <div className="pt-2 border-t border-neutral-100">
+          <label className="block text-xs text-muted mb-1">{t("carForm.plateNumber")}</label>
+          <div className="flex gap-2">
+            <input
+              value={plate}
+              onChange={(e) => setPlate(e.target.value)}
+              placeholder={t("carForm.plateNumberPlaceholder")}
+              className="field flex-1 text-sm"
+            />
+            <button
+              type="button"
+              onClick={lookupPlate}
+              disabled={lookupLoading || !plate.trim()}
+              className="btn-secondary whitespace-nowrap text-xs"
+            >
+              {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
+            </button>
+          </div>
+          {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
+        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
