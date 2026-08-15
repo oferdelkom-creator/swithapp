@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
+import { regionLabel, fuelTypeLabel } from "@/lib/i18n/enumLabels";
 import type { Car, CarRegion, FuelType } from "@/lib/types";
 
 const REGIONS: CarRegion[] = [
@@ -19,6 +21,7 @@ const FUEL_TYPES: FuelType[] = ["Petrol", "Diesel", "Hybrid", "Electric", "Gas"]
 
 export default function CarForm({ car }: { car?: Car }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const isEdit = !!car;
   const [make, setMake] = useState(car?.make ?? "");
   const [model, setModel] = useState(car?.model ?? "");
@@ -47,7 +50,7 @@ export default function CarForm({ car }: { car?: Car }) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      setError("יש להתחבר קודם");
+      setError(t("login.mustSignIn"));
       setUploading(false);
       return;
     }
@@ -81,7 +84,7 @@ export default function CarForm({ car }: { car?: Car }) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      setError("יש להתחבר קודם");
+      setError(t("login.mustSignIn"));
       setLoading(false);
       return;
     }
@@ -131,7 +134,7 @@ export default function CarForm({ car }: { car?: Car }) {
   return (
     <form onSubmit={handleSubmit} className="card space-y-4 p-5">
       <div>
-        <label className="block text-sm font-medium mb-1">תמונות</label>
+        <label className="block text-sm font-medium mb-1">{t("carForm.photos")}</label>
         <div className="flex flex-wrap gap-2 mb-2">
           {photoUrls.map((url) => (
             <div key={url} className="relative">
@@ -148,24 +151,24 @@ export default function CarForm({ car }: { car?: Car }) {
           ))}
         </div>
         <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} disabled={uploading} />
-        {uploading && <p className="text-xs text-muted mt-1">מעלה...</p>}
+        {uploading && <p className="text-xs text-muted mt-1">{t("carForm.uploading")}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">יצרן</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.make")}</label>
           <input required value={make} onChange={(e) => setMake(e.target.value)} className="field" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">דגם</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.model")}</label>
           <input required value={model} onChange={(e) => setModel(e.target.value)} className="field" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">שנה</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.year")}</label>
           <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="field" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">ק&quot;מ</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>
           <input
             type="number"
             value={mileage}
@@ -174,18 +177,18 @@ export default function CarForm({ car }: { car?: Car }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">תמסורת</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.transmission")}</label>
           <select
             value={transmission}
             onChange={(e) => setTransmission(e.target.value)}
             className="field"
           >
-            <option value="Automatic">אוטומט</option>
-            <option value="Manual">ידני</option>
+            <option value="Automatic">{t("carForm.automatic")}</option>
+            <option value="Manual">{t("carForm.manual")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">סוג דלק</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.fuelType")}</label>
           <select
             value={fuelType}
             onChange={(e) => setFuelType(e.target.value as FuelType)}
@@ -194,24 +197,24 @@ export default function CarForm({ car }: { car?: Car }) {
             <option value="">-</option>
             {FUEL_TYPES.map((f) => (
               <option key={f} value={f}>
-                {f}
+                {fuelTypeLabel(f, locale)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">אזור</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.region")}</label>
           <select value={region} onChange={(e) => setRegion(e.target.value as CarRegion)} className="field">
             <option value="">-</option>
             {REGIONS.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {regionLabel(r, locale)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">מחיר (₪)</label>
+          <label className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
           <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
         </div>
       </div>
@@ -219,22 +222,22 @@ export default function CarForm({ car }: { car?: Car }) {
       <div className="flex gap-6">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={forSale} onChange={(e) => setForSale(e.target.checked)} />
-          למכירה
+          {t("carForm.forSale")}
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={forSwap} onChange={(e) => setForSwap(e.target.checked)} />
-          להחלפה
+          {t("carForm.forSwap")}
         </label>
       </div>
 
       {forSwap && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">מחפש יצרן (להחלפה)</label>
+            <label className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
             <input value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">מחפש דגם</label>
+            <label className="block text-sm font-medium mb-1">{t("carForm.wantModel")}</label>
             <input value={wantModel} onChange={(e) => setWantModel(e.target.value)} className="field" />
           </div>
         </div>
@@ -243,7 +246,7 @@ export default function CarForm({ car }: { car?: Car }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button type="submit" disabled={loading || uploading} className="btn-primary">
-        {loading ? "שומר..." : isEdit ? "שמירת שינויים" : "הוספת מודעה"}
+        {loading ? t("carForm.saving") : isEdit ? t("carForm.saveChanges") : t("carForm.addListing")}
       </button>
     </form>
   );

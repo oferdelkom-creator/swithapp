@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 import type { Message } from "@/lib/types";
 
 export default function ChatThread({
@@ -18,6 +19,7 @@ export default function ChatThread({
   myAgreedToCall: boolean;
   isUserA: boolean;
 }) {
+  const { t } = useLocale();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -70,11 +72,11 @@ export default function ChatThread({
   }
 
   async function reportUser() {
-    const reason = prompt("מה הבעיה? (הדיווח יישלח לאדמין)");
+    const reason = prompt(t("chat.reportPrompt"));
     if (!reason) return;
     const supabase = createClient();
     await supabase.from("messages").insert({ match_id: matchId, sender_id: myId, text: reason, kind: "report" });
-    alert("הדיווח נשלח.");
+    alert(t("chat.reportSent"));
   }
 
   return (
@@ -82,11 +84,11 @@ export default function ChatThread({
       <div className="flex justify-end gap-3 mb-3 text-xs">
         {!agreed && (
           <button onClick={agreeToCall} className="underline text-brand-blue">
-            הסכמה לחשוף טלפון
+            {t("chat.agreeToCall")}
           </button>
         )}
         <button onClick={reportUser} className="underline text-red-600">
-          דיווח
+          {t("chat.report")}
         </button>
       </div>
 
@@ -116,11 +118,11 @@ export default function ChatThread({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="הודעה..."
+          placeholder={t("chat.messagePlaceholder")}
           className="field flex-1"
         />
         <button type="submit" disabled={sending} className="btn-primary">
-          שליחה
+          {t("chat.send")}
         </button>
       </form>
     </div>

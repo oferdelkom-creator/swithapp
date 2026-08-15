@@ -1,6 +1,7 @@
+import { getT } from "@/lib/i18n/server";
 import type { Car } from "@/lib/types";
 
-export default function DealSummary({
+export default async function DealSummary({
   myCar,
   otherCar,
   otherName,
@@ -10,6 +11,7 @@ export default function DealSummary({
   otherName: string;
 }) {
   if (!myCar && !otherCar) return null;
+  const { t } = await getT();
 
   // Both sides brought a car -> a swap match. Only one side did -> a sale match (the
   // buyer doesn't have a car in the deal).
@@ -20,11 +22,11 @@ export default function DealSummary({
     const iAmSeller = !!myCar;
     return (
       <div className="card p-4 mb-6 text-sm">
-        <p className="font-medium mb-1">עסקת מכירה</p>
+        <p className="font-medium mb-1">{t("deal.saleTitle")}</p>
         <p className="text-muted">
           {saleCar.make} {saleCar.model} {saleCar.year ?? ""} ·{" "}
-          {saleCar.price ? `₪${saleCar.price}` : "מחיר לא צוין"}
-          {iAmSeller ? " (המודעה שלך)" : ` (המודעה של ${otherName})`}
+          {saleCar.price ? `₪${saleCar.price}` : t("swipe.noPriceListed")}{" "}
+          {iAmSeller ? t("deal.yourListing") : t("deal.theirListing", { name: otherName })}
         </p>
       </div>
     );
@@ -37,34 +39,31 @@ export default function DealSummary({
 
   return (
     <div className="card p-4 mb-6 text-sm space-y-2">
-      <p className="font-medium">עסקת החלפה</p>
+      <p className="font-medium">{t("deal.swapTitle")}</p>
       <div className="flex justify-between text-muted">
-        <span>
-          הרכב שלך: {myCar!.make} {myCar!.model} {myCar!.year ?? ""}
-        </span>
-        <span>{myCar!.price != null ? `₪${myCar!.price}` : "אין מחיר"}</span>
+        <span>{t("deal.yourCar", { make: myCar!.make, model: myCar!.model, year: myCar!.year ?? "" })}</span>
+        <span>{myCar!.price != null ? `₪${myCar!.price}` : t("deal.noPrice")}</span>
       </div>
       <div className="flex justify-between text-muted">
         <span>
-          הרכב של {otherName}: {otherCar!.make} {otherCar!.model} {otherCar!.year ?? ""}
+          {t("deal.theirCar", {
+            name: otherName,
+            make: otherCar!.make,
+            model: otherCar!.model,
+            year: otherCar!.year ?? "",
+          })}
         </span>
-        <span>{otherCar!.price != null ? `₪${otherCar!.price}` : "אין מחיר"}</span>
+        <span>{otherCar!.price != null ? `₪${otherCar!.price}` : t("deal.noPrice")}</span>
       </div>
       <div className="pt-2 border-t border-neutral-200 font-medium">
         {!bothPriced ? (
-          <span className="text-muted font-normal">
-            צריך לצרף מחיר לשני הרכבים כדי לחשב את הפרש התשלום.
-          </span>
+          <span className="text-muted font-normal">{t("deal.needBothPrices")}</span>
         ) : diff === 0 ? (
-          <span>המחירים שווים - אין תשלום נוסף.</span>
+          <span>{t("deal.equalPrices")}</span>
         ) : iPay ? (
-          <span>
-            הרכב שלך זול יותר - אתה משלם ₪{diff} ל{otherName} להשלמת ההחלפה.
-          </span>
+          <span>{t("deal.iPay", { name: otherName, amount: diff! })}</span>
         ) : theyPay ? (
-          <span>
-            הרכב של {otherName} זול יותר - {otherName} משלם/ת לך ₪{diff} להשלמת ההחלפה.
-          </span>
+          <span>{t("deal.theyPay", { name: otherName, amount: diff! })}</span>
         ) : null}
       </div>
     </div>

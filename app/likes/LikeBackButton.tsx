@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function LikeBackButton({ toUserId, carId }: { toUserId: string; carId: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +27,7 @@ export default function LikeBackButton({ toUserId, carId }: { toUserId: string; 
     router.refresh();
   }
 
-  if (done) return <span className="text-xs text-emerald-700">נשלח!</span>;
+  if (done) return <span className="text-xs text-emerald-700">{t("likes.sent")}</span>;
 
   return (
     <button
@@ -33,7 +35,7 @@ export default function LikeBackButton({ toUserId, carId }: { toUserId: string; 
       disabled={loading}
       className="text-xs rounded-full bg-brand-blue text-white px-3 py-1.5 disabled:opacity-50"
     >
-      אהבתי בחזרה
+      {t("likes.likeBack")}
     </button>
   );
 }

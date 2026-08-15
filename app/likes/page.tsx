@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 import LikeBackButton from "./LikeBackButton";
 
 interface IncomingLike {
@@ -15,6 +16,7 @@ interface IncomingLike {
 
 export default async function LikesPage() {
   const supabase = await createClient();
+  const { t } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -34,14 +36,11 @@ export default async function LikesPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-semibold mb-6">מי אהב אותך</h1>
+      <h1 className="text-2xl font-semibold mb-6">{t("likes.title")}</h1>
 
       {!isPremium ? (
         <div className="card p-6 text-center">
-          <p className="text-sm text-neutral-600">
-            הצפייה במי שסיווייפ ימינה עליך זמינה למשתמשי פרימיום בלבד. אין עדיין תשלום עצמאי
-            באפליקציה - פנו לתמיכה כדי לשדרג.
-          </p>
+          <p className="text-sm text-neutral-600">{t("likes.premiumOnly")}</p>
         </div>
       ) : likes?.length ? (
         <div className="space-y-3">
@@ -61,7 +60,7 @@ export default async function LikesPage() {
           ))}
         </div>
       ) : (
-        <p className="text-neutral-500 text-sm">אין עדיין לייקים חדשים.</p>
+        <p className="text-neutral-500 text-sm">{t("likes.empty")}</p>
       )}
     </div>
   );

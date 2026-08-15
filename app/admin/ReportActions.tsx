@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function ReportActions({
   messageId,
@@ -12,6 +13,7 @@ export default function ReportActions({
   senderId: string;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
 
   async function dismiss() {
@@ -23,7 +25,7 @@ export default function ReportActions({
   }
 
   async function banSender() {
-    if (!confirm("לחסום את השולח?")) return;
+    if (!confirm(t("admin.confirmBanSender"))) return;
     setLoading(true);
     const supabase = createClient();
     await supabase.from("users").update({ is_banned: true }).eq("id", senderId);
@@ -39,14 +41,14 @@ export default function ReportActions({
         disabled={loading}
         className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
       >
-        דחה דיווח
+        {t("admin.dismissReport")}
       </button>
       <button
         onClick={banSender}
         disabled={loading}
         className="text-xs rounded-full bg-red-700 text-white px-3 py-1.5 hover:bg-red-800 disabled:opacity-50"
       >
-        חסום שולח
+        {t("admin.banSender")}
       </button>
     </div>
   );

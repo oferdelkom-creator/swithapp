@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function CarAdminActions({
   carId,
@@ -14,6 +15,7 @@ export default function CarAdminActions({
   boostedUntil: string | null;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const isBoosted = boostedUntil ? new Date(boostedUntil) > new Date() : false;
 
@@ -26,7 +28,7 @@ export default function CarAdminActions({
   }
 
   async function remove() {
-    if (!confirm("להסיר את המודעה הזו?")) return;
+    if (!confirm(t("admin.confirmRemoveListing"))) return;
     setLoading(true);
     const supabase = createClient();
     await supabase.from("cars").delete().eq("id", carId);
@@ -47,21 +49,21 @@ export default function CarAdminActions({
         disabled={loading}
         className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
       >
-        {listingFeePaid ? "עמלה שולמה ✓" : "סימון עמלה כשולמה"}
+        {listingFeePaid ? t("admin.feePaid") : t("admin.markFeePaid")}
       </button>
       <button
         onClick={boost}
         disabled={loading}
         className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
       >
-        {isBoosted ? "מקודם ✓" : "קידום ל-7 ימים"}
+        {isBoosted ? t("admin.boosted") : t("admin.boost")}
       </button>
       <button
         onClick={remove}
         disabled={loading}
         className="text-xs rounded-full bg-red-700 text-white px-3 py-1.5 hover:bg-red-800 disabled:opacity-50"
       >
-        הסר
+        {t("admin.remove")}
       </button>
     </div>
   );

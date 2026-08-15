@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 import type { Car, Match, Message } from "@/lib/types";
 import ChatThread from "./ChatThread";
 import DealSummary from "./DealSummary";
@@ -7,6 +8,7 @@ import DealSummary from "./DealSummary";
 export default async function MatchThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { t } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,14 +44,14 @@ export default async function MatchThreadPage({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-semibold mb-1">{otherUser?.name ?? "משתמש"}</h1>
+      <h1 className="text-2xl font-semibold mb-1">{otherUser?.name ?? t("matches.user")}</h1>
       <p className="text-muted text-sm mb-6">
         {myAgreed && otherAgreed && contact?.phone
-          ? `טלפון: ${contact.phone}`
-          : "שני הצדדים צריכים להסכים כדי לחשוף מספר טלפון."}
+          ? t("matches.phoneNumber", { phone: contact.phone })
+          : t("matches.phoneConsentNeeded")}
       </p>
 
-      <DealSummary myCar={myCar} otherCar={otherCar} otherName={otherUser?.name ?? "הצד השני"} />
+      <DealSummary myCar={myCar} otherCar={otherCar} otherName={otherUser?.name ?? t("matches.otherSide")} />
 
       <ChatThread
         matchId={id}

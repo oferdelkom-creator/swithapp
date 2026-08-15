@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default async function Header() {
   const supabase = await createClient();
+  const { t } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -25,22 +28,25 @@ export default async function Header() {
         <Link href="/" className="font-bold text-lg text-brand-blue-dark tracking-tight">
           SwitchApp
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          {user ? (
-            <>
-              <NavLink href="/swipe">סווייפ</NavLink>
-              <NavLink href="/cars">הרכבים שלי</NavLink>
-              <NavLink href="/matches">התאמות</NavLink>
-              <NavLink href="/likes">מי אהב אותך</NavLink>
-              {isBusiness && <NavLink href="/business">חשבון עסקי</NavLink>}
-              {isAdmin && <NavLink href="/admin">אדמין</NavLink>}
-            </>
-          ) : (
-            <NavLink href="/login" primary>
-              התחברות
-            </NavLink>
-          )}
-        </nav>
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-1 text-sm">
+            {user ? (
+              <>
+                <NavLink href="/swipe">{t("nav.swipe")}</NavLink>
+                <NavLink href="/cars">{t("nav.cars")}</NavLink>
+                <NavLink href="/matches">{t("nav.matches")}</NavLink>
+                <NavLink href="/likes">{t("nav.likes")}</NavLink>
+                {isBusiness && <NavLink href="/business">{t("nav.business")}</NavLink>}
+                {isAdmin && <NavLink href="/admin">{t("nav.admin")}</NavLink>}
+              </>
+            ) : (
+              <NavLink href="/login" primary>
+                {t("nav.signIn")}
+              </NavLink>
+            )}
+          </nav>
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

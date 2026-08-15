@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 // No payment gateway is wired up yet (same gap as the hotel-trust sibling) - premium is
 // granted by an admin for now, 30 days at a time.
 export default function GrantPremiumButton({ userId }: { userId: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
 
   async function grant() {
@@ -26,7 +28,7 @@ export default function GrantPremiumButton({ userId }: { userId: string }) {
       disabled={loading}
       className="text-xs rounded-full bg-neutral-100 text-neutral-700 px-3 py-1.5 disabled:opacity-50"
     >
-      פרימיום ל-30 יום
+      {t("admin.grantPremium")}
     </button>
   );
 }

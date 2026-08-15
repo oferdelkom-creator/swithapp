@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +35,7 @@ export default function LoginForm() {
         if (signUpError) throw signUpError;
 
         if (!data.session) {
-          setError("בדקו את המייל לאישור החשבון לפני ההתחברות - שלחנו קישור אישור.");
+          setError(t("login.confirmEmail"));
           setLoading(false);
           return;
         }
@@ -54,7 +56,7 @@ export default function LoginForm() {
           ? err.message
           : typeof err === "object" && err !== null && "message" in err
             ? String((err as { message: unknown }).message)
-            : "משהו השתבש";
+            : t("login.genericError");
       setError(message);
     } finally {
       setLoading(false);
@@ -69,26 +71,26 @@ export default function LoginForm() {
           onClick={() => setMode("signin")}
           className={mode === "signin" ? "btn-primary" : "btn-secondary"}
         >
-          התחברות
+          {t("login.signIn")}
         </button>
         <button
           type="button"
           onClick={() => setMode("signup")}
           className={mode === "signup" ? "btn-primary" : "btn-secondary"}
         >
-          יצירת חשבון
+          {t("login.signUp")}
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "signup" && (
           <div>
-            <label className="block text-sm font-medium mb-1">שם מלא</label>
+            <label className="block text-sm font-medium mb-1">{t("login.fullName")}</label>
             <input required value={name} onChange={(e) => setName(e.target.value)} className="field" />
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium mb-1">אימייל</label>
+          <label className="block text-sm font-medium mb-1">{t("login.email")}</label>
           <input
             required
             type="email"
@@ -98,7 +100,7 @@ export default function LoginForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">סיסמה</label>
+          <label className="block text-sm font-medium mb-1">{t("login.password")}</label>
           <input
             required
             type="password"
@@ -112,7 +114,7 @@ export default function LoginForm() {
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "רגע..." : mode === "signup" ? "יצירת חשבון" : "התחברות"}
+          {loading ? t("login.wait") : mode === "signup" ? t("login.signUp") : t("login.signIn")}
         </button>
       </form>
     </div>

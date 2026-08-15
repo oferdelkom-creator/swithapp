@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 import SwipeDeck from "./SwipeDeck";
 
 export default async function SwipePage() {
   const supabase = await createClient();
+  const { t } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -17,7 +19,7 @@ export default async function SwipePage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
-      <h1 className="text-2xl font-semibold mb-6">סווייפ</h1>
+      <h1 className="text-2xl font-semibold mb-6">{t("swipe.title")}</h1>
       <SwipeDeck userId={user.id} initialLat={me?.lat ?? null} initialLon={me?.lon ?? null} />
     </div>
   );

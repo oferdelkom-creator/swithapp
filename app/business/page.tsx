@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
+import { formatDate } from "@/lib/i18n/format";
 
 export default async function BusinessPage() {
   const supabase = await createClient();
+  const { t, locale } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -25,25 +28,22 @@ export default async function BusinessPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
-      <h1 className="text-2xl font-semibold mb-1">חשבון עסקי</h1>
+      <h1 className="text-2xl font-semibold mb-1">{t("business.title")}</h1>
       <p className="text-neutral-500 mb-8 text-sm">{me.business_name ?? "-"}</p>
 
       <div className="card p-6 space-y-2 text-sm">
+        <p>{t("business.plan", { plan: me.billing_plan ?? t("business.notSet") })}</p>
         <p>
-          תוכנית: <span className="font-medium">{me.billing_plan ?? "לא הוגדרה"}</span>
-        </p>
-        <p>
-          מנוי: {active ? (
+          {t("business.subscription")}{" "}
+          {active ? (
             <span className="text-emerald-700 font-medium">
-              פעיל עד {new Date(me.subscription_valid_until!).toLocaleDateString("he-IL")}
+              {t("business.activeUntil", { date: formatDate(me.subscription_valid_until!, locale) })}
             </span>
           ) : (
-            <span className="text-red-600 font-medium">לא פעיל</span>
+            <span className="text-red-600 font-medium">{t("business.inactive")}</span>
           )}
         </p>
-        <p className="text-neutral-500 pt-2">
-          אין עדיין תשלום עצמאי באפליקציה - הפעלת/חידוש מנוי נעשית מול הצוות שלנו.
-        </p>
+        <p className="text-neutral-500 pt-2">{t("business.noSelfServe")}</p>
       </div>
     </div>
   );

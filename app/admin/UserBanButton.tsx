@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function UserBanButton({
   userId,
@@ -12,6 +13,7 @@ export default function UserBanButton({
   isBanned: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
 
   async function toggle() {
@@ -26,11 +28,11 @@ export default function UserBanButton({
     <button
       onClick={toggle}
       disabled={loading}
-      className={`text-xs rounded-md px-3 py-1.5 disabled:opacity-50 ${
+      className={`text-xs rounded-full px-3 py-1.5 disabled:opacity-50 ${
         isBanned ? "bg-neutral-100 text-neutral-700" : "bg-red-700 text-white hover:bg-red-800"
       }`}
     >
-      {isBanned ? "בטל חסימה" : "חסום"}
+      {isBanned ? t("admin.unban") : t("admin.ban")}
     </button>
   );
 }

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 import type { Car } from "@/lib/types";
 import CarForm from "./CarForm";
 import DeleteCarButton from "./DeleteCarButton";
 
 export default async function CarsPage() {
   const supabase = await createClient();
+  const { t } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -22,17 +24,17 @@ export default async function CarsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold mb-1">הרכבים שלי</h1>
-        <p className="text-neutral-500">מודעות שאחרים יראו במסך הסווייפ.</p>
+        <h1 className="text-2xl font-semibold mb-1">{t("cars.title")}</h1>
+        <p className="text-neutral-500">{t("cars.subtitle")}</p>
       </div>
 
       <section>
-        <h2 className="font-medium mb-4">הוספת רכב</h2>
+        <h2 className="font-medium mb-4">{t("cars.addTitle")}</h2>
         <CarForm />
       </section>
 
       <section>
-        <h2 className="font-medium mb-4">המודעות שלי ({cars?.length ?? 0})</h2>
+        <h2 className="font-medium mb-4">{t("cars.myListings", { count: cars?.length ?? 0 })}</h2>
         <div className="space-y-4">
           {cars?.length ? (
             cars.map((c) => (
@@ -49,16 +51,18 @@ export default async function CarsPage() {
                       {c.make} {c.model} {c.year ?? ""}
                     </p>
                     <p className="text-sm text-muted">
-                      {c.for_sale ? "למכירה" : ""}
+                      {c.for_sale ? t("cars.forSale") : ""}
                       {c.for_sale && c.for_swap ? " · " : ""}
-                      {c.for_swap ? "להחלפה" : ""}
+                      {c.for_swap ? t("cars.forSwap") : ""}
                       {c.price ? ` · ₪${c.price}` : ""}
-                      {c.for_swap && c.want_make ? ` · מחפש: ${c.want_make} ${c.want_model ?? ""}` : ""}
+                      {c.for_swap && c.want_make
+                        ? ` · ${t("cars.looking", { make: c.want_make, model: c.want_model ?? "" })}`
+                        : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Link href={`/cars/${c.id}/edit`} className="text-xs text-brand-blue underline">
-                      עריכה
+                      {t("cars.edit")}
                     </Link>
                     <DeleteCarButton carId={c.id} />
                   </div>
@@ -66,7 +70,7 @@ export default async function CarsPage() {
               </div>
             ))
           ) : (
-            <p className="text-neutral-500 text-sm">עדיין אין לך מודעות רכב.</p>
+            <p className="text-neutral-500 text-sm">{t("cars.empty")}</p>
           )}
         </div>
       </section>
