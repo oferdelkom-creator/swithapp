@@ -155,6 +155,43 @@ Product feedback after the above, in order:
   request could be made from this sandbox) - test a real plate number after deploy;
   resource IDs on data.gov.il are known to occasionally rotate.
 
+## Plate number persistence, owner count, bus type, profile, and notifications (2026-08-15)
+
+Follow-up feedback, in order:
+
+- **"You didn't save the plate number."** The lookup field only used the plate number
+  transiently for the data.gov.il query - it was never written to the listing. Added
+  `cars.plate_number` (migration `add_plate_number_and_bus_type`) and `CarForm` now
+  saves whatever's in that field (looked-up or hand-typed) with the listing.
+- **"How many owners" field was missing.** `cars.hand` already existed in the schema
+  and types but had no input in `CarForm` - added it next to price. Price itself is
+  now a required field, per "the car's price is important."
+- **Bus as a vehicle type.** Added `'bus'` to the `vehicle_type` enum and
+  `lib/vehicleData.ts`, plus a best-effort data.gov.il resource mapping for plate
+  lookup (the "public transport vehicles" dataset - lower confidence than
+  car/motorcycle/truck since its field names are assumed, not confirmed, to match).
+- **"Check what Yad2 has and update our vehicle list accordingly."** Dispatched a
+  research pass on Yad2's vehicle categories and manufacturer/model coverage, then
+  expanded `lib/vehicleData.ts` accordingly - see the dataset itself for exact
+  scope/counts as of this write-up.
+- **Profile photo.** New `/profile` page (`app/profile/page.tsx` +
+  `ProfileForm.tsx`) - avatar upload (new `avatars` storage bucket, same per-user-folder
+  RLS pattern as `car-photos`) and name editing. Linked from a new tab in the bottom
+  nav.
+- **Push notifications for matches, with explicit opt-in.** `/profile` has an "Enable
+  notifications" button that requests the browser's `Notification` permission and,
+  once granted, sets `users.notify_on_match = true`. `components/MatchNotifier.tsx`
+  (mounted in `RootLayout` for logged-in users) subscribes to Supabase Realtime on
+  `matches` rows the caller is part of (added to the `supabase_realtime` publication;
+  delivery is already gated by the existing "Users can view their own matches" RLS
+  policy) and fires a `Notification` when a new match arrives. **Important scope
+  limit:** this is a foreground-only notification, not a true push notification -
+  there's no service worker or push server, so it only fires while a SwitchApp tab is
+  open. A real background/lock-screen push would need Web Push (VAPID keys + a
+  service worker + a server-side trigger on match creation) - deferred because this
+  environment has no tool to store a private key as a secret outside of committing it
+  to the repo, which would leak it.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase

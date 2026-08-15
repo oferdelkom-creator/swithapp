@@ -21,14 +21,14 @@ const REGIONS: CarRegion[] = [
 const FUEL_TYPES: FuelType[] = ["Petrol", "Diesel", "Hybrid", "Electric", "Gas"];
 // Israel's vehicle registry only tracks cars/motorcycles/trucks - caravans and jet
 // skis aren't registered there, so plate lookup has nothing to query for them.
-const RESOURCE_BACKED_TYPES: VehicleType[] = ["car", "motorcycle", "truck"];
+const RESOURCE_BACKED_TYPES: VehicleType[] = ["car", "motorcycle", "truck", "bus"];
 
 export default function CarForm({ car }: { car?: Car }) {
   const router = useRouter();
   const { t, locale } = useLocale();
   const isEdit = !!car;
   const [vehicleType, setVehicleType] = useState<VehicleType>(car?.category ?? "car");
-  const [plate, setPlate] = useState("");
+  const [plate, setPlate] = useState(car?.plate_number ?? "");
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
 
@@ -41,6 +41,7 @@ export default function CarForm({ car }: { car?: Car }) {
   const [year, setYear] = useState(car?.year?.toString() ?? "");
   const [color, setColor] = useState(car?.color ?? "");
   const [price, setPrice] = useState(car?.price?.toString() ?? "");
+  const [hand, setHand] = useState(car?.hand?.toString() ?? "");
   const [mileage, setMileage] = useState(car?.mileage?.toString() ?? "");
   const [transmission, setTransmission] = useState(car?.transmission ?? "Automatic");
   const [region, setRegion] = useState<CarRegion | "">(car?.region ?? "");
@@ -175,7 +176,9 @@ export default function CarForm({ car }: { car?: Car }) {
       model: resolvedModel,
       year: year ? Number(year) : null,
       color: color || null,
+      plate_number: plate.trim() || null,
       price: price ? Number(price) : null,
+      hand: hand ? Number(hand) : null,
       mileage: mileage ? Number(mileage) : null,
       transmission,
       region: region || null,
@@ -207,7 +210,9 @@ export default function CarForm({ car }: { car?: Car }) {
       setModelOther("");
       setYear("");
       setColor("");
+      setPlate("");
       setPrice("");
+      setHand("");
       setMileage("");
       setWantMake("");
       setWantModel("");
@@ -381,7 +386,11 @@ export default function CarForm({ car }: { car?: Car }) {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
-          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
+          <input required type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
+          <input type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
         </div>
       </div>
 

@@ -21,8 +21,9 @@ create type message_kind as enum ('report', 'hello', 'chat');
 -- Added 2026-08-15 (migration add_vehicle_type_enum): what cars.category actually
 -- stores. Lets listings cover more than cars without an invasive table rename -
 -- caravans/jet skis have no matching data.gov.il registry, so plate lookup only
--- works for car/motorcycle/truck (see app/api/plate-lookup/route.ts).
-create type vehicle_type as enum ('car', 'motorcycle', 'truck', 'caravan', 'jet_ski');
+-- works for car/motorcycle/truck/bus (see app/api/plate-lookup/route.ts).
+-- 'bus' added later the same day (migration add_plate_number_and_bus_type).
+create type vehicle_type as enum ('car', 'motorcycle', 'truck', 'caravan', 'jet_ski', 'bus');
 
 -- ── Tables ───────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ create table public.users (
   subscription_valid_until timestamptz,
   premium_until timestamptz,
   accepts_hello_messages boolean not null default true,
+  -- Foreground match-notification opt-in (added 2026-08-15, migration
+  -- add_avatars_bucket_and_notification_pref). No service worker/push server behind
+  -- this - MatchNotifier.tsx only shows a Notification while a tab is open. See README.
+  notify_on_match boolean not null default false,
   is_admin boolean not null default false,
   is_banned boolean not null default false,
   -- Marks bulk-generated test/demo rows (added 2026-08-15, migration
@@ -64,6 +69,10 @@ create table public.cars (
   -- into the vehicle-type discriminator (car/motorcycle/truck/caravan/jet_ski).
   category vehicle_type not null default 'car',
   color text,
+  -- Added 2026-08-15 (migration add_plate_number_and_bus_type). Saved from the plate
+  -- lookup field in CarForm (or typed manually) - not validated against the gov
+  -- registry format, just stored as entered.
+  plate_number text,
   photo_urls text[] not null default '{}',
   price numeric,
   hand integer check (hand is null or hand >= 0),
@@ -624,3 +633,32 @@ begin
   return query select user_count, car_count;
 end;
 $$;
+
+-- ── Storage buckets (car-photos predates this snapshot, undocumented until now;
+-- avatars added 2026-08-15, migration add_avatars_bucket_and_notification_pref) ────
+
+insert into storage.buckets (id, name, public) values ('car-photos', 'car-photos', true);
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
+
+create policy "Anyone can view car photos" on storage.objects for select
+  using (bucket_id = 'car-photos');
+create policy "Users can upload their own car photos" on storage.objects for insert
+  with check (bucket_id = 'car-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "Users can delete their own car photos" on storage.objects for delete
+  using (bucket_id = 'car-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Anyone can view avatars" on storage.objects for select
+  using (bucket_id = 'avatars');
+create policy "Users can upload their own avatar" on storage.objects for insert
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "Users can update their own avatar" on storage.objects for update
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "Users can delete their own avatar" on storage.objects for delete
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ── Realtime (matches added 2026-08-15, migration add_matches_to_realtime_publication;
+-- messages predates this snapshot) - both gated by each table's own RLS SELECT policy,
+-- so a subscriber only receives rows they're already allowed to read ────────────────
+
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.matches;

@@ -5,6 +5,7 @@ export const VEHICLE_TYPES: { value: VehicleType; labelKey: TranslationKey }[] =
   { value: "car", labelKey: "vehicleType.car" },
   { value: "motorcycle", labelKey: "vehicleType.motorcycle" },
   { value: "truck", labelKey: "vehicleType.truck" },
+  { value: "bus", labelKey: "vehicleType.bus" },
   { value: "caravan", labelKey: "vehicleType.caravan" },
   { value: "jet_ski", labelKey: "vehicleType.jetSki" },
 ];
@@ -81,6 +82,18 @@ const TRUCK_MODELS: Record<string, string[]> = {
   [OTHER]: [],
 };
 
+const BUS_MODELS: Record<string, string[]> = {
+  "Mercedes-Benz": ["Sprinter", "Tourismo", "Travego", "Citaro"],
+  Volvo: ["9700", "9900", "B8R", "B11R"],
+  Scania: ["Touring", "Interlink", "Citywide"],
+  MAN: ["Lion's Coach", "Lion's City", "Lion's Intercity"],
+  Iveco: ["Crossway", "Magelys", "Daily Minibus"],
+  Isuzu: ["Novociti", "Citiport"],
+  Temsa: ["Safari", "MD9", "Avenue"],
+  Otokar: ["Territo", "Sultan", "Vectio"],
+  [OTHER]: [],
+};
+
 const CARAVAN_MODELS: Record<string, string[]> = {
   Hobby: ["De Luxe", "Premium", "Prestige"],
   Knaus: ["Sport", "Sudwind", "Van TI"],
@@ -105,6 +118,7 @@ const MAKES_BY_TYPE: Record<VehicleType, Record<string, string[]>> = {
   car: CAR_MODELS,
   motorcycle: MOTORCYCLE_MODELS,
   truck: TRUCK_MODELS,
+  bus: BUS_MODELS,
   caravan: CARAVAN_MODELS,
   jet_ski: JET_SKI_MODELS,
 };

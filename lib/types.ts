@@ -13,7 +13,7 @@ export type CarRegion =
 export type MatchStatus = "negotiating" | "closed";
 export type SwipeDirection = "left" | "right";
 export type MessageKind = "report" | "hello" | "chat";
-export type VehicleType = "car" | "motorcycle" | "truck" | "caravan" | "jet_ski";
+export type VehicleType = "car" | "motorcycle" | "truck" | "bus" | "caravan" | "jet_ski";
 
 export interface AppUser {
   id: string;
@@ -27,6 +27,7 @@ export interface AppUser {
   subscription_valid_until: string | null;
   premium_until: string | null;
   accepts_hello_messages: boolean;
+  notify_on_match: boolean;
   is_admin: boolean;
   is_banned: boolean;
   is_seed: boolean;
@@ -48,6 +49,7 @@ export interface Car {
   transmission: string | null;
   category: VehicleType;
   color: string | null;
+  plate_number: string | null;
   photo_urls: string[];
   price: number | null;
   hand: number | null;

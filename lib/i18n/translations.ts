@@ -15,6 +15,7 @@ const en = {
   "nav.likes": "Who Liked You",
   "nav.business": "Business Account",
   "nav.admin": "Admin",
+  "nav.profile": "Profile",
   "nav.signIn": "Sign In",
 
   "home.tagline": "Swipe right or left to sell, buy, or swap a car with other owners.",
@@ -75,6 +76,7 @@ const en = {
   "carForm.color": "Color",
   "carForm.region": "Region",
   "carForm.price": "Price (₪)",
+  "carForm.hand": "Number of owners",
   "carForm.forSale": "For sale",
   "carForm.forSwap": "For swap",
   "carForm.wantMake": "Looking for make (swap)",
@@ -86,6 +88,7 @@ const en = {
   "vehicleType.car": "Car",
   "vehicleType.motorcycle": "Motorcycle / two-wheeler",
   "vehicleType.truck": "Truck",
+  "vehicleType.bus": "Bus",
   "vehicleType.caravan": "Caravan",
   "vehicleType.jetSki": "Jet ski",
 
@@ -169,6 +172,23 @@ const en = {
   "business.noSelfServe":
     "There's no self-serve payment in the app yet - subscription activation/renewal happens through our team.",
 
+  "profile.title": "Profile",
+  "profile.subtitle": "Your photo, name, and notification preferences.",
+  "profile.changePhoto": "Change photo",
+  "profile.name": "Name",
+  "profile.save": "Save",
+  "profile.notificationsTitle": "Match notifications",
+  "profile.notificationsDescription":
+    "Get notified in your browser when you get a new match - only while SwitchApp is open in a tab.",
+  "profile.notificationsOn": "Notifications are on",
+  "profile.notificationsTurnOff": "Turn off",
+  "profile.notificationsEnable": "Enable notifications",
+  "profile.notificationsUnsupported": "Your browser doesn't support notifications.",
+  "profile.notificationsDenied": "Notification permission was denied - check your browser's site settings.",
+
+  "notifications.newMatchTitle": "It's a match!",
+  "notifications.newMatchBody": "You have a new match on SwitchApp.",
+
   "admin.title": "Admin Panel",
   "admin.subtitle": "Users, car listings, and reports.",
   "admin.reports": "Reports ({{count}})",
@@ -220,6 +240,7 @@ const he: Record<Key, string> = {
   "nav.likes": "מי אהב אותך",
   "nav.business": "חשבון עסקי",
   "nav.admin": "אדמין",
+  "nav.profile": "פרופיל",
   "nav.signIn": "התחברות",
 
   "home.tagline":
@@ -281,6 +302,7 @@ const he: Record<Key, string> = {
   "carForm.color": "צבע",
   "carForm.region": "אזור",
   "carForm.price": "מחיר (₪)",
+  "carForm.hand": "מספר בעלים",
   "carForm.forSale": "למכירה",
   "carForm.forSwap": "להחלפה",
   "carForm.wantMake": "מחפש יצרן (להחלפה)",
@@ -292,6 +314,7 @@ const he: Record<Key, string> = {
   "vehicleType.car": "רכב פרטי",
   "vehicleType.motorcycle": "אופנוע / דו גלגלי",
   "vehicleType.truck": "משאית",
+  "vehicleType.bus": "אוטובוס",
   "vehicleType.caravan": "קרוואן",
   "vehicleType.jetSki": "אופנוע ים",
 
@@ -375,6 +398,23 @@ const he: Record<Key, string> = {
   "business.inactive": "לא פעיל",
   "business.noSelfServe":
     "אין עדיין תשלום עצמאי באפליקציה - הפעלת/חידוש מנוי נעשה מול הצוות שלנו.",
+
+  "profile.title": "פרופיל",
+  "profile.subtitle": "התמונה, השם, והעדפות ההתראות שלך.",
+  "profile.changePhoto": "החלפת תמונה",
+  "profile.name": "שם",
+  "profile.save": "שמירה",
+  "profile.notificationsTitle": "התראות על התאמות",
+  "profile.notificationsDescription":
+    "קבלת התראה בדפדפן כשיש לך התאמה חדשה - רק כשהאפליקציה פתוחה בלשונית.",
+  "profile.notificationsOn": "ההתראות פעילות",
+  "profile.notificationsTurnOff": "כיבוי",
+  "profile.notificationsEnable": "הפעלת התראות",
+  "profile.notificationsUnsupported": "הדפדפן שלך לא תומך בהתראות.",
+  "profile.notificationsDenied": "ההרשאה להתראות נדחתה - יש לבדוק את הגדרות האתר בדפדפן.",
+
+  "notifications.newMatchTitle": "יש התאמה!",
+  "notifications.newMatchBody": "יש לך התאמה חדשה ב-SwitchApp.",
 
   "admin.title": "פאנל אדמין",
   "admin.subtitle": "משתמשים, מודעות רכב ודיווחים.",

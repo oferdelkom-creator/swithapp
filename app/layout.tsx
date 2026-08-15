@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import LocaleProvider from "@/components/LocaleProvider";
+import MatchNotifier from "@/components/MatchNotifier";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,9 +26,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ? (
         await supabase
           .from("users")
-          .select("is_admin, role")
+          .select("is_admin, role, notify_on_match")
           .eq("id", user.id)
-          .maybeSingle<{ is_admin: boolean; role: string }>()
+          .maybeSingle<{ is_admin: boolean; role: string; notify_on_match: boolean }>()
       ).data
     : null;
   const isAdmin = profile?.is_admin ?? false;
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Header loggedIn={!!user} />
           <main className={`flex-1 ${user ? "pb-20" : ""}`}>{children}</main>
           {user && <BottomNav isAdmin={isAdmin} isBusiness={isBusiness} likesCount={likesCount} />}
+          {user && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
         </LocaleProvider>
       </body>
     </html>

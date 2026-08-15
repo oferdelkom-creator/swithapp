@@ -23,6 +23,7 @@ export default function BottomNav({
     { href: "/likes", label: t("nav.likes"), icon: LikeIcon, badge: likesCount },
     ...(isBusiness ? [{ href: "/business", label: t("nav.business"), icon: BusinessIcon }] : []),
     ...(isAdmin ? [{ href: "/admin", label: t("nav.admin"), icon: AdminIcon }] : []),
+    { href: "/profile", label: t("nav.profile"), icon: ProfileIcon },
   ];
 
   return (
@@ -118,6 +119,15 @@ function AdminIcon({ active }: IconProps) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
       <path d="M12 3l7 3v5c0 4.6-3 8.2-7 10-4-1.8-7-5.4-7-10V6l7-3z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ProfileIcon({ active }: IconProps) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="3.5" fill={active ? "currentColor" : "none"} />
+      <path d="M4.5 19.5c1.5-3.5 4.5-5 7.5-5s6 1.5 7.5 5" strokeLinecap="round" fill={active ? "currentColor" : "none"} />
     </svg>
   );
 }

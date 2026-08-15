@@ -3,12 +3,14 @@ import type { FuelType, VehicleType } from "@/lib/types";
 
 // Israel's open-data vehicle registry (data.gov.il), CKAN datastore_search API.
 // Resource IDs are stable dataset identifiers, not secrets - see README for sourcing
-// notes. Only "car"/"motorcycle"/"truck" have a matching government registry;
-// caravans and jet skis aren't tracked by this API.
+// notes. "bus" uses the public-transport-vehicles resource (lower confidence - field
+// names assumed to match the private/commercial dataset, unverified). Caravans and jet
+// skis aren't tracked by this API at all.
 const RESOURCE_BY_TYPE: Partial<Record<VehicleType, string>> = {
   car: "053cea08-09bc-40ec-8f7a-156f0677aff3",
   motorcycle: "bf9df4e2-d90d-4c0a-a400-19e15af8e95f",
   truck: "cd3acc5c-03c3-4c89-9c54-d40f93c0d790",
+  bus: "cf29862d-ca25-4691-84f6-1be60dcb4a1e",
 };
 
 const FUEL_TYPE_MAP: Record<string, FuelType> = {
