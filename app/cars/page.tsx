@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Car } from "@/lib/types";
@@ -35,8 +36,14 @@ export default async function CarsPage() {
         <div className="space-y-4">
           {cars?.length ? (
             cars.map((c) => (
-              <div key={c.id} className="card p-5">
-                <div className="flex items-start justify-between">
+              <div key={c.id} className="card p-5 flex items-start gap-4">
+                {c.photo_urls?.[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.photo_urls[0]} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-neutral-100 shrink-0" />
+                )}
+                <div className="flex-1 flex items-start justify-between">
                   <div>
                     <p className="font-medium">
                       {c.make} {c.model} {c.year ?? ""}
@@ -49,7 +56,12 @@ export default async function CarsPage() {
                       {c.for_swap && c.want_make ? ` · מחפש: ${c.want_make} ${c.want_model ?? ""}` : ""}
                     </p>
                   </div>
-                  <DeleteCarButton carId={c.id} />
+                  <div className="flex items-center gap-3">
+                    <Link href={`/cars/${c.id}/edit`} className="text-xs text-brand-blue underline">
+                      עריכה
+                    </Link>
+                    <DeleteCarButton carId={c.id} />
+                  </div>
                 </div>
               </div>
             ))

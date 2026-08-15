@@ -6,6 +6,35 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mode = "sale" | "swap";
 
+const REGIONS = [
+  "North",
+  "Haifa",
+  "Center",
+  "Tel Aviv",
+  "Jerusalem",
+  "Shfela",
+  "South",
+  "Judea and Samaria",
+];
+
+interface SaleFilters {
+  make: string;
+  minPrice: string;
+  maxPrice: string;
+  minYear: string;
+  maxYear: string;
+  region: string;
+}
+
+const EMPTY_FILTERS: SaleFilters = {
+  make: "",
+  minPrice: "",
+  maxPrice: "",
+  minYear: "",
+  maxYear: "",
+  region: "",
+};
+
 interface SaleCandidate {
   user_id: string;
   seller_name: string;
@@ -54,6 +83,8 @@ export default function SwipeDeck({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [filters, setFilters] = useState<SaleFilters>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
 
   async function loadDeck() {
     if (mode === "swap" && (lat === null || lon === null)) {
@@ -66,7 +97,15 @@ export default function SwipeDeck({
     const supabase = createClient();
 
     if (mode === "sale") {
-      const { data, error: rpcError } = await supabase.rpc("cars_for_sale", { my_id: userId });
+      const { data, error: rpcError } = await supabase.rpc("cars_for_sale", {
+        my_id: userId,
+        p_make: filters.make || null,
+        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
+        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
+        p_min_year: filters.minYear ? Number(filters.minYear) : null,
+        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
+        p_region: filters.region || null,
+      });
       if (rpcError) setError(rpcError.message);
       setDeck((data as SaleCandidate[]) ?? []);
     } else {
@@ -144,7 +183,7 @@ export default function SwipeDeck({
 
   return (
     <div>
-      <div className="flex gap-2 mb-6 text-sm">
+      <div className="flex gap-2 mb-4 text-sm">
         <button
           onClick={() => setMode("sale")}
           className={mode === "sale" ? "btn-primary" : "btn-secondary"}
@@ -157,7 +196,76 @@ export default function SwipeDeck({
         >
           להחלפה
         </button>
+        {mode === "sale" && (
+          <button onClick={() => setShowFilters((s) => !s)} className="btn-secondary">
+            סינון
+          </button>
+        )}
       </div>
+
+      {mode === "sale" && showFilters && (
+        <div className="card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
+          <input
+            placeholder="יצרן"
+            value={filters.make}
+            onChange={(e) => setFilters((f) => ({ ...f, make: e.target.value }))}
+            className="field"
+          />
+          <select
+            value={filters.region}
+            onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value }))}
+            className="field"
+          >
+            <option value="">כל האזורים</option>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            placeholder="מחיר מ-"
+            value={filters.minPrice}
+            onChange={(e) => setFilters((f) => ({ ...f, minPrice: e.target.value }))}
+            className="field"
+          />
+          <input
+            type="number"
+            placeholder="מחיר עד"
+            value={filters.maxPrice}
+            onChange={(e) => setFilters((f) => ({ ...f, maxPrice: e.target.value }))}
+            className="field"
+          />
+          <input
+            type="number"
+            placeholder="שנה מ-"
+            value={filters.minYear}
+            onChange={(e) => setFilters((f) => ({ ...f, minYear: e.target.value }))}
+            className="field"
+          />
+          <input
+            type="number"
+            placeholder="שנה עד"
+            value={filters.maxYear}
+            onChange={(e) => setFilters((f) => ({ ...f, maxYear: e.target.value }))}
+            className="field"
+          />
+          <div className="col-span-2 flex gap-2">
+            <button onClick={loadDeck} className="btn-primary flex-1">
+              החלת סינון
+            </button>
+            <button
+              onClick={() => {
+                setFilters(EMPTY_FILTERS);
+              }}
+              className="btn-secondary"
+            >
+              איפוס
+            </button>
+          </div>
+        </div>
+      )}
 
       {banner && (
         <div className="mb-4 rounded-full bg-emerald-100 text-emerald-800 px-4 py-2 text-sm">

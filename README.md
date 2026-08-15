@@ -35,8 +35,7 @@ functional Tailwind defaults only):
 - `lib/types.ts`: TypeScript types matching the schema (including the new columns).
 - `/cars` (own listings): add a car (make/model/year/mileage/transmission/fuel/region/
   price, `for_sale`/`for_swap`, `want_make`/`want_model` when swapping) and delete it.
-  No edit yet, no photo upload (no storage bucket exists for this project - listings work
-  without photos, the swipe deck just shows a placeholder).
+  (Edit and photo upload came later - see below.)
 - `/swipe`: toggles between the two RPCs - `cars_for_sale()` for the sale deck,
   `nearby_swap_cars()` for the swap deck (prompts for browser geolocation the first time,
   since that RPC needs `lat`/`lon` and saves it to the user's profile). Swiping right
@@ -114,6 +113,34 @@ UI addition:
   to both listings" if either is missing one). `/matches` list now also shows which two
   cars matched, not just who.
 
+**Remaining backlog, closed out** (asked to finish everything, using judgment on
+anything unspecified):
+- **Car-listing edit**: `/cars/[id]/edit`, same `CarForm` as create, now handles both.
+- **Photo upload**: turns out a `car-photos` Supabase Storage bucket already existed
+  (public read, per-user-folder write/delete via RLS - not something I set up, just
+  hadn't checked `storage.buckets` before, only `public` schema tables) - the earlier
+  "no bucket exists" note above was wrong. `CarForm` now uploads to
+  `car-photos/{user_id}/{random}-{filename}` and stores the public URLs in
+  `cars.photo_urls`; `/cars` and the swipe deck show the first photo.
+- **Search/filter UI**: the sale deck already had a filterable RPC
+  (`cars_for_sale(make, price range, year range, ..., region, ...)`) with no UI in front
+  of it. Added a filter panel on `/swipe` (make, price range, year range, region) that
+  calls the same RPC with real arguments instead of always fetching everything.
+
+**Deliberately not attempted - need a decision or an account only you can provide:**
+- **Real payment gateway.** Everything money-related right now is admin-granted (premium,
+  subscriptions, listing fees) precisely because there's no processor wired in. Adding
+  one needs an actual account with a provider (Stripe, Tranzila, etc - Tranzila or a
+  local Israeli acquirer is the more common choice for an Israeli consumer app; Stripe
+  doesn't support Israeli-based payouts directly) and business/compliance details that
+  only you can supply. Tell me which provider and I'll wire up the integration.
+- **International expansion, advanced search beyond what's above, a native app.** These
+  were described as the "final stage" vision, not a concrete spec - region/currency
+  handling, what "precise filtering" should cover beyond the sale-deck filters just
+  added, and native vs. continuing web-only are product calls, not implementation
+  details I should guess at. Say the word on any of these and I'll scope it properly
+  instead of half-building something and needing to redo it.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
@@ -184,8 +211,10 @@ Roughly in build order:
 6. ~~Design pass - shared header/nav, real color/component tokens, hero landing page.~~
    Done. Still a first pass, not a full brand identity (no logo, no illustration, no
    dark mode) - see below.
-7. Car-listing edit, photo upload (needs a Supabase storage bucket that doesn't exist
-   yet), an actual payment gateway.
+7. ~~Car-listing edit, photo upload, sale-deck search/filter UI.~~ Done.
+8. Real payment gateway, international expansion, native app - blocked on decisions
+   only the product owner can make (which payment provider, currency/region scope,
+   web vs. native). See above.
 
 ## Note on testing in this environment
 
