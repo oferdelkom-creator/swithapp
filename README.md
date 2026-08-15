@@ -489,6 +489,33 @@ built the first two on confirmation:
   there's no payment gateway) with a plain CSS bar chart for the sparkline - no charting
   library needed for four bars.
 
+## Photo upload silent-failure fix (2026-08-15, later)
+
+Reported as "the photos didn't upload." This sandbox can't reach the deployed app or
+Supabase directly to reproduce interactively (same network restriction noted throughout
+this doc), so this was diagnosed from the backend side instead: bucket config, storage
+RLS policies, and the publishable key all checked out correctly, and
+`storage.objects` had zero rows total across both buckets - the upload was failing
+before ever reaching the storage backend, not being rejected by it.
+
+Found two real gaps in `CarForm.tsx`'s `handlePhotoSelect` and `ProfileForm.tsx`'s
+`handleAvatarSelect`, both fixed the same way in both:
+- **No `try/catch`.** If `supabase.storage.upload()` ever throws instead of resolving
+  with `{ error }` (a real possibility on some network failures), the function exits
+  before calling `setUploading(false)` or showing any error - the button gets stuck on
+  "Uploading..." forever with no feedback at all. Wrapped both handlers in
+  `try/catch/finally` so the uploading state and an error message are guaranteed to
+  resolve no matter what goes wrong.
+- **The storage path embedded the original filename verbatim** (`${uuid}-${file.name}`).
+  A phone photo's filename can carry non-ASCII characters (Hebrew, emoji from a share
+  sheet) that may not survive as a storage object key. New `lib/storage.ts` exports
+  `safeExtension()`, which keeps only a plain lowercase extension from the filename and
+  drops the rest - the UUID alone is the object key now.
+
+Still can't confirm this was the exact failure the user hit without a live repro, but
+both are real bugs regardless and the fix makes future failures show an actual error
+message instead of failing silently either way.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
+import { safeExtension } from "@/lib/storage";
 import type { AppUser } from "@/lib/types";
 
 export default function ProfileForm({ user }: { user: AppUser }) {
@@ -22,26 +23,31 @@ export default function ProfileForm({ user }: { user: AppUser }) {
     if (!file) return;
     setUploading(true);
     setError(null);
-    const supabase = createClient();
-    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file);
-    if (uploadError) {
-      setError(uploadError.message);
+    try {
+      const supabase = createClient();
+      const path = `${user.id}/${crypto.randomUUID()}${safeExtension(file.name)}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file);
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ avatar_url: data.publicUrl })
+        .eq("id", user.id);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      setAvatarUrl(data.publicUrl);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("login.genericError"));
+    } finally {
       setUploading(false);
-      return;
+      e.target.value = "";
     }
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({ avatar_url: data.publicUrl })
-      .eq("id", user.id);
-    setUploading(false);
-    if (updateError) {
-      setError(updateError.message);
-      return;
-    }
-    setAvatarUrl(data.publicUrl);
-    router.refresh();
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -114,13 +120,13 @@ export default function ProfileForm({ user }: { user: AppUser }) {
             </label>
           </div>
         </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <label className="block text-sm font-medium mb-1">{t("profile.name")}</label>
             <input required value={name} onChange={(e) => setName(e.target.value)} className="field" />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" disabled={saving} className="btn-primary">
             {saving ? t("carForm.saving") : t("profile.save")}
           </button>

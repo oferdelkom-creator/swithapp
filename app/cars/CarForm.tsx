@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel, fuelTypeLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES, OTHER, getMakes, getModels } from "@/lib/vehicleData";
+import { safeExtension } from "@/lib/storage";
 import type { Car, CarRegion, FuelType, VehicleType } from "@/lib/types";
 
 const REGIONS: CarRegion[] = [
@@ -118,30 +119,36 @@ export default function CarForm({ car }: { car?: Car }) {
     if (!files || files.length === 0) return;
     setUploading(true);
     setError(null);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError(t("login.mustSignIn"));
-      setUploading(false);
-      return;
-    }
-
-    const newUrls: string[] = [];
-    for (const file of Array.from(files)) {
-      const path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("car-photos").upload(path, file);
-      if (uploadError) {
-        setError(uploadError.message);
-        continue;
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError(t("login.mustSignIn"));
+        return;
       }
-      const { data } = supabase.storage.from("car-photos").getPublicUrl(path);
-      newUrls.push(data.publicUrl);
+
+      const newUrls: string[] = [];
+      const errors: string[] = [];
+      for (const file of Array.from(files)) {
+        const path = `${user.id}/${crypto.randomUUID()}${safeExtension(file.name)}`;
+        const { error: uploadError } = await supabase.storage.from("car-photos").upload(path, file);
+        if (uploadError) {
+          errors.push(uploadError.message);
+          continue;
+        }
+        const { data } = supabase.storage.from("car-photos").getPublicUrl(path);
+        newUrls.push(data.publicUrl);
+      }
+      if (errors.length) setError(errors.join(" / "));
+      setPhotoUrls((prev) => [...prev, ...newUrls]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("login.genericError"));
+    } finally {
+      setUploading(false);
+      e.target.value = "";
     }
-    setPhotoUrls((prev) => [...prev, ...newUrls]);
-    setUploading(false);
-    e.target.value = "";
   }
 
   function removePhoto(url: string) {
