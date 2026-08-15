@@ -615,6 +615,10 @@ create policy "Users can view their own swipes" on public.swipes
 -- from_user_id must be the caller; to_user_id must be the car's actual owner; capped at
 -- 20 swipes/day unless premium; private users can swipe on dealer/importer cars freely,
 -- dealers/importers can only swipe back at someone who already swiped right on them.
+-- Fixed 2026-08-15 (migration fix_dealer_swipe_back_rls_bug): the third branch used to
+-- compare s.from_user_id = s.to_user_id, which can never be true for a real swipe row -
+-- it silently blocked every dealer/importer from ever completing a swap match with a
+-- private user, since the "like back" action on /likes was always rejected by RLS.
 create policy "Users can insert their own swipes" on public.swipes
   for insert with check (
     auth.uid() = from_user_id
@@ -624,7 +628,7 @@ create policy "Users can insert their own swipes" on public.swipes
       or (select role from public.users where id = swipes.to_user_id) in ('dealer', 'importer')
       or exists (
         select 1 from public.swipes s
-        where s.from_user_id = s.to_user_id
+        where s.from_user_id = swipes.to_user_id
           and s.to_user_id = auth.uid()
           and s.direction = 'right'
       )
