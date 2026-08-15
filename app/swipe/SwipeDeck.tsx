@@ -348,7 +348,7 @@ export default function SwipeDeck({
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
       ) : current ? (
         <>
-          <div className="relative h-[58dvh] max-h-[520px] min-h-[320px]">
+          <div className="relative h-[64dvh] max-h-[580px] min-h-[360px]">
             {peek && (
               <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
                 <CardVisual candidate={peek} />
@@ -357,23 +357,23 @@ export default function SwipeDeck({
             <DraggableCard key={current.car_id} ref={cardRef} active onExit={swipe}>
               <CardVisual candidate={current} />
             </DraggableCard>
-          </div>
 
-          <div className="flex justify-center gap-6 mt-4">
-            <button
-              onClick={() => cardRef.current?.triggerExit("left")}
-              aria-label={t("swipe.skip")}
-              className="w-16 h-16 rounded-full bg-white shadow-lg border border-neutral-200 text-red-500 text-2xl flex items-center justify-center hover:scale-105 transition-transform"
-            >
-              ✕
-            </button>
-            <button
-              onClick={() => cardRef.current?.triggerExit("right")}
-              aria-label={t("swipe.interested")}
-              className="w-16 h-16 rounded-full bg-brand-blue shadow-lg text-white text-2xl flex items-center justify-center hover:scale-105 transition-transform"
-            >
-              ♥
-            </button>
+            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center gap-5 pointer-events-none">
+              <button
+                onClick={() => cardRef.current?.triggerExit("left")}
+                aria-label={t("swipe.skip")}
+                className="pointer-events-auto w-14 h-14 rounded-full bg-white shadow-lg border border-neutral-200 text-red-500 text-xl flex items-center justify-center hover:scale-105 transition-transform"
+              >
+                ✕
+              </button>
+              <button
+                onClick={() => cardRef.current?.triggerExit("right")}
+                aria-label={t("swipe.interested")}
+                className="pointer-events-auto w-14 h-14 rounded-full bg-red-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-red-600 transition-transform"
+              >
+                ♥
+              </button>
+            </div>
           </div>
         </>
       ) : (
