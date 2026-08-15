@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel, fuelTypeLabel } from "@/lib/i18n/enumLabels";
-import type { Car, CarRegion, FuelType } from "@/lib/types";
+import { VEHICLE_TYPES, OTHER, getMakes, getModels } from "@/lib/vehicleData";
+import type { Car, CarRegion, FuelType, VehicleType } from "@/lib/types";
 
 const REGIONS: CarRegion[] = [
   "North",
@@ -18,14 +19,27 @@ const REGIONS: CarRegion[] = [
   "Judea and Samaria",
 ];
 const FUEL_TYPES: FuelType[] = ["Petrol", "Diesel", "Hybrid", "Electric", "Gas"];
+// Israel's vehicle registry only tracks cars/motorcycles/trucks - caravans and jet
+// skis aren't registered there, so plate lookup has nothing to query for them.
+const RESOURCE_BACKED_TYPES: VehicleType[] = ["car", "motorcycle", "truck"];
 
 export default function CarForm({ car }: { car?: Car }) {
   const router = useRouter();
   const { t, locale } = useLocale();
   const isEdit = !!car;
-  const [make, setMake] = useState(car?.make ?? "");
-  const [model, setModel] = useState(car?.model ?? "");
+  const [vehicleType, setVehicleType] = useState<VehicleType>(car?.category ?? "car");
+  const [plate, setPlate] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
+
+  const initialMakeInList = car ? getMakes(car.category).includes(car.make) : true;
+  const initialModelInList = car ? getModels(car.category, car.make).includes(car.model) : true;
+  const [make, setMake] = useState(initialMakeInList ? car?.make ?? "" : OTHER);
+  const [makeOther, setMakeOther] = useState(initialMakeInList ? "" : car?.make ?? "");
+  const [model, setModel] = useState(initialModelInList ? car?.model ?? "" : OTHER);
+  const [modelOther, setModelOther] = useState(initialModelInList ? "" : car?.model ?? "");
   const [year, setYear] = useState(car?.year?.toString() ?? "");
+  const [color, setColor] = useState(car?.color ?? "");
   const [price, setPrice] = useState(car?.price?.toString() ?? "");
   const [mileage, setMileage] = useState(car?.mileage?.toString() ?? "");
   const [transmission, setTransmission] = useState(car?.transmission ?? "Automatic");
@@ -39,6 +53,64 @@ export default function CarForm({ car }: { car?: Car }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const makeOptions = getMakes(vehicleType);
+  const modelOptions = getModels(vehicleType, make);
+
+  function handleVehicleTypeChange(next: VehicleType) {
+    setVehicleType(next);
+    setMake("");
+    setMakeOther("");
+    setModel("");
+    setModelOther("");
+  }
+
+  function handleMakeChange(next: string) {
+    setMake(next);
+    setModel("");
+    setModelOther("");
+  }
+
+  async function lookupPlate() {
+    setLookupMessage(null);
+    if (!RESOURCE_BACKED_TYPES.includes(vehicleType)) {
+      setLookupMessage(t("carForm.lookupPlateUnavailable"));
+      return;
+    }
+    if (!plate.trim()) return;
+    setLookupLoading(true);
+    try {
+      const res = await fetch(`/api/plate-lookup?plate=${encodeURIComponent(plate)}&type=${vehicleType}`);
+      if (res.status === 404) {
+        setLookupMessage(t("carForm.lookupPlateNotFound"));
+        return;
+      }
+      if (!res.ok) {
+        setLookupMessage(t("carForm.lookupPlateError"));
+        return;
+      }
+      const data = await res.json();
+      if (data.make) {
+        const inList = makeOptions.includes(data.make);
+        setMake(inList ? data.make : OTHER);
+        setMakeOther(inList ? "" : data.make);
+      }
+      if (data.model) {
+        const modelsForMake = getModels(vehicleType, data.make ?? make);
+        const inList = modelsForMake.includes(data.model);
+        setModel(inList ? data.model : OTHER);
+        setModelOther(inList ? "" : data.model);
+      }
+      if (data.year) setYear(String(data.year));
+      if (data.color) setColor(data.color);
+      if (data.fuel_type) setFuelType(data.fuel_type);
+      setLookupMessage(t("carForm.lookupPlateSuccess"));
+    } catch {
+      setLookupMessage(t("carForm.lookupPlateError"));
+    } finally {
+      setLookupLoading(false);
+    }
+  }
 
   async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -89,10 +161,20 @@ export default function CarForm({ car }: { car?: Car }) {
       return;
     }
 
+    const resolvedMake = make === OTHER ? makeOther.trim() : make;
+    const resolvedModel = model === OTHER ? modelOther.trim() : model;
+    if (!resolvedMake || !resolvedModel) {
+      setError(t("carForm.make") + " / " + t("carForm.model"));
+      setLoading(false);
+      return;
+    }
+
     const payload = {
-      make,
-      model,
+      category: vehicleType,
+      make: resolvedMake,
+      model: resolvedModel,
       year: year ? Number(year) : null,
+      color: color || null,
       price: price ? Number(price) : null,
       mileage: mileage ? Number(mileage) : null,
       transmission,
@@ -120,8 +202,11 @@ export default function CarForm({ car }: { car?: Car }) {
       router.push("/cars");
     } else {
       setMake("");
+      setMakeOther("");
       setModel("");
+      setModelOther("");
       setYear("");
+      setColor("");
       setPrice("");
       setMileage("");
       setWantMake("");
@@ -154,18 +239,99 @@ export default function CarForm({ car }: { car?: Car }) {
         {uploading && <p className="text-xs text-muted mt-1">{t("carForm.uploading")}</p>}
       </div>
 
+      <div>
+        <label className="block text-sm font-medium mb-1">{t("carForm.vehicleType")}</label>
+        <div className="flex flex-wrap gap-2">
+          {VEHICLE_TYPES.map((vt) => (
+            <button
+              key={vt.value}
+              type="button"
+              onClick={() => handleVehicleTypeChange(vt.value)}
+              className={
+                vehicleType === vt.value
+                  ? "rounded-full bg-brand-blue text-white px-4 py-1.5 text-sm"
+                  : "rounded-full border border-neutral-300 text-neutral-600 px-4 py-1.5 text-sm hover:bg-neutral-50"
+              }
+            >
+              {t(vt.labelKey)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">{t("carForm.plateNumber")}</label>
+        <div className="flex gap-2">
+          <input
+            value={plate}
+            onChange={(e) => setPlate(e.target.value)}
+            placeholder={t("carForm.plateNumberPlaceholder")}
+            className="field flex-1"
+          />
+          <button
+            type="button"
+            onClick={lookupPlate}
+            disabled={lookupLoading || !plate.trim()}
+            className="btn-secondary whitespace-nowrap"
+          >
+            {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
+          </button>
+        </div>
+        {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.make")}</label>
-          <input required value={make} onChange={(e) => setMake(e.target.value)} className="field" />
+          <select required value={make} onChange={(e) => handleMakeChange(e.target.value)} className="field">
+            <option value="" disabled>
+              -
+            </option>
+            {makeOptions.map((m) => (
+              <option key={m} value={m}>
+                {m === OTHER ? t("carForm.makeOther") : m}
+              </option>
+            ))}
+          </select>
+          {make === OTHER && (
+            <input
+              required
+              value={makeOther}
+              onChange={(e) => setMakeOther(e.target.value)}
+              className="field mt-2"
+              placeholder={t("carForm.make")}
+            />
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.model")}</label>
-          <input required value={model} onChange={(e) => setModel(e.target.value)} className="field" />
+          <select required value={model} onChange={(e) => setModel(e.target.value)} className="field">
+            <option value="" disabled>
+              -
+            </option>
+            {modelOptions.map((m) => (
+              <option key={m} value={m}>
+                {m === OTHER ? t("carForm.modelOther") : m}
+              </option>
+            ))}
+          </select>
+          {model === OTHER && (
+            <input
+              required
+              value={modelOther}
+              onChange={(e) => setModelOther(e.target.value)}
+              className="field mt-2"
+              placeholder={t("carForm.model")}
+            />
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.year")}</label>
           <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="field" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
+          <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>

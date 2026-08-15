@@ -5,7 +5,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
-import type { CarRegion } from "@/lib/types";
+import { VEHICLE_TYPES } from "@/lib/vehicleData";
+import type { CarRegion, VehicleType } from "@/lib/types";
 import DraggableCard, { type DraggableCardHandle } from "./DraggableCard";
 
 type Mode = "sale" | "swap";
@@ -47,6 +48,7 @@ interface SaleCandidate {
   make: string;
   model: string;
   year: number | null;
+  category: VehicleType;
   price: number | null;
   photo_urls: string[];
 }
@@ -59,6 +61,7 @@ interface SwapCandidate {
   make: string;
   model: string;
   year: number | null;
+  category: VehicleType;
   want_make: string | null;
   want_notes: string | null;
   photo_urls: string[];
@@ -90,6 +93,7 @@ export default function SwipeDeck({
   const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
   const [filters, setFilters] = useState<SaleFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const cardRef = useRef<DraggableCardHandle>(null);
 
   async function loadDeck() {
@@ -111,6 +115,7 @@ export default function SwipeDeck({
         p_min_year: filters.minYear ? Number(filters.minYear) : null,
         p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
         p_region: filters.region || null,
+        p_category: vehicleType || null,
       });
       if (rpcError) setError(rpcError.message);
       setDeck((data as SaleCandidate[]) ?? []);
@@ -119,6 +124,7 @@ export default function SwipeDeck({
         my_lat: lat,
         my_lon: lon,
         my_id: userId,
+        p_category: vehicleType || null,
       });
       if (rpcError) setError(rpcError.message);
       setDeck((data as SwapCandidate[]) ?? []);
@@ -131,7 +137,7 @@ export default function SwipeDeck({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount/mode-change is intentional
     loadDeck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, lat, lon]);
+  }, [mode, lat, lon, vehicleType]);
 
   function requestLocation() {
     if (!navigator.geolocation) {
@@ -225,6 +231,32 @@ export default function SwipeDeck({
             {t("swipe.filters")}
           </button>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4 text-xs">
+        <button
+          onClick={() => setVehicleType("")}
+          className={
+            vehicleType === ""
+              ? "rounded-full bg-brand-blue-dark text-white px-3 py-1"
+              : "rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
+          }
+        >
+          {t("swipe.allVehicleTypes")}
+        </button>
+        {VEHICLE_TYPES.map((vt) => (
+          <button
+            key={vt.value}
+            onClick={() => setVehicleType(vt.value)}
+            className={
+              vehicleType === vt.value
+                ? "rounded-full bg-brand-blue-dark text-white px-3 py-1"
+                : "rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
+            }
+          >
+            {t(vt.labelKey)}
+          </button>
+        ))}
       </div>
 
       {mode === "sale" && showFilters && (
@@ -360,6 +392,11 @@ function CardVisual({ candidate }: { candidate: Candidate }) {
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+      {candidate.category !== "car" && (
+        <span className="absolute top-4 start-4 rounded-full bg-white/90 text-neutral-900 text-xs font-medium px-3 py-1">
+          {t(VEHICLE_TYPES.find((vt) => vt.value === candidate.category)?.labelKey ?? "vehicleType.car")}
+        </span>
+      )}
       <div className="absolute bottom-0 inset-x-0 p-5 text-white">
         <p className="font-bold text-2xl drop-shadow">
           {candidate.make} {candidate.model} {candidate.year ?? ""}

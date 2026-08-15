@@ -107,6 +107,54 @@ Product feedback after the above, in order:
   name, straight to that match's chat) replacing the old thin green banner. Buttons at
   the bottom trigger the same animated exit as a real drag, via an imperative handle.
 
+## Bottom nav, vehicle categories, and plate lookup (2026-08-15)
+
+Product feedback after the above, in order:
+
+- **"Move the top list to the bottom of the page."** The primary nav (Swipe/My
+  Cars/Matches/Who Liked You/Business/Admin) moved out of `Header` into a new fixed
+  bottom tab bar (`components/BottomNav.tsx`), mobile-app style - only shown when
+  logged in. `Header` is now just the logo, a sign-in button when logged out, and the
+  language switcher. `RootLayout` fetches the auth/profile/likes-count data once and
+  passes it to both, instead of each component querying separately.
+- **Nicer, front-facing demo photos.** Re-picked all 10 seed cars' photos for explicit
+  "front view" Wikimedia Commons files (searched for `<make> <model> front` rather than
+  reusing whatever came up first), and switched to Commons' `Special:FilePath/<filename>`
+  redirect URLs instead of hand-typed `upload.wikimedia.org` hash paths - it's a
+  documented Commons feature that always resolves to the right file without needing to
+  compute the MD5 hash bucket by hand. Same sandbox caveat as before: this environment's
+  egress policy blocks the whole `wikimedia.org` domain, so these still couldn't be
+  fetched to visually confirm; spot-check `/swipe` after deploy.
+- **Vehicle categories beyond cars** ("what about trucks, motorcycles, caravans, jet
+  skis - I want everything"). Repurposed the existing (previously unused) `cars.category`
+  free-text column into a proper `vehicle_type` enum (`car`/`motorcycle`/`truck`/
+  `caravan`/`jet_ski`) rather than renaming the `cars` table - migrations
+  `add_vehicle_type_enum` and `add_vehicle_type_to_deck_rpcs` (the latter updates
+  `cars_for_sale()`/`nearby_swap_cars()` to filter and return it). `CarForm` has a
+  vehicle-type chip picker at the top that drives which make/model list is offered
+  (`lib/vehicleData.ts`); the swipe deck has a matching chip filter row and shows a
+  small type badge on cards that aren't plain cars.
+- **Make/model dropdowns instead of free text** ("so people don't mistype"). `CarForm`'s
+  make/model fields are now `<select>`s populated from `lib/vehicleData.ts` (curated
+  makes/models per vehicle type, ~30 car makes down to a handful for caravans/jet skis).
+  Every list ends with an "Other" option that reveals a free-text input, so an
+  uncommon real-world vehicle still isn't blocked - the dropdown is guardrails, not a
+  hard allowlist.
+- **License-plate lookup against Israel's vehicle registry.** New
+  `app/api/plate-lookup/route.ts` queries data.gov.il's CKAN `datastore_search` API
+  (resource IDs: private/commercial `053cea08-...`, motorcycle `bf9df4e2-...`, heavy
+  truck `cd3acc5c-...` - sourced from cross-referencing 15+ independent public GitHub
+  repos, since this sandbox can't reach `data.gov.il` either to verify directly) by
+  `mispar_rechev` (plate number), and maps the Hebrew field names (`tozeret_nm`,
+  `kinuy_mishari`/`degem_nm`, `shnat_yitzur`, `tzeva_rechev`, `sug_delek_nm`) to
+  make/model/year/color/fuel type. `CarForm` has a plate-number field + "Look up"
+  button that calls it and autofills those fields (falling back to "Other" +
+  free text if the returned make/model isn't in the curated dropdown list).
+  Caravans and jet skis aren't tracked by this registry at all, so lookup is disabled
+  for those types with an explanatory message. **Unverified end-to-end** (no live
+  request could be made from this sandbox) - test a real plate number after deploy;
+  resource IDs on data.gov.il are known to occasionally rotate.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase

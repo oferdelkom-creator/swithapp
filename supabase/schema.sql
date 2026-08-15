@@ -18,6 +18,11 @@ create type car_region as enum (
 -- actual user reports (surfaced in /admin); 'hello' is unused in switchapp (leftover
 -- from cross-contamination with a different Supabase project - see README).
 create type message_kind as enum ('report', 'hello', 'chat');
+-- Added 2026-08-15 (migration add_vehicle_type_enum): what cars.category actually
+-- stores. Lets listings cover more than cars without an invasive table rename -
+-- caravans/jet skis have no matching data.gov.il registry, so plate lookup only
+-- works for car/motorcycle/truck (see app/api/plate-lookup/route.ts).
+create type vehicle_type as enum ('car', 'motorcycle', 'truck', 'caravan', 'jet_ski');
 
 -- ── Tables ───────────────────────────────────────────────────────────────
 
@@ -55,7 +60,9 @@ create table public.cars (
   year integer,
   mileage integer,
   transmission text default 'Automatic',
-  category text default 'Other',
+  -- Repurposed 2026-08-15 (migration add_vehicle_type_enum) from a free-text field
+  -- into the vehicle-type discriminator (car/motorcycle/truck/caravan/jet_ski).
+  category vehicle_type not null default 'car',
   color text,
   photo_urls text[] not null default '{}',
   price numeric,
@@ -225,12 +232,17 @@ create trigger on_swipe_created
   for each row execute function public.handle_new_swipe();
 
 -- RPC: swap-deck candidates near the caller, excluding already-swiped cars.
-create or replace function public.nearby_swap_cars(my_lat double precision, my_lon double precision, my_id uuid)
+-- p_category added 2026-08-15 (migration add_vehicle_type_to_deck_rpcs) to let the
+-- swap deck filter by vehicle type alongside the sale deck.
+create or replace function public.nearby_swap_cars(
+  my_lat double precision, my_lon double precision, my_id uuid,
+  p_category vehicle_type default null
+)
 returns table (
   user_id uuid, name text, lat double precision, lon double precision,
   distance_km double precision,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
-  photo_urls text[], want_make text, want_notes text, price numeric
+  category vehicle_type, photo_urls text[], want_make text, want_notes text, price numeric
 )
 language sql
 stable
@@ -238,7 +250,7 @@ as $$
   select
     u.id, u.name, u.lat, u.lon,
     public.haversine_km(my_lat, my_lon, u.lat, u.lon) as distance_km,
-    c.id, c.make, c.model, c.year, c.mileage, c.transmission, c.photo_urls,
+    c.id, c.make, c.model, c.year, c.mileage, c.transmission, c.category, c.photo_urls,
     c.want_make, c.want_notes, c.price
   from public.users u
   join public.cars c on c.user_id = u.id
@@ -252,21 +264,24 @@ as $$
       (select role from public.users where id = my_id) = 'private'
       or u.role in ('dealer', 'importer')
     )
+    and (p_category is null or c.category = p_category)
   order by (c.boosted_until > now()) desc nulls last, distance_km asc nulls last;
 $$;
 
 -- RPC: sale-deck candidates with filters, excluding already-swiped cars.
+-- p_category changed from text to vehicle_type 2026-08-15 (migration
+-- add_vehicle_type_to_deck_rpcs) to match the cars.category column.
 create or replace function public.cars_for_sale(
   my_id uuid,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
   p_min_year integer default null, p_max_year integer default null, p_max_mileage integer default null,
-  p_transmission text default null, p_category text default null, p_color text default null,
+  p_transmission text default null, p_category vehicle_type default null, p_color text default null,
   p_fuel_type fuel_type default null, p_region car_region default null, p_max_hand integer default null
 )
 returns table (
   user_id uuid, seller_name text, seller_role user_role,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
-  category text, color text, photo_urls text[], price numeric, hand integer,
+  category vehicle_type, color text, photo_urls text[], price numeric, hand integer,
   fuel_type fuel_type, region car_region
 )
 language sql

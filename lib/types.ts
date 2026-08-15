@@ -13,6 +13,7 @@ export type CarRegion =
 export type MatchStatus = "negotiating" | "closed";
 export type SwipeDirection = "left" | "right";
 export type MessageKind = "report" | "hello" | "chat";
+export type VehicleType = "car" | "motorcycle" | "truck" | "caravan" | "jet_ski";
 
 export interface AppUser {
   id: string;
@@ -45,7 +46,7 @@ export interface Car {
   year: number | null;
   mileage: number | null;
   transmission: string | null;
-  category: string | null;
+  category: VehicleType;
   color: string | null;
   photo_urls: string[];
   price: number | null;
