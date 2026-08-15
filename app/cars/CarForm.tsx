@@ -229,14 +229,51 @@ export default function CarForm({ car }: { car?: Car }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card space-y-4 p-5">
-      <div>
-        <label className="block text-sm font-medium mb-1">{t("carForm.photos")}</label>
-        <div className="flex flex-wrap gap-2 mb-2">
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white m-4"
+    >
+      <div className="relative w-full aspect-video bg-neutral-100">
+        {photoUrls[0] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <label className="absolute inset-0 flex flex-col items-center justify-center gap-2 cursor-pointer text-neutral-400 hover:bg-neutral-200/60 transition-colors">
+            <CameraIcon />
+            <span className="text-sm font-medium">
+              {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoSelect}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+        )}
+        {photoUrls.length > 0 && (
+          <label className="absolute bottom-3 end-3 rounded-full bg-white/90 backdrop-blur px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white transition-colors">
+            {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoSelect}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+        )}
+      </div>
+
+      {photoUrls.length > 0 && (
+        <div className="flex gap-2 px-5 pt-3 overflow-x-auto no-scrollbar">
           {photoUrls.map((url) => (
-            <div key={url} className="relative">
+            <div key={url} className="relative shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg" />
+              <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg" />
               <button
                 type="button"
                 onClick={() => removePhoto(url)}
@@ -247,198 +284,202 @@ export default function CarForm({ car }: { car?: Car }) {
             </div>
           ))}
         </div>
-        <label className="btn-secondary text-sm cursor-pointer inline-block">
-          {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePhotoSelect}
-            disabled={uploading}
-            className="hidden"
-          />
-        </label>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">{t("carForm.vehicleType")}</label>
-        <div className="flex flex-wrap gap-2">
-          {VEHICLE_TYPES.map((vt) => (
-            <button
-              key={vt.value}
-              type="button"
-              onClick={() => handleVehicleTypeChange(vt.value)}
-              className={
-                vehicleType === vt.value
-                  ? "rounded-full bg-brand-blue text-white px-4 py-1.5 text-sm"
-                  : "rounded-full border border-neutral-300 text-neutral-600 px-4 py-1.5 text-sm hover:bg-neutral-50"
-              }
-            >
-              {t(vt.labelKey)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">{t("carForm.plateNumber")}</label>
-        <div className="flex gap-2">
-          <input
-            value={plate}
-            onChange={(e) => setPlate(e.target.value)}
-            placeholder={t("carForm.plateNumberPlaceholder")}
-            className="field flex-1"
-          />
-          <button
-            type="button"
-            onClick={lookupPlate}
-            disabled={lookupLoading || !plate.trim()}
-            className="btn-secondary whitespace-nowrap"
-          >
-            {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
-          </button>
-        </div>
-        {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.make")}</label>
-          <select required value={make} onChange={(e) => handleMakeChange(e.target.value)} className="field">
-            <option value="" disabled>
-              -
-            </option>
-            {makeOptions.map((m) => (
-              <option key={m} value={m}>
-                {m === OTHER ? t("carForm.makeOther") : m}
-              </option>
-            ))}
-          </select>
-          {make === OTHER && (
-            <input
-              required
-              value={makeOther}
-              onChange={(e) => setMakeOther(e.target.value)}
-              className="field mt-2"
-              placeholder={t("carForm.make")}
-            />
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.model")}</label>
-          <select required value={model} onChange={(e) => setModel(e.target.value)} className="field">
-            <option value="" disabled>
-              -
-            </option>
-            {modelOptions.map((m) => (
-              <option key={m} value={m}>
-                {m === OTHER ? t("carForm.modelOther") : m}
-              </option>
-            ))}
-          </select>
-          {model === OTHER && (
-            <input
-              required
-              value={modelOther}
-              onChange={(e) => setModelOther(e.target.value)}
-              className="field mt-2"
-              placeholder={t("carForm.model")}
-            />
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.year")}</label>
-          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="field" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
-          <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>
-          <input
-            type="number"
-            value={mileage}
-            onChange={(e) => setMileage(e.target.value)}
-            className="field"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.transmission")}</label>
-          <select
-            value={transmission}
-            onChange={(e) => setTransmission(e.target.value)}
-            className="field"
-          >
-            <option value="Automatic">{t("carForm.automatic")}</option>
-            <option value="Manual">{t("carForm.manual")}</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.fuelType")}</label>
-          <select
-            value={fuelType}
-            onChange={(e) => setFuelType(e.target.value as FuelType)}
-            className="field"
-          >
-            <option value="">-</option>
-            {FUEL_TYPES.map((f) => (
-              <option key={f} value={f}>
-                {fuelTypeLabel(f, locale)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.region")}</label>
-          <select value={region} onChange={(e) => setRegion(e.target.value as CarRegion)} className="field">
-            <option value="">-</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {regionLabel(r, locale)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
-          <input required type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
-          <input type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
-        </div>
-      </div>
-
-      <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={forSale} onChange={(e) => setForSale(e.target.checked)} />
-          {t("carForm.forSale")}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={forSwap} onChange={(e) => setForSwap(e.target.checked)} />
-          {t("carForm.forSwap")}
-        </label>
-      </div>
-
-      {forSwap && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
-            <input value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.wantModel")}</label>
-            <input value={wantModel} onChange={(e) => setWantModel(e.target.value)} className="field" />
-          </div>
-        </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="p-5 space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("carForm.vehicleType")}</label>
+          <div className="flex flex-wrap gap-2">
+            {VEHICLE_TYPES.map((vt) => (
+              <button
+                key={vt.value}
+                type="button"
+                onClick={() => handleVehicleTypeChange(vt.value)}
+                className={
+                  vehicleType === vt.value
+                    ? "rounded-full bg-brand-blue text-white px-4 py-1.5 text-sm font-medium"
+                    : "rounded-full bg-neutral-100 text-neutral-600 px-4 py-1.5 text-sm hover:bg-neutral-200"
+                }
+              >
+                {t(vt.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <button type="submit" disabled={loading || uploading} className="btn-primary">
-        {loading ? t("carForm.saving") : isEdit ? t("carForm.saveChanges") : t("carForm.addListing")}
-      </button>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("carForm.plateNumber")}</label>
+          <div className="flex gap-2">
+            <input
+              value={plate}
+              onChange={(e) => setPlate(e.target.value)}
+              placeholder={t("carForm.plateNumberPlaceholder")}
+              className="field flex-1"
+            />
+            <button
+              type="button"
+              onClick={lookupPlate}
+              disabled={lookupLoading || !plate.trim()}
+              className="btn-secondary whitespace-nowrap"
+            >
+              {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
+            </button>
+          </div>
+          {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.make")}</label>
+            <select required value={make} onChange={(e) => handleMakeChange(e.target.value)} className="field">
+              <option value="" disabled>
+                -
+              </option>
+              {makeOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m === OTHER ? t("carForm.makeOther") : m}
+                </option>
+              ))}
+            </select>
+            {make === OTHER && (
+              <input
+                required
+                value={makeOther}
+                onChange={(e) => setMakeOther(e.target.value)}
+                className="field mt-2"
+                placeholder={t("carForm.make")}
+              />
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.model")}</label>
+            <select required value={model} onChange={(e) => setModel(e.target.value)} className="field">
+              <option value="" disabled>
+                -
+              </option>
+              {modelOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m === OTHER ? t("carForm.modelOther") : m}
+                </option>
+              ))}
+            </select>
+            {model === OTHER && (
+              <input
+                required
+                value={modelOther}
+                onChange={(e) => setModelOther(e.target.value)}
+                className="field mt-2"
+                placeholder={t("carForm.model")}
+              />
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.year")}</label>
+            <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="field" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
+            <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>
+            <input
+              type="number"
+              value={mileage}
+              onChange={(e) => setMileage(e.target.value)}
+              className="field"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.transmission")}</label>
+            <select
+              value={transmission}
+              onChange={(e) => setTransmission(e.target.value)}
+              className="field"
+            >
+              <option value="Automatic">{t("carForm.automatic")}</option>
+              <option value="Manual">{t("carForm.manual")}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.fuelType")}</label>
+            <select
+              value={fuelType}
+              onChange={(e) => setFuelType(e.target.value as FuelType)}
+              className="field"
+            >
+              <option value="">-</option>
+              {FUEL_TYPES.map((f) => (
+                <option key={f} value={f}>
+                  {fuelTypeLabel(f, locale)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.region")}</label>
+            <select value={region} onChange={(e) => setRegion(e.target.value as CarRegion)} className="field">
+              <option value="">-</option>
+              {REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {regionLabel(r, locale)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
+            <input required type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
+            <input type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
+          </div>
+        </div>
+
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={forSale} onChange={(e) => setForSale(e.target.checked)} />
+            {t("carForm.forSale")}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={forSwap} onChange={(e) => setForSwap(e.target.checked)} />
+            {t("carForm.forSwap")}
+          </label>
+        </div>
+
+        {forSwap && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
+              <input value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("carForm.wantModel")}</label>
+              <input value={wantModel} onChange={(e) => setWantModel(e.target.value)} className="field" />
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <button type="submit" disabled={loading || uploading} className="btn-primary">
+          {loading ? t("carForm.saving") : isEdit ? t("carForm.saveChanges") : t("carForm.addListing")}
+        </button>
+      </div>
     </form>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path
+        d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5v-9z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.5" />
+    </svg>
   );
 }
