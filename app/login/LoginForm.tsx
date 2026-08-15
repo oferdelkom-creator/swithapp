@@ -5,16 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 
+// Normalizes an Israeli local number ("050-1234567", "0501234567") or an
+// already-international one ("+972501234567") into E.164 for Supabase's phone auth.
+function toE164Israel(raw: string): string {
+  const digits = raw.replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) return digits;
+  if (digits.startsWith("972")) return `+${digits}`;
+  if (digits.startsWith("0")) return `+972${digits.slice(1)}`;
+  return `+972${digits}`;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLocale();
+  const [authMethod, setAuthMethod] = useState<"password" | "phone">("password");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [phone, setPhone] = useState("");
+  const [phoneStep, setPhoneStep] = useState<"enter" | "verify">("enter");
+  const [code, setCode] = useState("");
 
   async function handleGoogle() {
     setError(null);
@@ -24,6 +39,40 @@ export default function LoginForm() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
+  }
+
+  async function handleSendCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({ phone: toE164Israel(phone) });
+    setLoading(false);
+    if (otpError) {
+      setError(otpError.message);
+      return;
+    }
+    setPhoneStep("verify");
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const supabase = createClient();
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      phone: toE164Israel(phone),
+      token: code,
+      type: "sms",
+    });
+    setLoading(false);
+    if (verifyError) {
+      setError(verifyError.message);
+      return;
+    }
+    const next = searchParams.get("next") || "/";
+    router.push(next);
+    router.refresh();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,6 +127,66 @@ export default function LoginForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authMethod === "phone") {
+    return (
+      <div className="card p-6">
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMethod("password");
+            setPhoneStep("enter");
+            setError(null);
+          }}
+          className="text-sm text-brand-blue mb-4"
+        >
+          {t("login.backToEmail")}
+        </button>
+
+        {phoneStep === "enter" ? (
+          <form onSubmit={handleSendCode} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("login.phoneNumber")}</label>
+              <input
+                required
+                type="tel"
+                placeholder={t("login.phoneNumberPlaceholder")}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="field"
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? t("login.wait") : t("login.sendCode")}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyCode} className="space-y-4">
+            <p className="text-sm text-muted">{t("login.codeSent", { phone: toE164Israel(phone) })}</p>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("login.verificationCode")}</label>
+              <input
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="field"
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? t("login.wait") : t("login.verifyAndContinue")}
+            </button>
+            <button type="button" onClick={() => setPhoneStep("enter")} className="text-sm text-brand-blue">
+              {t("login.changeNumber")}
+            </button>
+          </form>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -141,10 +250,15 @@ export default function LoginForm() {
         <div className="flex-1 border-t border-neutral-200" />
       </div>
 
-      <button type="button" onClick={handleGoogle} className="btn-secondary w-full flex items-center justify-center gap-2">
-        <GoogleIcon />
-        {t("login.continueWithGoogle")}
-      </button>
+      <div className="space-y-2">
+        <button type="button" onClick={handleGoogle} className="btn-secondary w-full flex items-center justify-center gap-2">
+          <GoogleIcon />
+          {t("login.continueWithGoogle")}
+        </button>
+        <button type="button" onClick={() => setAuthMethod("phone")} className="btn-secondary w-full">
+          {t("login.continueWithPhone")}
+        </button>
+      </div>
     </div>
   );
 }

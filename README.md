@@ -215,6 +215,60 @@ Follow-up feedback, in order:
   environment has no tool to store a private key as a secret outside of committing it
   to the repo, which would leak it.
 
+## Swap-deck filters, seed photo fix, mobile RTL overflow, phone sign-in (2026-08-15, later)
+
+Further follow-up feedback, in order:
+
+- **"Swap search needs filters too, and it's missing the price."** The swap deck had
+  no filter UI at all (only the sale deck did), and `CardVisual` never rendered the
+  price for swap candidates even though `nearby_swap_cars()` already returned it.
+  Extended `nearby_swap_cars()` with the same make/price/year filters as
+  `cars_for_sale()`, plus a distance-radius filter (migration
+  `add_filters_to_swap_deck_rpc`), gave the swap deck a filter panel, and added the
+  price line to swap cards.
+- **"Photos aren't loading."** Confirmed via a temporary diagnostic route
+  (`/api/debug-photos`, fetched from Vercel's own network since this sandbox can't
+  reach `wikimedia.org` to check directly, then removed once done) that 7 of the 8
+  photos re-picked earlier that day were failing with HTTP 429 from
+  `upload.wikimedia.org` - not the sandbox block, a real production issue. Root cause:
+  those 7 used a `commons.wikimedia.org/wiki/Special:FilePath/<file>` redirect (chosen
+  to avoid hand-computing the MD5 hash bucket in the direct CDN path) which turned out
+  to throttle far more aggressively than the direct path. Fixed by computing the direct
+  `upload.wikimedia.org/wikipedia/commons/<hash>/<hash2>/<file>` URLs locally (Python
+  `hashlib.md5`, verified against a known-good existing URL first) for all 10. Some
+  still throttle intermittently on repeated server-side checks - likely Wikimedia rate-
+  limiting datacenter-IP cache-misses more than ordinary browser traffic, unconfirmed
+  either way since a real browser load is a different network path than my test. The
+  existing `onError` fallback to a placeholder is the safety net either way.
+- **Mobile layout ("doesn't sit right on my phone").** Tightened vertical spacing on
+  `/swipe` and switched the card height to `dvh` units. Turned out this wasn't the
+  main problem, though: a screenshot revealed the *entire page* shifted, with every
+  label clipped at the edge - a classic symptom of the document being wider than the
+  viewport, which shows up this way in RTL specifically (the page rests scrolled away
+  from its natural reading start instead of showing an ordinary horizontal scrollbar).
+  Root cause was an unstyled native `<input type="file">` in `CarForm` rendering its
+  full-width, unconstrained default browser UI ("no files selected Choose File...").
+  Wrapped it in a styled label + hidden input (matching the pattern already used in
+  `ProfileForm`), and added `overflow-x: hidden` on `<html>` site-wide as a safety net
+  against the same class of bug recurring anywhere else.
+- **Phone-number sign-in ("verify once by phone, then no password needed").** Added
+  a phone-OTP flow to `/login`: enter a phone number → `signInWithOtp({ phone })` sends
+  an SMS code → `verifyOtp({ phone, token, type: "sms" })` creates the session. This
+  covers both signup and signin transparently (Supabase creates the account on first
+  verification). Session persistence afterward needed no new work - it's the same
+  `persistSession`/`autoRefreshToken` behavior already relied on for email login, so
+  "no password on future visits" was already true for any auth method, phone included.
+  Fixed a latent bug this surfaced: `handle_new_auth_user()`'s name fallback chain
+  ended at `split_part(email, '@', 1)`, which is `null` for phone-only signups with no
+  email - violated `users.name`'s not-null constraint. Added `new.phone` and a
+  `'New user'` literal as further fallbacks (migration `handle_phone_only_signups`),
+  and, since it's already a verified number, also seed `public.user_contacts` from it
+  (there was previously no UI path to populate that table at all). **Blocked exactly
+  like Google sign-in:** phone auth needs an SMS provider (Twilio, MessageBird, Vonage,
+  etc.) configured under Supabase Dashboard → Authentication → Providers → Phone, with
+  real API credentials - not something available from this environment. Code-complete,
+  non-functional until that's set up.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase

@@ -517,7 +517,11 @@ $$;
 -- auto_fill_profile_from_oauth_metadata) to also read Google OAuth's metadata keys
 -- ('full_name', 'avatar_url'/'picture') - the original only checked 'name', the
 -- email/password signup convention, so Google sign-ins fell through to the email-prefix
--- fallback despite Google actually supplying a real name and avatar.
+-- fallback despite Google actually supplying a real name and avatar. Updated again the
+-- same day (migration handle_phone_only_signups) for phone-OTP signups, which have no
+-- email - the old fallback chain resolved to null and violated users.name's not-null
+-- constraint - and to seed user_contacts with the OTP-verified number (previously no
+-- UI path set that table at all).
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -531,12 +535,21 @@ begin
     coalesce(
       new.raw_user_meta_data->>'name',
       new.raw_user_meta_data->>'full_name',
-      split_part(new.email, '@', 1)
+      split_part(new.email, '@', 1),
+      new.phone,
+      'New user'
     ),
     coalesce(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture'),
     'private'
   )
   on conflict (id) do nothing;
+
+  if new.phone is not null then
+    insert into public.user_contacts (user_id, phone)
+    values (new.id, new.phone)
+    on conflict (user_id) do nothing;
+  end if;
+
   return new;
 end;
 $$;
