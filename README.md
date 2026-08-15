@@ -3,6 +3,11 @@
 A swipe-based marketplace for buying, selling, and swapping cars in Israel. Built with
 Next.js (App Router, TypeScript, Tailwind) + Supabase.
 
+**Live preview:** https://swithapp.vercel.app - a Vercel project linked to this repo
+(`main` branch), auto-deploys on every push. No env vars were configured on it (the
+Vercel tools available couldn't set them); it runs on the fallback Supabase config in
+`lib/supabase/config.ts` instead - see that file's comment.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase
