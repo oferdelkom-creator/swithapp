@@ -41,21 +41,32 @@ test data with an easy way to remove it later.
 
 ### Demo photos on the 10 seed cars
 
-The 10 seed cars had empty `photo_urls` (nothing had ever uploaded to them - photo
-upload didn't exist until later in this build). Set each to a real Wikimedia Commons
-photo of the matching make/model. **Caveat: these URLs are unverified** - this sandbox's
-network egress policy hard-blocks `wikimedia.org` entirely (confirmed via the proxy's
-own status log, not a transient failure), so neither a research agent nor I could fetch
-them to confirm they 200. They should work fine for real visitors (Wikimedia is a normal
-public CDN, the block is specific to this sandbox), but please spot-check
-https://swithapp.vercel.app/swipe once logged in. Lower-confidence picks, in case one
-needs swapping: the Skoda Octavia file has a non-ASCII "Š" in its name (percent-encoded,
-but worth double-checking); the Suzuki Vitara and Honda Civic photos are the right
-model but an unconfirmed/different color or generation than listed; no blue Kia Niro
-exists on Commons in the current generation, so that one shows a grey one. Added an
-`onError` fallback on the swipe deck's image (`CardVisual` in `SwipeDeck.tsx`) so a
-broken URL degrades to the existing "no photo" placeholder instead of a broken-image
-icon, regardless of which specific URLs end up working.
+The 10 seed cars have `photo_urls` pointing at Wikimedia Commons photos of the matching
+make/model. **Confirmed real, reproducible issue (2026-08-15):** a temporary diagnostic
+route (`/api/debug-photos`, since removed) fetched all 10 URLs server-side from Vercel's
+own network - the one path this sandbox's egress block doesn't affect - and found that
+7 of 10 consistently return HTTP 429 ("Too Many Requests") from
+`upload.wikimedia.org`, while the same 2 consistently return 200, across repeated
+checks. This wasn't the earlier `Special:FilePath` redirect-hop mistake (already fixed -
+all 10 now use direct `upload.wikimedia.org/wikipedia/commons/<hash>/<hash2>/<file>`
+URLs, hash path computed locally via MD5 since this sandbox can't fetch Commons to read
+it off the page); the direct URLs still throttle the same way. Best explanation: Wikimedia
+rate-limits cache-miss requests from datacenter/bot-like IPs (which is what Vercel's
+serverless egress looks like to them) more aggressively than requests from ordinary
+residential/mobile browser IPs - so a real visitor's browser loading these images
+directly may well succeed even where my server-side test didn't. I can't fully confirm
+either way without a real browser hitting the live site.
+
+Two things are already in place to limit the damage: an `onError` fallback on the swipe
+deck's image (`CardVisual` in `SwipeDeck.tsx`) degrades a failed load to the existing "no
+photo" placeholder instead of a broken-image icon, and the 429s are deterministic per-URL,
+not random, so it's not going to be a flaky one-photo-in-five-loads problem. The fully
+reliable fix would be hosting these photos ourselves (download once, upload to the
+existing `car-photos` Supabase Storage bucket, point `photo_urls` at our own URL) instead
+of hotlinking Wikimedia at all - not done yet because it needs either write access to
+Storage outside the per-user-folder RLS policy (a service-role key, which isn't
+available/stored anywhere in this environment) or an authenticated session for each seed
+car's actual owner account, neither of which is available here.
 
 ## Internationalization
 
