@@ -482,8 +482,12 @@ built the first two on confirmation:
   `agreed_to_call` already was so one side can't clear the other's unread state.
   `count_unread_matches()` powers a badge on the bottom nav's Matches tab, same pattern
   as the existing Likes badge.
-- **Deferred for now**: a stats dashboard on `/profile` (likes-received history, listing
-  views) - proposed as the third item but not yet built; happy to pick it up next.
+- **Stats dashboard on `/profile`**, the third item, confirmed and built the same
+  session. A new `get_profile_stats()` RPC returns active-listing count, all-time likes
+  received, total matches, and a 7-day likes sparkline; `ProfileStats.tsx` renders it as
+  two small stat cards (Airbnb's "Earnings"/"Insights" tiles, minus the money since
+  there's no payment gateway) with a plain CSS bar chart for the sparkline - no charting
+  library needed for four bars.
 
 ## Product concept (reverse-engineered from the schema)
 

@@ -536,6 +536,38 @@ as $$
     );
 $$;
 
+-- RPC: lightweight "Insights" style stats for /profile - active listings, all-time
+-- likes received, total matches, and a 7-day likes sparkline (added 2026-08-15,
+-- migration add_get_profile_stats_rpc). No premium gate, no identities revealed - same
+-- free-tier-teaser spirit as count_incoming_likes.
+create or replace function public.get_profile_stats(my_id uuid)
+returns table (
+  active_listings integer,
+  total_likes_received integer,
+  total_matches integer,
+  likes_by_day integer[]
+)
+language sql
+stable
+as $$
+  select
+    (select count(*)::int from public.cars c
+       where c.user_id = my_id and c.sold_at is null and (c.for_sale or c.for_swap)),
+    (select count(distinct s.from_user_id)::int from public.swipes s
+       where s.to_user_id = my_id and s.direction = 'right'),
+    (select count(*)::int from public.matches m
+       where m.user_a_id = my_id or m.user_b_id = my_id),
+    (select array_agg(coalesce(x.cnt, 0) order by gs.d)
+     from generate_series(current_date - 6, current_date, interval '1 day') gs(d)
+     left join (
+       select date_trunc('day', s.created_at)::date as day, count(*) as cnt
+       from public.swipes s
+       where s.to_user_id = my_id and s.direction = 'right'
+       group by 1
+     ) x on x.day = gs.d::date
+    );
+$$;
+
 -- ── Row Level Security ───────────────────────────────────────────────────
 
 alter table public.users enable row level security;

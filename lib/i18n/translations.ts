@@ -210,6 +210,9 @@ const en = {
   "profile.notificationsEnable": "Enable notifications",
   "profile.notificationsUnsupported": "Your browser doesn't support notifications.",
   "profile.notificationsDenied": "Notification permission was denied - check your browser's site settings.",
+  "profile.statLikes": "Likes received",
+  "profile.statMatches": "Total matches",
+  "profile.statActiveListings": "Active listings",
   "profile.blockedUsersTitle": "Blocked users",
   "profile.unblock": "Unblock",
 
@@ -464,6 +467,9 @@ const he: Record<Key, string> = {
   "profile.notificationsEnable": "הפעלת התראות",
   "profile.notificationsUnsupported": "הדפדפן שלך לא תומך בהתראות.",
   "profile.notificationsDenied": "ההרשאה להתראות נדחתה - יש לבדוק את הגדרות האתר בדפדפן.",
+  "profile.statLikes": "לייקים שהתקבלו",
+  "profile.statMatches": "סה״כ התאמות",
+  "profile.statActiveListings": "מודעות פעילות",
   "profile.blockedUsersTitle": "משתמשים חסומים",
   "profile.unblock": "ביטול חסימה",
 
