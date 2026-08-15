@@ -229,13 +229,13 @@ export default function SwipeDeck({
       <div className="flex gap-2 mb-3 text-sm">
         <button
           onClick={() => setMode("sale")}
-          className={mode === "sale" ? "btn-primary" : "btn-secondary"}
+          className={mode === "sale" ? "chip-active px-4 py-2 text-sm" : "chip-inactive px-4 py-2 text-sm"}
         >
           {t("swipe.forSale")}
         </button>
         <button
           onClick={() => setMode("swap")}
-          className={mode === "swap" ? "btn-primary" : "btn-secondary"}
+          className={mode === "swap" ? "chip-active px-4 py-2 text-sm" : "chip-inactive px-4 py-2 text-sm"}
         >
           {t("swipe.forSwap")}
         </button>
@@ -247,11 +247,7 @@ export default function SwipeDeck({
       <div className="flex gap-2 mb-3 text-xs overflow-x-auto no-scrollbar -mx-4 px-4">
         <button
           onClick={() => setVehicleType("")}
-          className={
-            vehicleType === ""
-              ? "shrink-0 rounded-full bg-brand-blue-dark text-white px-3 py-1"
-              : "shrink-0 rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
-          }
+          className={vehicleType === "" ? "shrink-0 chip-active px-3 py-1" : "shrink-0 chip-inactive px-3 py-1"}
         >
           {t("swipe.allVehicleTypes")}
         </button>
@@ -260,9 +256,7 @@ export default function SwipeDeck({
             key={vt.value}
             onClick={() => setVehicleType(vt.value)}
             className={
-              vehicleType === vt.value
-                ? "shrink-0 rounded-full bg-brand-blue-dark text-white px-3 py-1"
-                : "shrink-0 rounded-full border border-neutral-300 text-neutral-600 px-3 py-1 hover:bg-neutral-50"
+              vehicleType === vt.value ? "shrink-0 chip-active px-3 py-1" : "shrink-0 chip-inactive px-3 py-1"
             }
           >
             {t(vt.labelKey)}

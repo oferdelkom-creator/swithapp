@@ -295,11 +295,7 @@ export default function CarForm({ car }: { car?: Car }) {
                 key={vt.value}
                 type="button"
                 onClick={() => handleVehicleTypeChange(vt.value)}
-                className={
-                  vehicleType === vt.value
-                    ? "rounded-full bg-brand-blue text-white px-4 py-1.5 text-sm font-medium"
-                    : "rounded-full bg-neutral-100 text-neutral-600 px-4 py-1.5 text-sm hover:bg-neutral-200"
-                }
+                className={vehicleType === vt.value ? "chip-active px-4 py-1.5 text-sm" : "chip-inactive px-4 py-1.5 text-sm"}
               >
                 {t(vt.labelKey)}
               </button>

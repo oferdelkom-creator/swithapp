@@ -6,9 +6,12 @@
   --brand-blue: #1d4ed8;
   --brand-blue-dark: #16307a;
   --brand-orange: #ea580c;
+  --brand-pink: #ff4458;
   --surface: #ffffff;
   --border: #e4e7ec;
   --muted: #6e6e73;
+  --chip-inactive-bg: #efeff4;
+  --chip-inactive-text: #8e8e93;
 }
 
 @theme inline {
@@ -17,6 +20,7 @@
   --color-brand-blue: var(--brand-blue);
   --color-brand-blue-dark: var(--brand-blue-dark);
   --color-brand-orange: var(--brand-orange);
+  --color-brand-pink: var(--brand-pink);
   --color-surface: var(--surface);
   --color-border: var(--border);
   --color-muted: var(--muted);
@@ -53,6 +57,22 @@ body {
   }
   .btn-danger {
     @apply rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-red-700 text-white hover:bg-red-800;
+  }
+
+  /* Filter/tag-style toggle chips (vehicle type, list filters) - a filled
+     background on both states so the inactive ones don't read as invisible
+     outlines, with the active state in the brand pink instead of blue so it
+     doesn't get lost among ordinary primary-action buttons. */
+  .chip-active {
+    @apply rounded-full font-medium transition-colors bg-brand-pink text-white;
+  }
+  .chip-inactive {
+    @apply rounded-full font-medium transition-colors;
+    background-color: var(--chip-inactive-bg);
+    color: var(--chip-inactive-text);
+  }
+  .chip-inactive:hover {
+    background-color: #e5e5ea;
   }
 
   .field {

@@ -47,19 +47,19 @@ export default function MatchesList({ matches, locale }: { matches: MatchPreview
       <div className="flex gap-2 mb-4 text-sm">
         <button
           onClick={() => setFilter("all")}
-          className={filter === "all" ? "btn-primary" : "btn-secondary"}
+          className={filter === "all" ? "chip-active px-4 py-2 text-sm" : "chip-inactive px-4 py-2 text-sm"}
         >
           {t("matches.filterAll")}
         </button>
         <button
           onClick={() => setFilter("sale")}
-          className={filter === "sale" ? "btn-primary" : "btn-secondary"}
+          className={filter === "sale" ? "chip-active px-4 py-2 text-sm" : "chip-inactive px-4 py-2 text-sm"}
         >
           {t("matches.filterSale")}
         </button>
         <button
           onClick={() => setFilter("swap")}
-          className={filter === "swap" ? "btn-primary" : "btn-secondary"}
+          className={filter === "swap" ? "chip-active px-4 py-2 text-sm" : "chip-inactive px-4 py-2 text-sm"}
         >
           {t("matches.filterSwap")}
         </button>

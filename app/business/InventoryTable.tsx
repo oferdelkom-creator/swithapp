@@ -42,7 +42,7 @@ export default function InventoryTable({ inventory }: { inventory: InventoryCar[
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`shrink-0 ${filter === f.key ? "btn-primary" : "btn-secondary"}`}
+            className={`shrink-0 px-4 py-2 text-sm ${filter === f.key ? "chip-active" : "chip-inactive"}`}
           >
             {f.label}
           </button>
