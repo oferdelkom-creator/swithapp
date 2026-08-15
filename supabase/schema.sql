@@ -20,10 +20,14 @@ create type car_region as enum (
 create type message_kind as enum ('report', 'hello', 'chat');
 -- Added 2026-08-15 (migration add_vehicle_type_enum): what cars.category actually
 -- stores. Lets listings cover more than cars without an invasive table rename -
--- caravans/jet skis have no matching data.gov.il registry, so plate lookup only
--- works for car/motorcycle/truck/bus (see app/api/plate-lookup/route.ts).
--- 'bus' added later the same day (migration add_plate_number_and_bus_type).
-create type vehicle_type as enum ('car', 'motorcycle', 'truck', 'caravan', 'jet_ski', 'bus');
+-- caravans/jet skis/atvs/boats have no matching data.gov.il registry, so plate lookup
+-- only works for car/motorcycle/truck/bus (see app/api/plate-lookup/route.ts).
+-- 'bus' added later the same day (migration add_plate_number_and_bus_type); 'scooter',
+-- 'atv', 'boat' added after that (migration add_scooter_atv_boat_types) to mirror
+-- Yad2's category tree, which splits those out from motorcycle/jet_ski.
+create type vehicle_type as enum (
+  'car', 'motorcycle', 'truck', 'caravan', 'jet_ski', 'bus', 'scooter', 'atv', 'boat'
+);
 
 -- ── Tables ───────────────────────────────────────────────────────────────
 

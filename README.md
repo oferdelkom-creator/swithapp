@@ -170,10 +170,22 @@ Follow-up feedback, in order:
   `lib/vehicleData.ts`, plus a best-effort data.gov.il resource mapping for plate
   lookup (the "public transport vehicles" dataset - lower confidence than
   car/motorcycle/truck since its field names are assumed, not confirmed, to match).
-- **"Check what Yad2 has and update our vehicle list accordingly."** Dispatched a
-  research pass on Yad2's vehicle categories and manufacturer/model coverage, then
-  expanded `lib/vehicleData.ts` accordingly - see the dataset itself for exact
-  scope/counts as of this write-up.
+- **"Check what Yad2 has and update our vehicle list accordingly."** yad2.co.il itself
+  couldn't be fetched from this sandbox either, so this was researched from public
+  Yad2-scraper source code (which encodes Yad2's real category/manufacturer IDs) plus
+  Israeli vehicle-importer and trade-press sites, cross-referenced across sources - see
+  the research write-up for what's confirmed vs. inferred. Two real gaps came out of
+  it: Yad2 treats **scooters** and **ATVs/quads** as categories separate from
+  motorcycles (not sub-filters), and bundles jet skis with motor **boats** under one
+  "watercraft" category. Added `scooter`, `atv`, and `boat` as their own
+  `vehicle_type` values (migration `add_scooter_atv_boat_types`) rather than folding
+  boats into `jet_ski`, since keeping them distinct is more useful for swap-matching
+  than mirroring Yad2's single search filter. Also expanded `lib/vehicleData.ts`
+  broadly: car makes went from ~30 to ~70 (adding most of the Chinese/newer-entrant
+  brands now selling in Israel - BYD, Chery, Omoda, Jaecoo, Haval/GWM, Zeekr, Xpeng,
+  and more), with deeper model lists (10-15 each) for the ~30 most common makes; every
+  other vehicle type's manufacturer list was similarly widened using Israel-specific
+  importer data where it was found.
 - **Profile photo.** New `/profile` page (`app/profile/page.tsx` +
   `ProfileForm.tsx`) - avatar upload (new `avatars` storage bucket, same per-user-folder
   RLS pattern as `car-photos`) and name editing. Linked from a new tab in the bottom

@@ -86,11 +86,14 @@ const en = {
   "carForm.addListing": "Add listing",
 
   "vehicleType.car": "Car",
-  "vehicleType.motorcycle": "Motorcycle / two-wheeler",
+  "vehicleType.motorcycle": "Motorcycle",
+  "vehicleType.scooter": "Scooter",
   "vehicleType.truck": "Truck",
   "vehicleType.bus": "Bus",
   "vehicleType.caravan": "Caravan",
   "vehicleType.jetSki": "Jet ski",
+  "vehicleType.atv": "ATV / Quad",
+  "vehicleType.boat": "Boat",
 
   "swipe.title": "Swipe",
   "swipe.forSale": "For sale",
@@ -312,11 +315,14 @@ const he: Record<Key, string> = {
   "carForm.addListing": "הוספת מודעה",
 
   "vehicleType.car": "רכב פרטי",
-  "vehicleType.motorcycle": "אופנוע / דו גלגלי",
+  "vehicleType.motorcycle": "אופנוע",
+  "vehicleType.scooter": "קטנוע",
   "vehicleType.truck": "משאית",
   "vehicleType.bus": "אוטובוס",
   "vehicleType.caravan": "קרוואן",
   "vehicleType.jetSki": "אופנוע ים",
+  "vehicleType.atv": "טרקטורון",
+  "vehicleType.boat": "סירת מנוע",
 
   "swipe.title": "סווייפ",
   "swipe.forSale": "למכירה",
