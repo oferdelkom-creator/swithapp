@@ -41,7 +41,10 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  /* Inter (loaded via next/font, Latin+Cyrillic only) leads for en/ru; -apple-system/
+     BlinkMacSystemFont picks up SF Pro on Apple devices; Segoe UI/Arial are the
+     fallback for Hebrew, which Inter doesn't cover. */
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 @layer components {

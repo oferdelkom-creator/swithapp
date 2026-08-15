@@ -361,31 +361,31 @@ export default function SwipeDeck({
                 <button
                   onClick={() => cardRef.current?.triggerExit("left")}
                   aria-label={t("swipe.skip")}
-                  className="w-14 h-14 rounded-full bg-neutral-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-neutral-500 transition-transform"
+                  className="w-[60px] h-[60px] rounded-full bg-gray-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-gray-500 transition-transform"
                 >
                   ✕
                 </button>
-                <span className="text-xs font-medium text-neutral-500">{t("swipe.passLabel")}</span>
+                <span className="text-xs font-medium text-gray-400">{t("swipe.passLabel")}</span>
               </div>
               <div className="pointer-events-auto flex flex-col items-center gap-1">
                 <button
                   onClick={() => cardRef.current?.triggerExit("up")}
                   aria-label={t("swipe.maybe")}
-                  className="w-12 h-12 rounded-full bg-amber-400 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-500 transition-transform"
+                  className="w-[60px] h-[60px] rounded-full bg-amber-500 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-600 transition-transform"
                 >
                   <TradeIcon />
                 </button>
-                <span className="text-xs font-medium text-amber-600">{t("swipe.tradeLabel")}</span>
+                <span className="text-xs font-medium text-amber-500">{t("swipe.tradeLabel")}</span>
               </div>
               <div className="pointer-events-auto flex flex-col items-center gap-1">
                 <button
                   onClick={() => cardRef.current?.triggerExit("right")}
                   aria-label={t("swipe.interested")}
-                  className="w-14 h-14 rounded-full bg-emerald-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-emerald-600 transition-transform"
+                  className="w-[60px] h-[60px] rounded-full bg-green-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-green-600 transition-transform"
                 >
                   ♥
                 </button>
-                <span className="text-xs font-medium text-emerald-600">{t("swipe.buyLabel")}</span>
+                <span className="text-xs font-medium text-green-500">{t("swipe.buyLabel")}</span>
               </div>
             </div>
           </div>
@@ -407,7 +407,7 @@ function CardVisual({ candidate }: { candidate: Candidate }) {
   const photo = candidate.photo_urls?.[0];
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-xl bg-neutral-200">
+    <div className="relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-neutral-200">
       {photo && !broken ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

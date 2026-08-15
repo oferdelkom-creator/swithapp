@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
@@ -6,6 +7,10 @@ import LocaleProvider from "@/components/LocaleProvider";
 import MatchNotifier from "@/components/MatchNotifier";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+
+// Inter has no Hebrew glyphs, so Hebrew text falls through to the system-font
+// fallbacks in globals.css automatically - only Latin/Cyrillic (en/ru) render in Inter.
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
@@ -42,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className="h-full antialiased">
+    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className={`h-full antialiased ${inter.variable}`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <LocaleProvider locale={locale}>
           <Header loggedIn={!!user} />

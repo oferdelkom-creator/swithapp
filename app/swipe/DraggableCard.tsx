@@ -89,13 +89,13 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
         <>
           <div
             style={{ opacity: likeOpacity }}
-            className="absolute top-8 start-6 rotate-[-16deg] rounded-lg border-4 border-emerald-400 px-4 py-1 text-2xl font-extrabold text-emerald-400 uppercase tracking-wide"
+            className="absolute top-8 start-6 rotate-[-16deg] rounded-lg border-4 border-green-500 px-4 py-1 text-2xl font-extrabold text-green-500 uppercase tracking-wide"
           >
             {t("swipe.interested")}
           </div>
           <div
             style={{ opacity: nopeOpacity }}
-            className="absolute top-8 end-6 rotate-[16deg] rounded-lg border-4 border-red-400 px-4 py-1 text-2xl font-extrabold text-red-400 uppercase tracking-wide"
+            className="absolute top-8 end-6 rotate-[16deg] rounded-lg border-4 border-gray-400 px-4 py-1 text-2xl font-extrabold text-gray-400 uppercase tracking-wide"
           >
             {t("swipe.skip")}
           </div>
