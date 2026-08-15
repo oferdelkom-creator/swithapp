@@ -11,7 +11,7 @@ export type CarRegion =
   | "South"
   | "Judea and Samaria";
 export type MatchStatus = "negotiating" | "closed";
-export type SwipeDirection = "left" | "right";
+export type SwipeDirection = "left" | "right" | "maybe";
 export type MessageKind = "report" | "hello" | "chat";
 export type VehicleType =
   | "car"

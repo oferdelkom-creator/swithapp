@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES } from "@/lib/vehicleData";
-import type { CarRegion, VehicleType } from "@/lib/types";
-import DraggableCard, { type DraggableCardHandle } from "./DraggableCard";
+import type { CarRegion, SwipeDirection, VehicleType } from "@/lib/types";
+import DraggableCard, { type DraggableCardHandle, type ExitDirection } from "./DraggableCard";
 
 type Mode = "sale" | "swap";
 
@@ -166,7 +166,7 @@ export default function SwipeDeck({
     );
   }
 
-  async function swipe(direction: "left" | "right") {
+  async function swipe(direction: SwipeDirection) {
     const candidate = deck[index];
     if (!candidate) return;
     setError(null);
@@ -215,6 +215,10 @@ export default function SwipeDeck({
     }
 
     setIndex((i) => i + 1);
+  }
+
+  function handleExit(direction: ExitDirection) {
+    swipe(direction === "up" ? "maybe" : direction);
   }
 
   const current = deck[index];
@@ -354,22 +358,29 @@ export default function SwipeDeck({
                 <CardVisual candidate={peek} />
               </div>
             )}
-            <DraggableCard key={current.car_id} ref={cardRef} active onExit={swipe}>
+            <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit}>
               <CardVisual candidate={current} />
             </DraggableCard>
 
-            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center gap-5 pointer-events-none">
+            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center gap-4 pointer-events-none">
               <button
                 onClick={() => cardRef.current?.triggerExit("left")}
                 aria-label={t("swipe.skip")}
-                className="pointer-events-auto w-14 h-14 rounded-full bg-white shadow-lg border border-neutral-200 text-red-500 text-xl flex items-center justify-center hover:scale-105 transition-transform"
+                className="pointer-events-auto w-14 h-14 rounded-full bg-red-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-red-600 transition-transform"
               >
                 ✕
               </button>
               <button
+                onClick={() => cardRef.current?.triggerExit("up")}
+                aria-label={t("swipe.maybe")}
+                className="pointer-events-auto w-12 h-12 self-center rounded-full bg-amber-400 shadow-lg text-white text-lg flex items-center justify-center hover:scale-105 hover:bg-amber-500 transition-transform"
+              >
+                ?
+              </button>
+              <button
                 onClick={() => cardRef.current?.triggerExit("right")}
                 aria-label={t("swipe.interested")}
-                className="pointer-events-auto w-14 h-14 rounded-full bg-red-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-red-600 transition-transform"
+                className="pointer-events-auto w-14 h-14 rounded-full bg-emerald-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-emerald-600 transition-transform"
               >
                 ♥
               </button>

@@ -3,13 +3,15 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 
+export type ExitDirection = "left" | "right" | "up";
+
 export interface DraggableCardHandle {
-  triggerExit: (direction: "left" | "right") => void;
+  triggerExit: (direction: ExitDirection) => void;
 }
 
 interface DraggableCardProps {
   active: boolean;
-  onExit: (direction: "left" | "right") => void;
+  onExit: (direction: ExitDirection) => void;
   children: React.ReactNode;
 }
 
@@ -23,10 +25,10 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
   const { t } = useLocale();
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [exiting, setExiting] = useState<"left" | "right" | null>(null);
+  const [exiting, setExiting] = useState<ExitDirection | null>(null);
   const startXRef = useRef(0);
 
-  function commitExit(direction: "left" | "right") {
+  function commitExit(direction: ExitDirection) {
     setDragging(false);
     setExiting(direction);
     setTimeout(() => onExit(direction), 220);
@@ -56,8 +58,10 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
     }
   }
 
-  const x = exiting ? (exiting === "right" ? EXIT_DISTANCE : -EXIT_DISTANCE) : dragX;
-  const rotate = exiting ? (exiting === "right" ? 20 : -20) : dragX / 14;
+  const x = exiting === "left" ? -EXIT_DISTANCE : exiting === "right" ? EXIT_DISTANCE : dragX;
+  const y = exiting === "up" ? -EXIT_DISTANCE : 0;
+  const rotate = exiting === "left" ? -20 : exiting === "right" ? 20 : dragX / 14;
+  const opacity = exiting === "up" ? 0 : 1;
   const likeOpacity = Math.min(Math.max(dragX / SWIPE_THRESHOLD, 0), 1);
   const nopeOpacity = Math.min(Math.max(-dragX / SWIPE_THRESHOLD, 0), 1);
 
@@ -68,8 +72,9 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       style={{
-        transform: `translateX(${x}px) rotate(${rotate}deg)`,
-        transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
+        transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
+        opacity,
+        transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease",
         touchAction: "pan-y",
       }}
       className={`absolute inset-0 ${active ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}

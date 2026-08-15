@@ -99,7 +99,10 @@ create table public.swipes (
   from_user_id uuid not null references public.users (id),
   to_user_id uuid not null references public.users (id),
   car_id uuid not null references public.cars (id),
-  direction text not null check (direction in ('left', 'right')),
+  -- 'maybe' added 2026-08-15 (migration add_maybe_swipe_direction): a third,
+  -- non-committal swipe - unlike 'left'/'right' it doesn't permanently exclude the
+  -- car from future decks (see cars_for_sale/nearby_swap_cars below).
+  direction text not null check (direction in ('left', 'right', 'maybe')),
   created_at timestamptz not null default now()
 );
 
@@ -244,12 +247,16 @@ create trigger on_swipe_created
   after insert on public.swipes
   for each row execute function public.handle_new_swipe();
 
--- RPC: swap-deck candidates near the caller, excluding already-swiped cars.
+-- RPC: swap-deck candidates near the caller, excluding already-decided cars.
 -- p_category added 2026-08-15 (migration add_vehicle_type_to_deck_rpcs) to let the
 -- swap deck filter by vehicle type alongside the sale deck. p_make/p_min_price/
 -- p_max_price/p_min_year/p_max_year/p_max_distance_km added later the same day
 -- (migration add_filters_to_swap_deck_rpc) - the swap deck had no filter UI at all
--- before that, unlike the sale deck.
+-- before that, unlike the sale deck. Updated again the same day (migration
+-- add_maybe_swipe_direction): the exclusion only counts 'left'/'right' swipes now -
+-- a 'maybe' doesn't permanently remove a car, it can resurface on a later deck load -
+-- and results are boosted toward makes the caller has already liked ('right'), a
+-- simple preference signal from swipe history.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
   p_category vehicle_type default null,
@@ -277,7 +284,7 @@ as $$
     and u.id <> my_id
     and not exists (
       select 1 from public.swipes s
-      where s.from_user_id = my_id and s.car_id = c.id
+      where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
     )
     and (
       (select role from public.users where id = my_id) = 'private'
@@ -293,12 +300,21 @@ as $$
       p_max_distance_km is null
       or public.haversine_km(my_lat, my_lon, u.lat, u.lon) <= p_max_distance_km
     )
-  order by (c.boosted_until > now()) desc nulls last, distance_km asc nulls last;
+  order by
+    (c.boosted_until > now()) desc nulls last,
+    (c.make in (
+      select c2.make from public.swipes s2
+      join public.cars c2 on c2.id = s2.car_id
+      where s2.from_user_id = my_id and s2.direction = 'right'
+    )) desc,
+    distance_km asc nulls last;
 $$;
 
--- RPC: sale-deck candidates with filters, excluding already-swiped cars.
+-- RPC: sale-deck candidates with filters, excluding already-decided cars.
 -- p_category changed from text to vehicle_type 2026-08-15 (migration
--- add_vehicle_type_to_deck_rpcs) to match the cars.category column.
+-- add_vehicle_type_to_deck_rpcs) to match the cars.category column. Updated again the
+-- same day (migration add_maybe_swipe_direction) - same 'maybe' exclusion change and
+-- liked-make preference boost as nearby_swap_cars above.
 create or replace function public.cars_for_sale(
   my_id uuid,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
@@ -325,7 +341,7 @@ as $$
     and c.user_id <> my_id
     and not exists (
       select 1 from public.swipes s
-      where s.from_user_id = my_id and s.car_id = c.id
+      where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
     )
     and (
       (select role from public.users where id = my_id) = 'private'
@@ -343,7 +359,14 @@ as $$
     and (p_fuel_type is null or c.fuel_type = p_fuel_type)
     and (p_region is null or c.region = p_region)
     and (p_max_hand is null or c.hand <= p_max_hand)
-  order by (c.boosted_until > now()) desc nulls last, c.created_at desc;
+  order by
+    (c.boosted_until > now()) desc nulls last,
+    (c.make in (
+      select c2.make from public.swipes s2
+      join public.cars c2 on c2.id = s2.car_id
+      where s2.from_user_id = my_id and s2.direction = 'right'
+    )) desc,
+    c.created_at desc;
 $$;
 
 -- RPC: "who liked you" - premium-only, shows right-swipes the caller hasn't reciprocated yet.

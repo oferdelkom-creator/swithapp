@@ -269,6 +269,41 @@ Further follow-up feedback, in order:
   real API credentials - not something available from this environment. Code-complete,
   non-functional until that's set up.
 
+## Swipe buttons on the card, three-way swipe with a preference boost (2026-08-15, later)
+
+Further follow-up feedback, in order:
+
+- **"Put the skip/like buttons inside the photo, and make like red."** Moved the
+  buttons from a separate row below the card to float over the bottom of the photo
+  itself (absolutely positioned inside the card's container, above the make/model/
+  price text) - they were taking up extra vertical space that was tight on phone
+  screens. Made the like button red as asked.
+- **"Actually, three colors: green = like, yellow = not sure, red = don't like. Yellow
+  can come back later, green matches, red never shows again - this way the system
+  learns preferences and matches faster."** This superseded the red-like change from
+  moments earlier with a fuller design, implemented as:
+  - `swipes.direction` gets a third value, `'maybe'` (migration
+    `add_maybe_swipe_direction`), alongside the yellow "?" button added between skip
+    and like on the card.
+  - `cars_for_sale()`/`nearby_swap_cars()` now only exclude `'left'`/`'right'` swipes
+    from future decks - `'maybe'` doesn't permanently remove a car, so it can resurface
+    the next time the deck reloads (a full "come back after N hours" cooldown would
+    need a timestamp-based re-check; this simpler version satisfies "comes back later"
+    without that extra state).
+  - Green (`'right'`) still creates a match exactly as before; red (`'left'`) is
+    excluded forever, same as before - only the yellow option and its "not excluded"
+    behavior are new.
+  - **Preference learning**: both deck RPCs now order results with a boost for makes
+    the caller has already swiped right on (a `make in (select ... from swipes where
+    direction = 'right')` clause ahead of the recency/distance sort). This is a
+    deliberately simple heuristic, not a ML recommender - "learn from choices and match
+    faster" is satisfied by surfacing more of what someone's already shown interest in,
+    which is the achievable version of that ask without building out a real
+    recommendation pipeline.
+  - `DraggableCard` gained a third exit direction (`"up"`, mapped to `'maybe'`) with its
+    own translateY-and-fade animation, alongside the existing left/right translateX
+    exits.
+
 ## Status (as of 2026-08-14)
 
 This repo was empty until this commit. The **backend already existed** in a Supabase
