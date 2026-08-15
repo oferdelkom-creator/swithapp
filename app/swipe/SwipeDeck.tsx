@@ -352,7 +352,7 @@ export default function SwipeDeck({
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
       ) : current ? (
         <>
-          <div className="relative h-[64dvh] max-h-[580px] min-h-[360px]">
+          <div className="relative h-[64dvh] max-h-[580px] min-h-[360px] [overscroll-behavior-x:contain]">
             {peek && (
               <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
                 <CardVisual candidate={peek} />

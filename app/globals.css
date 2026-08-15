@@ -29,6 +29,9 @@ html {
      from its natural start instead of a visible horizontal scrollbar. Individual
      wide content (tables, code blocks) should scroll in its own container. */
   overflow-x: hidden;
+  /* Stops the browser's own horizontal swipe-navigation (back/forward) gesture from
+     competing with in-page horizontal drag gestures, like the swipe deck's cards. */
+  overscroll-behavior-x: none;
 }
 
 body {

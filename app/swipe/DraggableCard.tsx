@@ -75,7 +75,12 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
         transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
         opacity,
         transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease",
-        touchAction: "pan-y",
+        // "none" (not "pan-y"): a leftward drag was being intercepted by the browser's
+        // own edge-swipe-back gesture before our pointer handlers finished, so only
+        // rightward drags reliably completed - reported 2026-08-15. This fully hands
+        // horizontal *and* vertical touch handling to us instead of the browser, which
+        // is standard for this kind of full-card drag gesture.
+        touchAction: "none",
       }}
       className={`absolute inset-0 ${active ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
     >
