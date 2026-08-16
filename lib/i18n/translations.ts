@@ -65,6 +65,8 @@ const en = {
   "cars.sold": "Sold",
   "cars.confirmMarkSold": "Mark this listing as sold? It'll be removed from other people's swipe decks.",
   "cars.empty": "You don't have any car listings yet.",
+  "cars.limitReached":
+    "Private accounts can list up to 2 cars at a time. Mark one as sold or delete it to add another - or switch to a business account for unlimited listings.",
   "cars.deleteConfirm": "Delete this listing?",
   "cars.editTitle": "Edit Listing",
 
@@ -124,6 +126,7 @@ const en = {
   "swipe.yearFrom": "Year from",
   "swipe.yearTo": "Year to",
   "swipe.radiusKm": "Distance (km)",
+  "swipe.includeDealers": "Also show dealer inventory",
   "swipe.applyFilters": "Apply filters",
   "swipe.reset": "Reset",
   "swipe.itsAMatch": "It's a match!",
@@ -340,6 +343,8 @@ const he: Record<Key, string> = {
   "cars.sold": "נמכר",
   "cars.confirmMarkSold": "לסמן את המודעה הזו כנמכרה? היא תוסר ממסך הסווייפ של אחרים.",
   "cars.empty": "עדיין אין לך מודעות רכב.",
+  "cars.limitReached":
+    "חשבון פרטי יכול לפרסם עד 2 רכבים במקביל. סמנו רכב כנמכר או מחקו אותו כדי להוסיף עוד - או עברו לחשבון עסקי לפרסום ללא הגבלה.",
   "cars.deleteConfirm": "למחוק את המודעה הזו?",
   "cars.editTitle": "עריכת מודעה",
 
@@ -399,6 +404,7 @@ const he: Record<Key, string> = {
   "swipe.yearFrom": "שנה מ-",
   "swipe.yearTo": "שנה עד",
   "swipe.radiusKm": "מרחק (ק״מ)",
+  "swipe.includeDealers": "הצג גם מלאי של מגרשים/דילרים",
   "swipe.applyFilters": "החלת סינון",
   "swipe.reset": "איפוס",
   "swipe.itsAMatch": "יש התאמה!",
@@ -612,6 +618,8 @@ const ru: Record<Key, string> = {
   "cars.sold": "Продано",
   "cars.confirmMarkSold": "Отметить это объявление как проданное? Оно будет убрано из ленты свайпа у остальных пользователей.",
   "cars.empty": "У вас пока нет объявлений об автомобилях.",
+  "cars.limitReached":
+    "Частный аккаунт может разместить не более 2 автомобилей одновременно. Отметьте один как проданный или удалите его, чтобы добавить ещё - или перейдите на бизнес-аккаунт без ограничений.",
   "cars.deleteConfirm": "Удалить это объявление?",
   "cars.editTitle": "Редактирование объявления",
 
@@ -671,6 +679,7 @@ const ru: Record<Key, string> = {
   "swipe.yearFrom": "Год от",
   "swipe.yearTo": "Год до",
   "swipe.radiusKm": "Расстояние (км)",
+  "swipe.includeDealers": "Показать также автосалоны",
   "swipe.applyFilters": "Применить фильтры",
   "swipe.reset": "Сбросить",
   "swipe.itsAMatch": "Это совпадение!",

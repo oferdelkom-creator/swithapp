@@ -15,12 +15,18 @@ export default async function CarsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/cars");
 
-  const { data: cars } = await supabase
-    .from("cars")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .returns<Car[]>();
+  const [{ data: cars }, { data: me }] = await Promise.all([
+    supabase
+      .from("cars")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .returns<Car[]>(),
+    supabase.from("users").select("role").eq("id", user.id).maybeSingle<{ role: string }>(),
+  ]);
+
+  const activeCount = cars?.filter((c) => !c.sold_at).length ?? 0;
+  const atLimit = me?.role === "private" && activeCount >= 2;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-10">
@@ -31,7 +37,13 @@ export default async function CarsPage() {
 
       <section>
         <h2 className="font-medium mb-4">{t("cars.addTitle")}</h2>
-        <CarForm />
+        {atLimit ? (
+          <div className="rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white p-5 text-sm text-neutral-600">
+            {t("cars.limitReached")}
+          </div>
+        ) : (
+          <CarForm />
+        )}
       </section>
 
       <section>

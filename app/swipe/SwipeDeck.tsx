@@ -97,6 +97,7 @@ export default function SwipeDeck({
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
+  const [includeDealers, setIncludeDealers] = useState(false);
   const cardRef = useRef<DraggableCardHandle>(null);
 
   async function loadDeck() {
@@ -134,6 +135,7 @@ export default function SwipeDeck({
         p_min_year: filters.minYear ? Number(filters.minYear) : null,
         p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
         p_max_distance_km: filters.radiusKm ? Number(filters.radiusKm) : null,
+        p_include_dealers: includeDealers,
       });
       if (rpcError) setError(rpcError.message);
       setDeck((data as SwapCandidate[]) ?? []);
@@ -322,6 +324,16 @@ export default function SwipeDeck({
             onChange={(e) => setFilters((f) => ({ ...f, maxYear: e.target.value }))}
             className="field"
           />
+          {mode === "swap" && (
+            <label className="col-span-2 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeDealers}
+                onChange={(e) => setIncludeDealers(e.target.checked)}
+              />
+              {t("swipe.includeDealers")}
+            </label>
+          )}
           <div className="col-span-2 flex gap-2">
             <button onClick={loadDeck} className="btn-primary flex-1">
               {t("swipe.applyFilters")}

@@ -557,6 +557,31 @@ user accounts and the original demo cars were unaffected. Nothing in this repo
 regenerates that seed batch automatically - if it's needed again, it has to be
 rebuilt from scratch (it was originally a one-off SQL insert, not a tracked migration).
 
+## Private listing cap, dealer visibility gating, Tinder-style redesign (2026-08-15, later)
+
+Business decision: private accounts and dealer/importer accounts are meant to feel
+like two different products sharing one app, not one flat marketplace.
+
+- **Private accounts are capped at 2 active (unsold) listings**, enforced in the
+  `"Users can insert their own car"` RLS policy itself (a count subquery in the WITH
+  CHECK, same pattern as the existing swipe-per-day cap) - not just a client-side
+  check, so it holds even if someone bypasses the UI. Dealers/importers are
+  unbounded. `/cars` shows a message instead of the form once a private account hits
+  the cap. Verified end-to-end under real RLS with disposable test rows (2 inserts
+  succeed, 3rd is rejected; a dealer account isn't capped).
+- **Private users no longer see dealer/importer inventory by default in the swap
+  deck.** `nearby_swap_cars()` gained `p_include_dealers` (default `false`); a new
+  checkbox in the swap deck's filter panel opts back in. Dealers still can't browse
+  private inventory either way (unchanged from the swipe-RLS fix above) - they only
+  reach a private user's car by responding to an incoming like.
+- Redesigned `/cars`, the swipe deck, and the bottom nav toward a Tinder-style visual
+  language: `#f5f5f7` page background, white cards with a soft shadow and 20px
+  radius, pink (`#ff4458`) active states for filter chips/nav/swipe buttons instead
+  of blue, the "Add a car" form led by a tall hero photo and a bold Make/Model/Year
+  line instead of a flat field grid, swipe buttons relabeled Pass/Trade/Buy, and
+  Inter loaded via `next/font` (Latin+Cyrillic; Hebrew still falls through to the
+  system-font fallback, since Inter has no Hebrew glyphs).
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

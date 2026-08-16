@@ -277,13 +277,17 @@ create trigger on_swipe_created
 -- add_maybe_swipe_direction): the exclusion only counts 'left'/'right' swipes now -
 -- a 'maybe' doesn't permanently remove a car, it can resurface on a later deck load -
 -- and results are boosted toward makes the caller has already liked ('right'), a
--- simple preference signal from swipe history.
+-- simple preference signal from swipe history. p_include_dealers added 2026-08-15,
+-- later (migration cap_private_listings_and_gate_dealer_visibility): private callers
+-- now see only other private sellers by default - dealer/importer inventory is
+-- opt-in, not mixed into the regular deck automatically.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
   p_category vehicle_type default null,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
   p_min_year integer default null, p_max_year integer default null,
-  p_max_distance_km double precision default null
+  p_max_distance_km double precision default null,
+  p_include_dealers boolean default false
 )
 returns table (
   user_id uuid, name text, lat double precision, lon double precision,
@@ -314,8 +318,10 @@ as $$
          or (b.blocker_id = u.id and b.blocked_id = my_id)
     )
     and (
-      (select role from public.users where id = my_id) = 'private'
-      or u.role in ('dealer', 'importer')
+      case (select role from public.users where id = my_id)
+        when 'private' then u.role = 'private' or (p_include_dealers and u.role in ('dealer', 'importer'))
+        else u.role in ('dealer', 'importer')
+      end
     )
     and (p_category is null or c.category = p_category)
     and (p_make is null or c.make = p_make)
@@ -603,8 +609,20 @@ create policy "Users can update their own contact row" on public.user_contacts
 
 create policy "Anyone can view listed cars" on public.cars
   for select using (true);
+-- Private accounts are capped at 2 active (unsold) listings (added 2026-08-15,
+-- migration cap_private_listings_and_gate_dealer_visibility); dealers/importers are
+-- unbounded, since a large inventory is the whole point of a business account.
 create policy "Users can insert their own car" on public.cars
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and (
+      (select role from public.users where id = auth.uid()) <> 'private'
+      or (
+        select count(*) from public.cars c
+        where c.user_id = auth.uid() and c.sold_at is null
+      ) < 2
+    )
+  );
 create policy "Users can update their own car" on public.cars
   for update using (auth.uid() = user_id);
 create policy "Users can delete their own car" on public.cars
