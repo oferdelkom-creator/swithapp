@@ -761,6 +761,30 @@ who wants to scan the whole lot at a glance instead of one card at a time. Both 
 call the same `dealer_inventory()` RPC; only the active one is mounted, so switching
 tabs doesn't double the network cost.
 
+## `/d/[slug]` open to signed-out visitors, a trade-details prompt (2026-08-16, later)
+
+A real business page shouldn't force a visitor to create an account just to look
+around, so `/d/[slug]` no longer redirects to `/login` when there's no session -
+`cars`/`users` SELECT RLS already allows the `anon` role (`using (true)`), so the only
+thing actually blocking anonymous browsing was the page's own redirect and
+`dealer_inventory()` dividing its swipe/block exclusion filters by a null `my_id`.
+Both fixed (see the RPC's own comment above); `DealerDeck`/`DealerCatalog`/
+`DealerPageTabs` now take `userId: string | null` throughout. Taking an actual
+action - Pass/Trade/Buy, or tapping through to the last photo on Buy - still requires
+an account: every action button now routes an anonymous visitor to
+`/login?next=/d/[slug]` instead of swiping, since `performSwipe()` needs a real user
+id to write.
+
+Separately: hitting "Trade" no longer swipes immediately with the generic icebreaker
+text - `TradeDetailsModal` in `DealerDeck.tsx` first asks the visitor to describe
+their own car (make/model/year, an estimated value, free-text notes), and that
+becomes the actual first chat message sent to the dealer instead of the boilerplate
+"interested" line. No new columns for this - it's just a custom `icebreakerText`
+passed into the existing `performSwipe()`, so a trade request is an ordinary match/chat
+like everything else, just seeded with something the dealer can actually act on.
+Deliberately scoped to the dealer page only, not the main app's `SwipeDeck`/`CarDetail`
+Trade button, which are unchanged.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

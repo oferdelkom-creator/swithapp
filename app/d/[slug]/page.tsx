@@ -21,7 +21,6 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/d/${slug}`);
 
   const { data: dealer } = await supabase
     .from("users")
@@ -30,7 +29,7 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
     .maybeSingle<Dealer>();
 
   if (!dealer || (dealer.role !== "dealer" && dealer.role !== "importer")) notFound();
-  if (dealer.id === user.id) redirect("/business");
+  if (user && dealer.id === user.id) redirect("/business");
 
   const displayName = dealer.business_name || dealer.name;
 
@@ -70,7 +69,7 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
           )}
         </div>
 
-        <DealerPageTabs userId={user.id} dealerId={dealer.id} />
+        <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} slug={slug} />
       </div>
     </div>
   );

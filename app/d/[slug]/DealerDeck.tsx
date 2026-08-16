@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { performSwipe } from "@/lib/swipeActions";
 import { useLocale } from "@/components/LocaleProvider";
@@ -22,14 +23,25 @@ interface DealerCandidate {
   want_make: string | null;
 }
 
-export default function DealerDeck({ userId, dealerId }: { userId: string; dealerId: string }) {
+export default function DealerDeck({
+  userId,
+  dealerId,
+  slug,
+}: {
+  userId: string | null;
+  dealerId: string;
+  slug: string;
+}) {
   const { t } = useLocale();
+  const router = useRouter();
+  const loginHref = `/login?next=${encodeURIComponent(`/d/${slug}`)}`;
   const [deck, setDeck] = useState<DealerCandidate[]>([]);
   const [index, setIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
+  const [tradeCandidate, setTradeCandidate] = useState<DealerCandidate | null>(null);
   const cardRef = useRef<DraggableCardHandle>(null);
 
   useEffect(() => {
@@ -49,18 +61,16 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
     loadDeck();
   }, [userId, dealerId]);
 
-  async function swipe(direction: SwipeDirection) {
-    const candidate = deck[index];
-    if (!candidate) return;
+  async function runSwipe(candidate: DealerCandidate, direction: SwipeDirection, icebreakerText: string) {
     setError(null);
     const supabase = createClient();
 
     const result = await performSwipe(supabase, {
-      userId,
+      userId: userId as string,
       toUserId: dealerId,
       carId: candidate.car_id,
       direction,
-      icebreakerText: t("chat.icebreaker"),
+      icebreakerText,
     });
 
     if (result.capReached) {
@@ -79,7 +89,20 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
   }
 
   function handleExit(direction: ExitDirection) {
-    swipe(direction === "up" ? "maybe" : direction);
+    if (!userId) {
+      router.push(loginHref);
+      return;
+    }
+    const candidate = deck[index];
+    if (!candidate) return;
+
+    if (direction === "up") {
+      // Trade needs a description of the visitor's own car first - handled by the modal
+      // below instead of swiping immediately (index only advances once they submit or cancel).
+      setTradeCandidate(candidate);
+      return;
+    }
+    runSwipe(candidate, direction, t("chat.icebreaker"));
   }
 
   function handleTap(fraction: number) {
@@ -89,10 +112,20 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
     } else if (fraction > 0.6) {
       if (photoIndex < photos.length - 1) {
         setPhotoIndex((i) => i + 1);
+      } else if (!userId) {
+        router.push(loginHref);
       } else {
         cardRef.current?.triggerExit("right");
       }
     }
+  }
+
+  function requireAuth(action: () => void) {
+    if (!userId) {
+      router.push(loginHref);
+      return;
+    }
+    action();
   }
 
   const current = deck[index];
@@ -118,7 +151,7 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
           <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
             <div className="pointer-events-auto flex flex-col items-center gap-1">
               <button
-                onClick={() => cardRef.current?.triggerExit("left")}
+                onClick={() => requireAuth(() => cardRef.current?.triggerExit("left"))}
                 aria-label={t("swipe.skip")}
                 className="w-[60px] h-[60px] rounded-full bg-gray-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-gray-500 transition-transform"
               >
@@ -128,7 +161,7 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
             </div>
             <div className="pointer-events-auto flex flex-col items-center gap-1">
               <button
-                onClick={() => cardRef.current?.triggerExit("up")}
+                onClick={() => requireAuth(() => cardRef.current?.triggerExit("up"))}
                 aria-label={t("swipe.maybe")}
                 className="w-[60px] h-[60px] rounded-full bg-amber-500 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-600 transition-transform"
               >
@@ -138,7 +171,7 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
             </div>
             <div className="pointer-events-auto flex flex-col items-center gap-1">
               <button
-                onClick={() => cardRef.current?.triggerExit("right")}
+                onClick={() => requireAuth(() => cardRef.current?.triggerExit("right"))}
                 aria-label={t("swipe.interested")}
                 className="w-[60px] h-[60px] rounded-full bg-green-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-green-600 transition-transform"
               >
@@ -150,6 +183,22 @@ export default function DealerDeck({ userId, dealerId }: { userId: string; deale
         </div>
       ) : (
         <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+      )}
+
+      {tradeCandidate && (
+        <TradeDetailsModal
+          candidate={tradeCandidate}
+          onCancel={() => {
+            setTradeCandidate(null);
+            setIndex((i) => i + 1);
+            setPhotoIndex(0);
+          }}
+          onSubmit={(details) => {
+            const candidate = tradeCandidate;
+            setTradeCandidate(null);
+            runSwipe(candidate, "maybe", details);
+          }}
+        />
       )}
 
       {matchModal && (
@@ -225,6 +274,90 @@ function TradeIcon() {
       <path d="M7 7h11l-3-3" />
       <path d="M17 17H6l3 3" />
     </svg>
+  );
+}
+
+function TradeDetailsModal({
+  candidate,
+  onCancel,
+  onSubmit,
+}: {
+  candidate: DealerCandidate;
+  onCancel: () => void;
+  onSubmit: (details: string) => void;
+}) {
+  const { t } = useLocale();
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [price, setPrice] = useState("");
+  const [notes, setNotes] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const lines = [
+      t("dealerPage.tradeIcebreakerIntro", { make: candidate.make, model: candidate.model }),
+      `${t("dealerPage.tradeMyCar")}: ${make} ${model} ${year}`.trim(),
+      price ? `${t("dealerPage.tradePrice")}: ₪${price}` : null,
+      notes || null,
+    ].filter(Boolean);
+    onSubmit(lines.join("\n"));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+      <form onSubmit={handleSubmit} className="card p-6 w-full max-w-sm space-y-3 text-sm">
+        <p className="font-semibold">{t("dealerPage.tradeModalTitle")}</p>
+        <p className="text-neutral-500 text-xs">
+          {t("dealerPage.tradeModalSubtitle", { make: candidate.make, model: candidate.model })}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            required
+            placeholder={t("dealerPage.tradeMake")}
+            value={make}
+            onChange={(e) => setMake(e.target.value)}
+            className="field"
+          />
+          <input
+            required
+            placeholder={t("dealerPage.tradeModel")}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="field"
+          />
+          <input
+            type="number"
+            placeholder={t("dealerPage.tradeYear")}
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="field"
+          />
+          <input
+            type="number"
+            placeholder={t("dealerPage.tradePrice")}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="field"
+          />
+        </div>
+        <textarea
+          placeholder={t("dealerPage.tradeNotes")}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          className="field w-full"
+        />
+        <div className="flex gap-2 pt-1">
+          <button type="submit" className="btn-primary flex-1">
+            {t("dealerPage.tradeSubmit")}
+          </button>
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            {t("dealerPage.tradeCancel")}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

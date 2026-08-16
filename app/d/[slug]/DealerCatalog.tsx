@@ -19,7 +19,7 @@ interface DealerCar {
   for_swap: boolean;
 }
 
-export default function DealerCatalog({ userId, dealerId }: { userId: string; dealerId: string }) {
+export default function DealerCatalog({ userId, dealerId }: { userId: string | null; dealerId: string }) {
   const { t } = useLocale();
   const [cars, setCars] = useState<DealerCar[]>([]);
   const [loading, setLoading] = useState(true);

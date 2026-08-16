@@ -466,7 +466,18 @@ $$;
 -- caller already knows which dealer they're browsing (resolved via users.dealer_slug),
 -- so it just filters that one dealer's cars down to what's still available and not
 -- already swiped/blocked.
-create or replace function public.dealer_inventory(my_id uuid, p_dealer_id uuid)
+--
+-- my_id defaults to null (migration allow_anonymous_dealer_inventory, same day) so
+-- /d/[slug] can be browsed signed-out - cars.users select policies already allow the
+-- anon role (`using (true)`), the only thing stopping an anonymous visitor was this
+-- RPC's own exclusion filters dividing by a null my_id. Each filter is now guarded
+-- with "my_id is null or ..." - a signed-out visitor has no swipes/blocks to exclude
+-- by anyway, so skipping those checks entirely for them is correct, not just a
+-- workaround. p_dealer_id moved before my_id in the declared parameter list, since
+-- Postgres requires a defaulted parameter to be declared after non-defaulted ones -
+-- callers already pass both by name (supabase.rpc(name, {my_id, p_dealer_id})) so
+-- this reordering doesn't affect any call site.
+create function public.dealer_inventory(p_dealer_id uuid, my_id uuid default null)
 returns table (
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
   category vehicle_type, color text, photo_urls text[], price numeric, hand integer,
@@ -484,16 +495,16 @@ as $$
   where c.user_id = p_dealer_id
     and c.sold_at is null
     and (c.for_sale or c.for_swap)
-    and c.user_id <> my_id
-    and not exists (
+    and (my_id is null or c.user_id <> my_id)
+    and (my_id is null or not exists (
       select 1 from public.swipes s
       where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
-    )
-    and not exists (
+    ))
+    and (my_id is null or not exists (
       select 1 from public.blocks b
       where (b.blocker_id = my_id and b.blocked_id = p_dealer_id)
          or (b.blocker_id = p_dealer_id and b.blocked_id = my_id)
-    )
+    ))
   order by
     (c.boosted_until > now()) desc nulls last,
     c.created_at desc;
