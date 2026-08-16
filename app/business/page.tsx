@@ -29,7 +29,7 @@ export default async function BusinessPage() {
   const { data: me } = await supabase
     .from("users")
     .select(
-      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone"
+      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone, requested_car_cap"
     )
     .eq("id", user.id)
     .maybeSingle<{
@@ -44,6 +44,7 @@ export default async function BusinessPage() {
       cover_photo_url: string | null;
       dealer_description: string | null;
       public_phone: string | null;
+      requested_car_cap: number | null;
     }>();
 
   if (!me || (me.role !== "dealer" && me.role !== "importer")) redirect("/");
@@ -111,7 +112,11 @@ export default async function BusinessPage() {
             </span>
           </p>
         ) : (
-          <ActivateSubscriptionCTA userId={user.id} billingPlan={me.billing_plan} />
+          <ActivateSubscriptionCTA
+            userId={user.id}
+            billingPlan={me.billing_plan}
+            requestedCarCap={me.requested_car_cap}
+          />
         )}
       </div>
 
