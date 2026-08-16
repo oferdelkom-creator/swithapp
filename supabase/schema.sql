@@ -458,6 +458,10 @@ $$;
 -- RPC: matches list with a last-message preview, unread flag, and enough car info to
 -- tell sale vs swap deals apart and show a thumbnail (added 2026-08-15, migration
 -- add_match_read_tracking_and_preview_rpc) - the list was a flat name+date table before.
+-- Fixed 2026-08-16 (migration exclude_blocked_users_from_matches_list): never excluded
+-- blocked users - blocking someone correctly stopped new messages and dropped them
+-- from future swipe decks, but the existing match (and their car) kept showing here,
+-- since nothing checked the blocks table at all.
 create or replace function public.get_matches_with_previews(my_id uuid)
 returns table (
   match_id uuid,
@@ -514,12 +518,20 @@ as $$
     order by msg.created_at desc
     limit 1
   ) lm on true
-  where m.user_a_id = my_id or m.user_b_id = my_id
+  where (m.user_a_id = my_id or m.user_b_id = my_id)
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = my_id and b.blocked_id = other.id)
+         or (b.blocker_id = other.id and b.blocked_id = my_id)
+    )
   order by coalesce(lm.created_at, m.created_at) desc;
 $$;
 
 -- RPC: unread-match count for the bottom-nav Matches badge (added 2026-08-15, same
--- migration as get_matches_with_previews above).
+-- migration as get_matches_with_previews above). Fixed 2026-08-16 (migration
+-- exclude_blocked_users_from_unread_match_count): same gap as get_matches_with_previews -
+-- without this, blocking someone with an unread message left the nav badge showing a
+-- count for a match that no longer appears in /matches at all.
 create or replace function public.count_unread_matches(my_id uuid)
 returns integer
 language sql
@@ -539,6 +551,11 @@ as $$
     and lm.created_at > coalesce(
       case when m.user_a_id = my_id then m.user_a_last_read_at else m.user_b_last_read_at end,
       m.created_at
+    )
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = my_id and b.blocked_id = case when m.user_a_id = my_id then m.user_b_id else m.user_a_id end)
+         or (b.blocker_id = case when m.user_a_id = my_id then m.user_b_id else m.user_a_id end and b.blocked_id = my_id)
     );
 $$;
 
