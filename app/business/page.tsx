@@ -10,6 +10,8 @@ import InventoryTable from "./InventoryTable";
 import PublicPageLink from "./PublicPageLink";
 import CustomDomainCard from "./CustomDomainCard";
 import DealerBrandingCard from "./DealerBrandingCard";
+import ActivateSubscriptionCTA from "./ActivateSubscriptionCTA";
+import LeadsChart, { type LeadsByDay } from "./LeadsChart";
 
 type InventoryCar = Pick<
   Car,
@@ -50,7 +52,7 @@ export default async function BusinessPage() {
   const host = headerList.get("host") ?? "";
   const siteOrigin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
 
-  const [{ data: cars }, { data: statsRows }] = await Promise.all([
+  const [{ data: cars }, { data: statsRows }, { data: leadsRows }] = await Promise.all([
     supabase
       .from("cars")
       .select("id, make, model, year, photo_urls, for_sale, for_swap, sold_at, price")
@@ -58,9 +60,11 @@ export default async function BusinessPage() {
       .order("created_at", { ascending: false })
       .returns<InventoryCar[]>(),
     supabase.rpc("get_profile_stats", { my_id: user.id }),
+    supabase.rpc("get_dealer_leads_by_day", { my_id: user.id }),
   ]);
 
   const stats = (statsRows as Stats[] | null)?.[0] ?? null;
+  const leadsByDay = (leadsRows as LeadsByDay[] | null) ?? [];
   const active = me.subscription_valid_until && new Date(me.subscription_valid_until) > new Date();
   const inventory = cars ?? [];
   const forSaleCount = inventory.filter((c) => c.for_sale && !c.sold_at).length;
@@ -75,6 +79,12 @@ export default async function BusinessPage() {
       </div>
 
       {stats && <ProfileStats stats={stats} />}
+
+      <Link href="/cars" className="btn-primary w-full text-center block">
+        {t("business.addNewCar")}
+      </Link>
+
+      <LeadsChart data={leadsByDay} />
 
       <div className="grid grid-cols-3 gap-3">
         <div className="card p-4 text-center">
@@ -91,19 +101,18 @@ export default async function BusinessPage() {
         </div>
       </div>
 
-      <div className="card p-6 space-y-2 text-sm">
+      <div className="card p-6 space-y-3 text-sm">
         <p>{t("business.plan", { plan: me.billing_plan ?? t("business.notSet") })}</p>
-        <p>
-          {t("business.subscription")}{" "}
-          {active ? (
+        {active ? (
+          <p>
+            {t("business.subscription")}{" "}
             <span className="text-emerald-700 font-medium">
               {t("business.activeUntil", { date: formatDate(me.subscription_valid_until!, locale) })}
             </span>
-          ) : (
-            <span className="text-red-600 font-medium">{t("business.inactive")}</span>
-          )}
-        </p>
-        <p className="text-neutral-500 pt-2">{t("business.noSelfServe")}</p>
+          </p>
+        ) : (
+          <ActivateSubscriptionCTA userId={user.id} billingPlan={me.billing_plan} />
+        )}
       </div>
 
       <PublicPageLink

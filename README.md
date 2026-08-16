@@ -785,6 +785,37 @@ like everything else, just seeded with something the dealer can actually act on.
 Deliberately scoped to the dealer page only, not the main app's `SwipeDeck`/`CarDetail`
 Trade button, which are unchanged.
 
+## Business dashboard polish (2026-08-16, later)
+
+Five small `/business` changes:
+
+- **Subscription CTA.** The plain "Subscription: Inactive" line is now a button,
+  `ActivateSubscriptionCTA.tsx` - "Activate subscription ₪299/month". There's still no
+  payment gateway wired up (see the business dashboard section above), so clicking it
+  doesn't charge anything - it self-sets `billing_plan` (not an admin-protected column)
+  and flips into a "request sent" state; our team still activates
+  `subscription_valid_until` manually from `/admin`, same flow as a `/business/join`
+  signup. The old static "no self-serve payment" paragraph is gone, replaced by this
+  button telling the same story more usefully.
+- **"+ Add a new car"** - a plain link into `/cars` (the existing add-car form),
+  placed right under the stats tiles as the obvious first action on the page.
+- **Leads chart.** A new `get_dealer_leads_by_day()` RPC (30 daily rows of `{day,
+  leads}`, "lead" = an incoming right-swipe, same definition `get_profile_stats()`
+  already uses for its 7-day sparkline) feeds `LeadsChart.tsx`, a small Chart.js line
+  chart (`chart.js` + `react-chartjs-2`, newly added dependencies). Kept as its own
+  RPC instead of extending `get_profile_stats()` - that one's shared with the private-
+  user `/profile` page, which has no use for a 30-day dealer-oriented view.
+- **Shorter bottom-nav label.** Hebrew `nav.business` was "חשבון עסקי" (two words,
+  same overflow risk noted for Russian labels earlier) - shortened to "עסקי".
+  `nav.matches` ("התאמות") was already short; no change needed there.
+- **RTL/translation audit.** Every visible string on `/business` and its
+  subcomponents was already routed through `t()` - didn't find an actual untranslated
+  string or LTR-only class to fix. The one remaining gap, unchanged on purpose: a few
+  error-message fallbacks (`CustomDomainCard.tsx`, `DealerBrandingCard.tsx`,
+  `PublicPageLink.tsx`) still show the raw Supabase error string verbatim in the
+  rare case something actually fails - the same last-resort pattern already used in
+  `LoginForm.tsx` elsewhere in the app, not a new gap introduced here.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

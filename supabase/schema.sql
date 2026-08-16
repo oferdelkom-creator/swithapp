@@ -693,6 +693,29 @@ as $$
     );
 $$;
 
+-- RPC: 30-day daily lead count (incoming right-swipes) for the /business dashboard's
+-- LeadsChart.tsx (added 2026-08-16, migration add_dealer_leads_by_day_rpc). Separate
+-- from get_profile_stats()'s 7-day likes_by_day above rather than extending it -
+-- that RPC is shared with the private-user /profile page, which has no use for a
+-- 30-day business-oriented view, and returning one row per day (instead of a single
+-- array column) gives the chart both the x-axis label and y-axis value per row for
+-- free.
+create function public.get_dealer_leads_by_day(my_id uuid)
+returns table (day date, leads integer)
+language sql
+stable
+as $$
+  select gs.d::date as day, coalesce(x.cnt, 0)::int as leads
+  from generate_series(current_date - 29, current_date, interval '1 day') gs(d)
+  left join (
+    select date_trunc('day', s.created_at)::date as day, count(*) as cnt
+    from public.swipes s
+    where s.to_user_id = my_id and s.direction = 'right'
+    group by 1
+  ) x on x.day = gs.d::date
+  order by gs.d;
+$$;
+
 -- ── Row Level Security ───────────────────────────────────────────────────
 
 alter table public.users enable row level security;
