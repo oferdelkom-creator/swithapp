@@ -16,9 +16,44 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: seller } = await supabase
     .from("users")
-    .select("name")
+    .select("name, created_at")
     .eq("id", car.user_id)
-    .maybeSingle<{ name: string }>();
+    .maybeSingle<{ name: string; created_at: string }>();
 
-  return <CarDetail car={car} sellerName={seller?.name ?? ""} />;
+  const isOwner = car.user_id === user.id;
+  let alreadyLiked = false;
+  let existingMatchId: string | null = null;
+
+  if (!isOwner) {
+    const [{ data: swipeRow }, { data: matchRow }] = await Promise.all([
+      supabase
+        .from("swipes")
+        .select("id")
+        .eq("from_user_id", user.id)
+        .eq("car_id", car.id)
+        .eq("direction", "right")
+        .maybeSingle(),
+      supabase
+        .from("matches")
+        .select("id")
+        .or(
+          `and(user_a_id.eq.${user.id},user_b_id.eq.${car.user_id}),and(user_a_id.eq.${car.user_id},user_b_id.eq.${user.id})`
+        )
+        .maybeSingle(),
+    ]);
+    alreadyLiked = !!swipeRow;
+    existingMatchId = matchRow?.id ?? null;
+  }
+
+  return (
+    <CarDetail
+      car={car}
+      sellerName={seller?.name ?? ""}
+      sellerMemberSinceYear={seller?.created_at ? new Date(seller.created_at).getFullYear() : null}
+      userId={user.id}
+      isOwner={isOwner}
+      initiallyLiked={alreadyLiked}
+      existingMatchId={existingMatchId}
+    />
+  );
 }

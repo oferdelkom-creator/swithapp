@@ -600,6 +600,27 @@ on child elements that would have raced the drag gesture's `setPointerCapture`.
 `photoIndex` lives in `SwipeDeck` (not `CardVisual`) so it resets cleanly whenever
 the deck advances to a new candidate.
 
+## Full car details page, sticky swipe footer, photo reordering (2026-08-15, later)
+
+Fleshed out `/cars/[id]` from a static read-only view into the full spec: a
+scroll-snap fullscreen gallery (native touch swipe instead of tap zones, since
+there's no competing drag-to-dismiss gesture on a normal page) with X-back and
+heart-save buttons overlaid on it, a title/price/region/mileage line, a specs grid,
+a description section (new `cars.description` column - there was no free-text
+field before, only swap's `want_notes`), seller info ("Posted by / Member since"
+with a Chat button when a match already exists), and a sticky Pass/Trade/Buy
+footer that performs the exact same swipe as the deck.
+
+That last part needed the deck's match-detection + icebreaker logic in a second
+place, so it's factored out into `lib/swipeActions.ts` (`performSwipe()`) and both
+`SwipeDeck` and the new details page call the same function instead of maintaining
+two copies that could drift.
+
+Also improved `CarForm`'s photo step: capped at 6 photos with a running "3/6
+photos" hint, a "Cover" badge on the first thumbnail, and native HTML5
+drag-and-drop to reorder the thumbnail strip (first photo after reordering is the
+one used on the swipe card).
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

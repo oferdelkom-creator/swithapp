@@ -23,6 +23,7 @@ const FUEL_TYPES: FuelType[] = ["Petrol", "Diesel", "Hybrid", "Electric", "Gas"]
 // Israel's vehicle registry only tracks cars/motorcycles/trucks - caravans and jet
 // skis aren't registered there, so plate lookup has nothing to query for them.
 const RESOURCE_BACKED_TYPES: VehicleType[] = ["car", "motorcycle", "truck", "bus"];
+const MAX_PHOTOS = 6;
 
 export default function CarForm({ car }: { car?: Car }) {
   const router = useRouter();
@@ -52,6 +53,8 @@ export default function CarForm({ car }: { car?: Car }) {
   const [wantMake, setWantMake] = useState(car?.want_make ?? "");
   const [wantModel, setWantModel] = useState(car?.want_model ?? "");
   const [photoUrls, setPhotoUrls] = useState<string[]>(car?.photo_urls ?? []);
+  const [dragPhotoIndex, setDragPhotoIndex] = useState<number | null>(null);
+  const [description, setDescription] = useState(car?.description ?? "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -129,9 +132,12 @@ export default function CarForm({ car }: { car?: Car }) {
         return;
       }
 
+      const remainingSlots = Math.max(0, MAX_PHOTOS - photoUrls.length);
+      const selectedFiles = Array.from(files).slice(0, remainingSlots);
+
       const newUrls: string[] = [];
       const errors: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of selectedFiles) {
         const path = `${user.id}/${crypto.randomUUID()}${safeExtension(file.name)}`;
         const { error: uploadError } = await supabase.storage.from("car-photos").upload(path, file);
         if (uploadError) {
@@ -153,6 +159,15 @@ export default function CarForm({ car }: { car?: Car }) {
 
   function removePhoto(url: string) {
     setPhotoUrls((prev) => prev.filter((u) => u !== url));
+  }
+
+  function reorderPhotos(from: number, to: number) {
+    setPhotoUrls((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -194,6 +209,7 @@ export default function CarForm({ car }: { car?: Car }) {
       for_swap: forSwap,
       want_make: forSwap ? wantMake || null : null,
       want_model: forSwap ? wantModel || null : null,
+      description: description.trim() || null,
       photo_urls: photoUrls,
     };
 
@@ -223,6 +239,7 @@ export default function CarForm({ car }: { car?: Car }) {
       setMileage("");
       setWantMake("");
       setWantModel("");
+      setDescription("");
       setPhotoUrls([]);
     }
     router.refresh();
@@ -243,6 +260,7 @@ export default function CarForm({ car }: { car?: Car }) {
             <span className="text-sm font-medium">
               {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
             </span>
+            <span className="text-xs">{t("carForm.photoLimitHintEmpty", { max: MAX_PHOTOS })}</span>
             <input
               type="file"
               accept="image/*"
@@ -253,7 +271,7 @@ export default function CarForm({ car }: { car?: Car }) {
             />
           </label>
         )}
-        {photoUrls.length > 0 && (
+        {photoUrls.length > 0 && photoUrls.length < MAX_PHOTOS && (
           <label className="absolute bottom-3 end-3 rounded-full bg-white/90 backdrop-blur px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white transition-colors">
             {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
             <input
@@ -269,11 +287,36 @@ export default function CarForm({ car }: { car?: Car }) {
       </div>
 
       {photoUrls.length > 0 && (
-        <div className="flex gap-2 px-5 pt-3 overflow-x-auto no-scrollbar">
-          {photoUrls.map((url) => (
-            <div key={url} className="relative shrink-0">
+        <p className="px-5 pt-3 text-xs text-muted">
+          {t("carForm.photoLimitHint", { count: photoUrls.length, max: MAX_PHOTOS })}
+        </p>
+      )}
+
+      {photoUrls.length > 0 && (
+        <div className="flex gap-2 px-5 pt-2 overflow-x-auto no-scrollbar">
+          {photoUrls.map((url, i) => (
+            <div
+              key={url}
+              draggable
+              onDragStart={() => setDragPhotoIndex(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragPhotoIndex !== null && dragPhotoIndex !== i) reorderPhotos(dragPhotoIndex, i);
+                setDragPhotoIndex(null);
+              }}
+              onDragEnd={() => setDragPhotoIndex(null)}
+              className={`relative shrink-0 cursor-grab active:cursor-grabbing ${
+                dragPhotoIndex === i ? "opacity-40" : ""
+              }`}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg" />
+              {i === 0 && (
+                <span className="absolute bottom-0.5 start-0.5 rounded bg-black/60 text-white text-[9px] px-1 py-0.5">
+                  {t("carForm.coverPhoto")}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => removePhoto(url)}
@@ -426,6 +469,17 @@ export default function CarForm({ car }: { car?: Car }) {
             <label className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
             <input type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("carForm.description")}</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("carForm.descriptionPlaceholder")}
+            rows={3}
+            className="field"
+          />
         </div>
 
         <div className="flex gap-6">

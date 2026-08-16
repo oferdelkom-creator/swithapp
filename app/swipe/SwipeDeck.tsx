@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { performSwipe } from "@/lib/swipeActions";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES } from "@/lib/vehicleData";
@@ -178,47 +179,24 @@ export default function SwipeDeck({
     setError(null);
     const supabase = createClient();
 
-    const { error: swipeError } = await supabase.from("swipes").insert({
-      from_user_id: userId,
-      to_user_id: candidate.user_id,
-      car_id: candidate.car_id,
+    const result = await performSwipe(supabase, {
+      userId,
+      toUserId: candidate.user_id,
+      carId: candidate.car_id,
       direction,
+      icebreakerText: t("chat.icebreaker"),
     });
 
-    if (swipeError) {
-      // RLS doesn't distinguish *why* the insert was blocked, but the daily-cap check
-      // is the only one a normal free user hits in practice (role/ownership checks
-      // shouldn't fail for candidates the deck itself returned).
+    if (result.capReached) {
       setError(t("swipe.swipeCapReached"));
       setIndex((i) => i + 1);
       setPhotoIndex(0);
       return;
     }
 
-    if (direction === "right") {
-      const { data: match } = await supabase
-        .from("matches")
-        .select("id")
-        .or(
-          `and(user_a_id.eq.${userId},user_b_id.eq.${candidate.user_id}),and(user_a_id.eq.${candidate.user_id},user_b_id.eq.${userId})`
-        )
-        .maybeSingle();
-      if (match) {
-        const name = isSale(candidate) ? candidate.seller_name : candidate.name;
-        setMatchModal({ matchId: match.id, name });
-        // Only the very first swiper to discover this match sends the icebreaker - a
-        // match can only be created once (unique user pair), so an empty thread means
-        // this is that first discovery.
-        const { count } = await supabase
-          .from("messages")
-          .select("id", { count: "exact", head: true })
-          .eq("match_id", match.id);
-        if (!count) {
-          await supabase
-            .from("messages")
-            .insert({ match_id: match.id, sender_id: userId, text: t("chat.icebreaker"), kind: "chat" });
-        }
-      }
+    if (result.match) {
+      const name = isSale(candidate) ? candidate.seller_name : candidate.name;
+      setMatchModal({ matchId: result.match.matchId, name });
     }
 
     setIndex((i) => i + 1);

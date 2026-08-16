@@ -77,6 +77,9 @@ create table public.cars (
   -- lookup field in CarForm (or typed manually) - not validated against the gov
   -- registry format, just stored as entered.
   plate_number text,
+  -- Added 2026-08-16 (migration add_car_description) for the car details page's
+  -- free-text description section.
+  description text,
   photo_urls text[] not null default '{}',
   price numeric,
   hand integer check (hand is null or hand >= 0),

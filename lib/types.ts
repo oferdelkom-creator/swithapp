@@ -59,6 +59,7 @@ export interface Car {
   category: VehicleType;
   color: string | null;
   plate_number: string | null;
+  description: string | null;
   photo_urls: string[];
   price: number | null;
   hand: number | null;
