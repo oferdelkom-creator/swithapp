@@ -124,7 +124,14 @@ export default async function AdminPage() {
                   </td>
                   <td className="py-2 pe-4">{u.name}</td>
                   <td className="py-2 pe-4">{u.role}</td>
-                  <td className="py-2 pe-4">{u.business_name ?? "-"}</td>
+                  <td className="py-2 pe-4">
+                    {u.business_name ?? "-"}
+                    {u.requested_car_cap != null && (
+                      <span className="block text-xs text-neutral-400">
+                        {t("businessJoin.tierUpTo", { count: u.requested_car_cap })}
+                      </span>
+                    )}
+                  </td>
                   <td className="py-2 pe-4">
                     {u.premium_until ? formatDate(u.premium_until, locale) : "-"}
                   </td>

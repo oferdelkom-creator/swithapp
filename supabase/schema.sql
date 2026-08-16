@@ -66,6 +66,13 @@ create table public.users (
   -- ('dealer', 'importer'), but not constrained to that - a slug just does nothing
   -- for a private user since /d/[slug] rejects non-dealer roles at read time.
   dealer_slug text unique,
+  -- Added 2026-08-16 (migration add_dealer_requested_car_cap): which /business/join
+  -- pricing tier a self-service dealer signup picked (50/100/150/200, or null for the
+  -- "over 200, contact us" custom tier). Purely informational for now - not enforced
+  -- anywhere - it's what our team bills for once they call the dealer to activate
+  -- subscription_valid_until (see ActivateSubscriptionButton in /admin). Also null for
+  -- any dealer/importer set up the old way (direct DB update), not through the join flow.
+  requested_car_cap integer,
   created_at timestamptz not null default now()
 );
 

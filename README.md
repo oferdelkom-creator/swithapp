@@ -671,6 +671,37 @@ Deliberately out of scope for this pass (would be the next step toward the fulle
 panel, branding/theming per dealer, or dealer-side visibility into which of *their*
 customers is requesting what.
 
+## Dealer sign-up page + pricing tiers (2026-08-16, later)
+
+Until now, the only way to become a `dealer`/`importer` account was a direct DB
+update - there was no way for a real dealership to sign up on their own. Added a
+dedicated public page at `/business/join` (linked from the homepage and the login
+welcome screen) that explains what a dealer account gets (full inventory management,
+the branded `/d/[slug]` page from above, customers requesting swaps against their
+stock, still showing up in the app's general search) and a monthly subscription
+pricing table: up to 50 cars ₪2,500/mo, up to 100 ₪3,500/mo, up to 150 ₪4,500/mo, up
+to 200 ₪5,500/mo (+₪1,000 per +50 cars), and "over 200 - contact us" as a custom
+tier. Tiers/prices live in one place (`lib/dealerPricing.ts`) shared by the pricing
+table and the admin panel.
+
+Consistent with the existing "no self-serve payment - our team activates the
+subscription" model (see the business dashboard above): submitting the form creates
+the auth account and flips it to `role = 'dealer'` immediately (`billing_plan`,
+`business_name`, and the picked tier via the new `users.requested_car_cap` column),
+but `subscription_valid_until` stays null - that column is admin-only
+(`protect_privileged_user_columns()`), so the account is fully created but inactive
+until we call the dealer and activate it with the existing
+`ActivateSubscriptionButton` in `/admin`. The admin users table now also shows the
+requested tier next to a dealer's business name, so we know what to bill for.
+
+`finishDealerSignup()` (`lib/dealerSignup.ts`) is the one place that does this
+role-flip, called from two spots depending on whether Supabase requires email
+confirmation: immediately in `DealerJoinForm.tsx` if `signUp()` already returns a
+session, or from `/business/join/finish` (reached via the same `emailRedirectTo` ->
+`/auth/callback?next=...` round trip already used for OAuth/email confirmation
+elsewhere) if it doesn't - the business name, picked tier, and phone number are
+carried through as query params on that `next` URL rather than needing a temp table.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

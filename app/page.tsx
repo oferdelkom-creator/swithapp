@@ -24,6 +24,13 @@ export default async function HomePage() {
       <div className="mt-12 card px-6 py-4 inline-block">
         <p className="text-sm text-muted">{t("home.connected", { count: count ?? 0 })}</p>
       </div>
+
+      <p className="mt-10 text-sm text-muted">
+        {t("home.dealerCtaText")}{" "}
+        <Link href="/business/join" className="text-brand-blue">
+          {t("home.dealerCtaLink")}
+        </Link>
+      </p>
     </div>
   );
 }
