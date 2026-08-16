@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
@@ -6,6 +7,7 @@ import { formatDate } from "@/lib/i18n/format";
 import type { Car } from "@/lib/types";
 import ProfileStats, { type Stats } from "@/app/profile/ProfileStats";
 import InventoryTable from "./InventoryTable";
+import PublicPageLink from "./PublicPageLink";
 
 type InventoryCar = Pick<
   Car,
@@ -22,16 +24,21 @@ export default async function BusinessPage() {
 
   const { data: me } = await supabase
     .from("users")
-    .select("role, business_name, billing_plan, subscription_valid_until")
+    .select("role, business_name, billing_plan, subscription_valid_until, dealer_slug")
     .eq("id", user.id)
     .maybeSingle<{
       role: string;
       business_name: string | null;
       billing_plan: string | null;
       subscription_valid_until: string | null;
+      dealer_slug: string | null;
     }>();
 
   if (!me || (me.role !== "dealer" && me.role !== "importer")) redirect("/");
+
+  const headerList = await headers();
+  const host = headerList.get("host") ?? "";
+  const siteOrigin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
 
   const [{ data: cars }, { data: statsRows }] = await Promise.all([
     supabase
@@ -88,6 +95,13 @@ export default async function BusinessPage() {
         </p>
         <p className="text-neutral-500 pt-2">{t("business.noSelfServe")}</p>
       </div>
+
+      <PublicPageLink
+        userId={user.id}
+        initialSlug={me.dealer_slug}
+        businessName={me.business_name}
+        siteOrigin={siteOrigin}
+      />
 
       <div>
         <div className="flex items-center justify-between mb-4">

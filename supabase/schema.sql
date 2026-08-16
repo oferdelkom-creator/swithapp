@@ -59,6 +59,13 @@ create table public.users (
   -- tab - "online" is computed wherever this is read as last_seen_at within the last
   -- couple of minutes, not a realtime presence channel.
   last_seen_at timestamptz,
+  -- Added 2026-08-16 (migration add_dealer_slug_and_inventory_rpc): the public URL
+  -- path segment for a dealer/importer's branded landing page + scoped swipe deck at
+  -- /d/[slug] (see app/d/[slug]/page.tsx, dealer_inventory() below). Self-service,
+  -- editable from /business (PublicPageLink.tsx). Only meaningful for role IN
+  -- ('dealer', 'importer'), but not constrained to that - a slug just does nothing
+  -- for a private user since /d/[slug] rejects non-dealer roles at read time.
+  dealer_slug text unique,
   created_at timestamptz not null default now()
 );
 
@@ -419,6 +426,45 @@ as $$
       join public.cars c2 on c2.id = s2.car_id
       where s2.from_user_id = my_id and s2.direction = 'right'
     )) desc,
+    c.created_at desc;
+$$;
+
+-- RPC: a single dealer/importer's active inventory, for the branded /d/[slug] deck
+-- (added 2026-08-16, migration add_dealer_slug_and_inventory_rpc). Unlike
+-- cars_for_sale/nearby_swap_cars this isn't a matching search across all sellers - the
+-- caller already knows which dealer they're browsing (resolved via users.dealer_slug),
+-- so it just filters that one dealer's cars down to what's still available and not
+-- already swiped/blocked.
+create or replace function public.dealer_inventory(my_id uuid, p_dealer_id uuid)
+returns table (
+  car_id uuid, make text, model text, year integer, mileage integer, transmission text,
+  category vehicle_type, color text, photo_urls text[], price numeric, hand integer,
+  fuel_type fuel_type, region car_region, for_sale boolean, for_swap boolean,
+  want_make text, want_notes text
+)
+language sql
+stable
+as $$
+  select
+    c.id, c.make, c.model, c.year, c.mileage, c.transmission, c.category, c.color,
+    c.photo_urls, c.price, c.hand, c.fuel_type, c.region, c.for_sale, c.for_swap,
+    c.want_make, c.want_notes
+  from public.cars c
+  where c.user_id = p_dealer_id
+    and c.sold_at is null
+    and (c.for_sale or c.for_swap)
+    and c.user_id <> my_id
+    and not exists (
+      select 1 from public.swipes s
+      where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
+    )
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = my_id and b.blocked_id = p_dealer_id)
+         or (b.blocker_id = p_dealer_id and b.blocked_id = my_id)
+    )
+  order by
+    (c.boosted_until > now()) desc nulls last,
     c.created_at desc;
 $$;
 

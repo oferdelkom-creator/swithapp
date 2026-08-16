@@ -638,6 +638,39 @@ different parameter count doesn't replace the function in place - Postgres treat
 changed parameter list as a distinct overload, so the old 10-param version was still
 sitting there unused. Dropped both and recreated a single current definition.
 
+## Per-dealer branded landing page + swap deck (2026-08-16)
+
+A first step toward a per-dealer sub-system: any `dealer`/`importer` account can
+publish a public page at `/d/[slug]` showing only their own inventory, to hand out to
+their own customers as a link (WhatsApp, a sign at the lot, etc.) rather than routing
+them through the general SwitchApp browse flow.
+
+- `users.dealer_slug` (unique, self-service) - editable from `/business`
+  (`PublicPageLink.tsx`): type a slug, publish, copy the resulting link.
+- `/d/[slug]` (`app/d/[slug]/page.tsx`) resolves the dealer by slug, requires login,
+  redirects the dealer themselves to `/business` instead of showing their own page,
+  and 404s for an unknown slug or a slug that no longer belongs to a dealer/importer.
+- `dealer_inventory(my_id, p_dealer_id)` - a new RPC, deliberately not a generalized
+  filter on `cars_for_sale()`/`nearby_swap_cars()`: the caller already knows which
+  single dealer they're browsing (resolved via the slug), so it just returns that
+  dealer's still-available cars, excluding ones already swiped or from a blocked
+  user.
+- `DealerDeck.tsx` is a trimmed-down sibling of `SwipeDeck.tsx` - same card visuals,
+  drag-to-exit gestures, tap-zone photo gallery, and Pass/Trade/Buy buttons, but no
+  sale/swap mode toggle or filters (a dealer's whole inventory is one deck). It calls
+  the same shared `performSwipe()` as the main deck and the car details page, so a
+  swap request against a dealer's inventory becomes a completely ordinary match/chat
+  - no separate inbox or notification path for dealer inventory.
+- The dealer's cars are unaffected in the *main* app search - `cars_for_sale()` /
+  `nearby_swap_cars()` already show dealer/importer listings to private users (see
+  the private-listing-cap/visibility-gating change above), so publishing a `/d/[slug]`
+  page is additive, not a way to opt out of the general marketplace.
+
+Deliberately out of scope for this pass (would be the next step toward the fuller
+"sub-system per dealer" idea discussed but not yet built): a dealer-scoped admin
+panel, branding/theming per dealer, or dealer-side visibility into which of *their*
+customers is requesting what.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
