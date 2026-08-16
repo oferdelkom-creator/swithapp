@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
@@ -86,11 +87,13 @@ export default function SwipeDeck({
   initialLon: number | null;
 }) {
   const { t, locale } = useLocale();
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("sale");
   const [lat, setLat] = useState(initialLat);
   const [lon, setLon] = useState(initialLon);
   const [deck, setDeck] = useState<Candidate[]>([]);
   const [index, setIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
@@ -141,6 +144,7 @@ export default function SwipeDeck({
       setDeck((data as SwapCandidate[]) ?? []);
     }
     setIndex(0);
+    setPhotoIndex(0);
     setLoading(false);
   }
 
@@ -187,6 +191,7 @@ export default function SwipeDeck({
       // shouldn't fail for candidates the deck itself returned).
       setError(t("swipe.swipeCapReached"));
       setIndex((i) => i + 1);
+      setPhotoIndex(0);
       return;
     }
 
@@ -217,10 +222,30 @@ export default function SwipeDeck({
     }
 
     setIndex((i) => i + 1);
+    setPhotoIndex(0);
   }
 
   function handleExit(direction: ExitDirection) {
     swipe(direction === "up" ? "maybe" : direction);
+  }
+
+  // Tap-zone routing for the photo gallery on the active card: left 40% = previous
+  // photo, right 40% = next photo (or, once already on the last photo, tapping right
+  // again triggers the same "Buy" action as the green button/right-swipe), center
+  // 20% = open the car's details page.
+  function handleTap(fraction: number) {
+    const photos = current?.photo_urls ?? [];
+    if (fraction < 0.4) {
+      setPhotoIndex((i) => Math.max(0, i - 1));
+    } else if (fraction > 0.6) {
+      if (photoIndex < photos.length - 1) {
+        setPhotoIndex((i) => i + 1);
+      } else {
+        cardRef.current?.triggerExit("right");
+      }
+    } else if (current) {
+      router.push(`/cars/${current.car_id}`);
+    }
   }
 
   const current = deck[index];
@@ -361,11 +386,11 @@ export default function SwipeDeck({
           <div className="relative h-[64dvh] max-h-[580px] min-h-[360px] [overscroll-behavior-x:contain]">
             {peek && (
               <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
-                <CardVisual candidate={peek} />
+                <CardVisual candidate={peek} photoIndex={0} />
               </div>
             )}
-            <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit}>
-              <CardVisual candidate={current} />
+            <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit} onTap={handleTap}>
+              <CardVisual candidate={current} photoIndex={photoIndex} />
             </DraggableCard>
 
             <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
@@ -413,25 +438,43 @@ export default function SwipeDeck({
   );
 }
 
-function CardVisual({ candidate }: { candidate: Candidate }) {
+function CardVisual({ candidate, photoIndex }: { candidate: Candidate; photoIndex: number }) {
   const { t } = useLocale();
-  const [broken, setBroken] = useState(false);
-  const photo = candidate.photo_urls?.[0];
+  const [broken, setBroken] = useState<Record<number, boolean>>({});
+  const photos = candidate.photo_urls ?? [];
+  const hasVisiblePhoto = photos.length > 0 && !broken[photoIndex];
 
   return (
     <div className="relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-neutral-200">
-      {photo && !broken ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={photo}
-          alt={`${candidate.make} ${candidate.model}`}
-          draggable={false}
-          onError={() => setBroken(true)}
-          className="absolute inset-0 w-full h-full object-cover select-none"
-        />
-      ) : (
+      {photos.map((url, i) =>
+        broken[i] ? null : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={url}
+            src={url}
+            alt={`${candidate.make} ${candidate.model}`}
+            draggable={false}
+            onError={() => setBroken((b) => ({ ...b, [i]: true }))}
+            className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-200"
+            style={{ opacity: i === photoIndex ? 1 : 0 }}
+          />
+        )
+      )}
+      {!hasVisiblePhoto && (
         <div className="absolute inset-0 flex items-center justify-center text-neutral-400 text-sm">
           {t("swipe.noPhoto")}
+        </div>
+      )}
+      {photos.length > 1 && (
+        <div className="absolute top-3 inset-x-0 flex justify-center gap-1.5 z-10">
+          {photos.map((_, i) => (
+            <span
+              key={i}
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                i === photoIndex ? "bg-white" : "bg-white/40"
+              }`}
+            />
+          ))}
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />

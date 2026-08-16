@@ -12,14 +12,20 @@ export interface DraggableCardHandle {
 interface DraggableCardProps {
   active: boolean;
   onExit: (direction: ExitDirection) => void;
+  // Reports a plain tap (negligible movement, not a real drag) as the horizontal
+  // position within the card, 0 (start edge) to 1 (end edge) - lets the caller
+  // implement tap-zone navigation (e.g. a photo gallery) without a second pointer
+  // listener competing with the drag-to-dismiss gesture above.
+  onTap?: (fraction: number) => void;
   children: React.ReactNode;
 }
 
 const EXIT_DISTANCE = 700;
 const SWIPE_THRESHOLD = 110;
+const TAP_MOVEMENT_THRESHOLD = 8;
 
 const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(function DraggableCard(
-  { active, onExit, children },
+  { active, onExit, onTap, children },
   ref
 ) {
   const { t } = useLocale();
@@ -27,6 +33,7 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<ExitDirection | null>(null);
   const startXRef = useRef(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   function commitExit(direction: ExitDirection) {
     setDragging(false);
@@ -48,14 +55,24 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
     setDragX(e.clientX - startXRef.current);
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
     if (!dragging) return;
-    if (dragX > SWIPE_THRESHOLD) commitExit("right");
-    else if (dragX < -SWIPE_THRESHOLD) commitExit("left");
-    else {
-      setDragging(false);
-      setDragX(0);
+    if (dragX > SWIPE_THRESHOLD) {
+      commitExit("right");
+      return;
     }
+    if (dragX < -SWIPE_THRESHOLD) {
+      commitExit("left");
+      return;
+    }
+    if (Math.abs(dragX) < TAP_MOVEMENT_THRESHOLD && onTap) {
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0) {
+        onTap((e.clientX - rect.left) / rect.width);
+      }
+    }
+    setDragging(false);
+    setDragX(0);
   }
 
   const x = exiting === "left" ? -EXIT_DISTANCE : exiting === "right" ? EXIT_DISTANCE : dragX;
@@ -67,6 +84,7 @@ const DraggableCard = forwardRef<DraggableCardHandle, DraggableCardProps>(functi
 
   return (
     <div
+      ref={wrapperRef}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

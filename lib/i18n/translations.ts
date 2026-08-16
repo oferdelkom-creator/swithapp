@@ -70,6 +70,10 @@ const en = {
   "cars.deleteConfirm": "Delete this listing?",
   "cars.editTitle": "Edit Listing",
 
+  "carDetail.back": "← Back",
+  "carDetail.prevPhoto": "Previous photo",
+  "carDetail.nextPhoto": "Next photo",
+
   "carForm.photos": "Photos",
   "carForm.addPhotos": "Add photos",
   "carForm.uploading": "Uploading...",
@@ -348,6 +352,10 @@ const he: Record<Key, string> = {
   "cars.deleteConfirm": "למחוק את המודעה הזו?",
   "cars.editTitle": "עריכת מודעה",
 
+  "carDetail.back": "→ חזרה",
+  "carDetail.prevPhoto": "התמונה הקודמת",
+  "carDetail.nextPhoto": "התמונה הבאה",
+
   "carForm.photos": "תמונות",
   "carForm.addPhotos": "הוספת תמונות",
   "carForm.uploading": "מעלה...",
@@ -622,6 +630,10 @@ const ru: Record<Key, string> = {
     "Частный аккаунт может разместить не более 2 автомобилей одновременно. Отметьте один как проданный или удалите его, чтобы добавить ещё - или перейдите на бизнес-аккаунт без ограничений.",
   "cars.deleteConfirm": "Удалить это объявление?",
   "cars.editTitle": "Редактирование объявления",
+
+  "carDetail.back": "← Назад",
+  "carDetail.prevPhoto": "Предыдущее фото",
+  "carDetail.nextPhoto": "Следующее фото",
 
   "carForm.photos": "Фотографии",
   "carForm.addPhotos": "Добавить фотографии",

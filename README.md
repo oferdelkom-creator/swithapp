@@ -582,6 +582,24 @@ like two different products sharing one app, not one flat marketplace.
   Inter loaded via `next/font` (Latin+Cyrillic; Hebrew still falls through to the
   system-font fallback, since Inter has no Hebrew glyphs).
 
+## Swipe-card photo gallery, tap-zone navigation, car details page (2026-08-15, later)
+
+The active swipe card now supports a multi-photo gallery instead of showing only
+`photo_urls[0]`: a dot indicator up top, 200ms crossfade between photos, and three
+tap zones (left 40% = previous photo, center 20% = open `/cars/[id]` - a new,
+public-within-the-app read-only detail page - right 40% = next photo, or, once
+already on the last photo, tapping right again triggers the same "Buy" action as
+the green button).
+
+The tricky part was making tap detection coexist with the existing drag-to-dismiss
+gesture without two competing pointer listeners: `DraggableCard` (the single owner
+of all pointer events on the card) now distinguishes a plain tap - negligible net
+movement - from a real drag on `pointerup`, and reports the tap's horizontal
+position (0-1 across the card) via a new `onTap` prop, instead of a second listener
+on child elements that would have raced the drag gesture's `setPointerCapture`.
+`photoIndex` lives in `SwipeDeck` (not `CardVisual`) so it resets cleanly whenever
+the deck advances to a new candidate.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
