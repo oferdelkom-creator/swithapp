@@ -53,6 +53,12 @@ create table public.users (
   -- add_is_seed_flags_for_test_data) so they can be found and removed later without
   -- guessing from names/emails. See delete_seed_data() below.
   is_seed boolean not null default false,
+  -- Added 2026-08-16 (migration add_user_last_seen_at) for an "online now" indicator
+  -- (car cards, car details, admin panel). Updated by a client-side heartbeat
+  -- (PresenceHeartbeat.tsx) roughly every 30s while the app is open in a foreground
+  -- tab - "online" is computed wherever this is read as last_seen_at within the last
+  -- couple of minutes, not a realtime presence channel.
+  last_seen_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -283,7 +289,11 @@ create trigger on_swipe_created
 -- simple preference signal from swipe history. p_include_dealers added 2026-08-15,
 -- later (migration cap_private_listings_and_gate_dealer_visibility): private callers
 -- now see only other private sellers by default - dealer/importer inventory is
--- opt-in, not mixed into the regular deck automatically.
+-- opt-in, not mixed into the regular deck automatically. seller_online added
+-- 2026-08-16 (migration add_seller_online_to_nearby_swap_cars) - also the point
+-- where a stray duplicate overload (left behind when p_include_dealers was added via
+-- CREATE OR REPLACE with a different parameter count, which creates a new overload
+-- instead of replacing in place) got cleaned up; there should only ever be one.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
   p_category vehicle_type default null,
@@ -293,7 +303,7 @@ create or replace function public.nearby_swap_cars(
   p_include_dealers boolean default false
 )
 returns table (
-  user_id uuid, name text, lat double precision, lon double precision,
+  user_id uuid, name text, seller_online boolean, lat double precision, lon double precision,
   distance_km double precision,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
   category vehicle_type, photo_urls text[], want_make text, want_notes text, price numeric
@@ -302,7 +312,7 @@ language sql
 stable
 as $$
   select
-    u.id, u.name, u.lat, u.lon,
+    u.id, u.name, (u.last_seen_at > now() - interval '2 minutes'), u.lat, u.lon,
     public.haversine_km(my_lat, my_lon, u.lat, u.lon) as distance_km,
     c.id, c.make, c.model, c.year, c.mileage, c.transmission, c.category, c.photo_urls,
     c.want_make, c.want_notes, c.price
@@ -350,7 +360,8 @@ $$;
 -- p_category changed from text to vehicle_type 2026-08-15 (migration
 -- add_vehicle_type_to_deck_rpcs) to match the cars.category column. Updated again the
 -- same day (migration add_maybe_swipe_direction) - same 'maybe' exclusion change and
--- liked-make preference boost as nearby_swap_cars above.
+-- liked-make preference boost as nearby_swap_cars above. seller_online added
+-- 2026-08-16 (migration add_seller_online_to_cars_for_sale).
 create or replace function public.cars_for_sale(
   my_id uuid,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
@@ -359,7 +370,7 @@ create or replace function public.cars_for_sale(
   p_fuel_type fuel_type default null, p_region car_region default null, p_max_hand integer default null
 )
 returns table (
-  user_id uuid, seller_name text, seller_role user_role,
+  user_id uuid, seller_name text, seller_role user_role, seller_online boolean,
   car_id uuid, make text, model text, year integer, mileage integer, transmission text,
   category vehicle_type, color text, photo_urls text[], price numeric, hand integer,
   fuel_type fuel_type, region car_region
@@ -368,7 +379,7 @@ language sql
 stable
 as $$
   select
-    u.id, u.name, u.role,
+    u.id, u.name, u.role, (u.last_seen_at > now() - interval '2 minutes'),
     c.id, c.make, c.model, c.year, c.mileage, c.transmission, c.category, c.color,
     c.photo_urls, c.price, c.hand, c.fuel_type, c.region
   from public.cars c

@@ -14,6 +14,7 @@ export default function CarDetail({
   car,
   sellerName,
   sellerMemberSinceYear,
+  sellerOnline,
   userId,
   isOwner,
   initiallyLiked,
@@ -22,6 +23,7 @@ export default function CarDetail({
   car: Car;
   sellerName: string;
   sellerMemberSinceYear: number | null;
+  sellerOnline: boolean;
   userId: string;
   isOwner: boolean;
   initiallyLiked: boolean;
@@ -192,7 +194,12 @@ export default function CarDetail({
 
         <div className="rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white p-5 flex items-center justify-between text-sm">
           <div>
-            <p className="font-medium">{t("carDetail.postedBy", { name: sellerName })}</p>
+            <p className="font-medium flex items-center gap-1.5">
+              {sellerOnline && (
+                <span title={t("presence.online")} className="inline-block w-2 h-2 rounded-full bg-green-500" />
+              )}
+              {t("carDetail.postedBy", { name: sellerName })}
+            </p>
             {sellerMemberSinceYear && (
               <p className="text-neutral-500 text-xs mt-0.5">
                 {t("carDetail.memberSince", { year: sellerMemberSinceYear })}

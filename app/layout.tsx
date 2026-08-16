@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import LocaleProvider from "@/components/LocaleProvider";
 import MatchNotifier from "@/components/MatchNotifier";
+import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           )}
           {user && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
+          {user && <PresenceHeartbeat userId={user.id} />}
         </LocaleProvider>
       </body>
     </html>

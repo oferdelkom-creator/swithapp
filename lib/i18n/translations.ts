@@ -9,6 +9,9 @@ const en = {
   "meta.title": "SwitchApp - Sell or swap your car",
   "meta.description": "A swipe app for selling and swapping cars, matched to your location.",
 
+  "presence.online": "Online now",
+  "presence.offline": "Offline",
+
   "nav.swipe": "Swipe",
   "nav.cars": "My Cars",
   "nav.matches": "Matches",
@@ -261,6 +264,7 @@ const en = {
   "admin.reportFrom": "From {{name}}",
   "admin.unknown": "Unknown",
   "admin.users": "Users ({{count}})",
+  "admin.colOnline": "Online",
   "admin.colName": "Name",
   "admin.colRole": "Role",
   "admin.colBusiness": "Business",
@@ -298,6 +302,9 @@ export type TranslationKey = Key;
 const he: Record<Key, string> = {
   "meta.title": "SwitchApp - להחליף או למכור את הרכב שלך",
   "meta.description": "אפליקציית סווייפ להחלפה ומכירה של רכבים, בהתאמה למיקום שלך.",
+
+  "presence.online": "מחובר/ת עכשיו",
+  "presence.offline": "לא מחובר/ת",
 
   "nav.swipe": "סווייפ",
   "nav.cars": "הרכבים שלי",
@@ -553,6 +560,7 @@ const he: Record<Key, string> = {
   "admin.reportFrom": "מאת {{name}}",
   "admin.unknown": "לא ידוע",
   "admin.users": "משתמשים ({{count}})",
+  "admin.colOnline": "מחובר/ת",
   "admin.colName": "שם",
   "admin.colRole": "תפקיד",
   "admin.colBusiness": "עסק",
@@ -587,6 +595,9 @@ const he: Record<Key, string> = {
 const ru: Record<Key, string> = {
   "meta.title": "SwitchApp — продайте или обменяйте свой автомобиль",
   "meta.description": "Приложение для продажи и обмена автомобилями по системе свайпов, с учётом вашего местоположения.",
+
+  "presence.online": "В сети",
+  "presence.offline": "Не в сети",
 
   "nav.swipe": "Свайп",
   "nav.cars": "Мои авто",
@@ -841,6 +852,7 @@ const ru: Record<Key, string> = {
   "admin.reportFrom": "От {{name}}",
   "admin.unknown": "Неизвестно",
   "admin.users": "Пользователи ({{count}})",
+  "admin.colOnline": "Онлайн",
   "admin.colName": "Имя",
   "admin.colRole": "Роль",
   "admin.colBusiness": "Бизнес",

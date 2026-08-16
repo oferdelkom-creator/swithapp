@@ -54,6 +54,9 @@ export default async function AdminPage() {
     supabase.from("users").select("id", { count: "exact", head: true }).eq("is_seed", true),
   ]);
 
+  const twoMinutesAgo = new Date();
+  twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 space-y-12">
       <div>
@@ -97,6 +100,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-right text-neutral-500 border-b border-neutral-200">
+                <th className="py-2 pe-4">{t("admin.colOnline")}</th>
                 <th className="py-2 pe-4">{t("admin.colName")}</th>
                 <th className="py-2 pe-4">{t("admin.colRole")}</th>
                 <th className="py-2 pe-4">{t("admin.colBusiness")}</th>
@@ -108,8 +112,16 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {users?.map((u) => (
+              {users?.map((u) => {
+                const online = !!u.last_seen_at && new Date(u.last_seen_at) > twoMinutesAgo;
+                return (
                 <tr key={u.id} className="border-b border-neutral-100">
+                  <td className="py-2 pe-4">
+                    <span
+                      title={online ? t("presence.online") : t("presence.offline")}
+                      className={`inline-block w-2.5 h-2.5 rounded-full ${online ? "bg-green-500" : "bg-neutral-300"}`}
+                    />
+                  </td>
                   <td className="py-2 pe-4">{u.name}</td>
                   <td className="py-2 pe-4">{u.role}</td>
                   <td className="py-2 pe-4">{u.business_name ?? "-"}</td>
@@ -141,7 +153,8 @@ export default async function AdminPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

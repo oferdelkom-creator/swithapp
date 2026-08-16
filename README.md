@@ -621,6 +621,23 @@ photos" hint, a "Cover" badge on the first thumbnail, and native HTML5
 drag-and-drop to reorder the thumbnail strip (first photo after reordering is the
 one used on the swipe card).
 
+## "Online now" indicator (2026-08-16)
+
+Not a realtime presence channel - `users.last_seen_at`, updated by a client-side
+heartbeat (`PresenceHeartbeat.tsx`, mounted in the root layout for logged-in users)
+roughly every 30s while the tab is open and in the foreground. "Online" is computed
+wherever it's read as `last_seen_at` within the last two minutes - a green dot next
+to the seller's name on swipe cards and the car details page (`cars_for_sale()` /
+`nearby_swap_cars()` both gained a `seller_online` column), and an Online column in
+the admin users table. Simpler than real presence, and it's one data source both
+the client UI and the server-rendered admin table can read the same way.
+
+While touching `nearby_swap_cars()`, found and cleaned up a real mess from an
+earlier session: adding `p_include_dealers` via `CREATE OR REPLACE FUNCTION` with a
+different parameter count doesn't replace the function in place - Postgres treats a
+changed parameter list as a distinct overload, so the old 10-param version was still
+sitting there unused. Dropped both and recreated a single current definition.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

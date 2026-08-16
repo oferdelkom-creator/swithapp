@@ -40,6 +40,7 @@ export interface AppUser {
   is_admin: boolean;
   is_banned: boolean;
   is_seed: boolean;
+  last_seen_at: string | null;
   created_at: string;
 }
 

@@ -16,9 +16,13 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: seller } = await supabase
     .from("users")
-    .select("name, created_at")
+    .select("name, created_at, last_seen_at")
     .eq("id", car.user_id)
-    .maybeSingle<{ name: string; created_at: string }>();
+    .maybeSingle<{ name: string; created_at: string; last_seen_at: string | null }>();
+
+  const twoMinutesAgo = new Date();
+  twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+  const sellerOnline = !!seller?.last_seen_at && new Date(seller.last_seen_at) > twoMinutesAgo;
 
   const isOwner = car.user_id === user.id;
   let alreadyLiked = false;
@@ -50,6 +54,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
       car={car}
       sellerName={seller?.name ?? ""}
       sellerMemberSinceYear={seller?.created_at ? new Date(seller.created_at).getFullYear() : null}
+      sellerOnline={sellerOnline}
       userId={user.id}
       isOwner={isOwner}
       initiallyLiked={alreadyLiked}

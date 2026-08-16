@@ -48,6 +48,7 @@ interface SaleCandidate {
   user_id: string;
   seller_name: string;
   seller_role: string;
+  seller_online: boolean;
   car_id: string;
   make: string;
   model: string;
@@ -60,6 +61,7 @@ interface SaleCandidate {
 interface SwapCandidate {
   user_id: string;
   name: string;
+  seller_online: boolean;
   distance_km: number | null;
   car_id: string;
   make: string;
@@ -467,10 +469,22 @@ function CardVisual({ candidate, photoIndex }: { candidate: Candidate; photoInde
         </p>
         {isSale(candidate) ? (
           <p className="text-sm text-white/90 mt-1">
+            {candidate.seller_online && (
+              <span
+                title={t("presence.online")}
+                className="inline-block w-2 h-2 rounded-full bg-green-400 me-1.5 align-middle"
+              />
+            )}
             {candidate.seller_name} · {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
           </p>
         ) : (
           <p className="text-sm text-white/90 mt-1">
+            {candidate.seller_online && (
+              <span
+                title={t("presence.online")}
+                className="inline-block w-2 h-2 rounded-full bg-green-400 me-1.5 align-middle"
+              />
+            )}
             {candidate.name} · {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
             {candidate.distance_km != null
               ? ` · ${t("swipe.distanceKm", { distance: candidate.distance_km.toFixed(0) })}`
