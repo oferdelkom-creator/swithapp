@@ -8,6 +8,7 @@ import type { Car } from "@/lib/types";
 import ProfileStats, { type Stats } from "@/app/profile/ProfileStats";
 import InventoryTable from "./InventoryTable";
 import PublicPageLink from "./PublicPageLink";
+import CustomDomainCard from "./CustomDomainCard";
 
 type InventoryCar = Pick<
   Car,
@@ -24,7 +25,9 @@ export default async function BusinessPage() {
 
   const { data: me } = await supabase
     .from("users")
-    .select("role, business_name, billing_plan, subscription_valid_until, dealer_slug")
+    .select(
+      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active"
+    )
     .eq("id", user.id)
     .maybeSingle<{
       role: string;
@@ -32,6 +35,8 @@ export default async function BusinessPage() {
       billing_plan: string | null;
       subscription_valid_until: string | null;
       dealer_slug: string | null;
+      custom_domain: string | null;
+      custom_domain_active: boolean;
     }>();
 
   if (!me || (me.role !== "dealer" && me.role !== "importer")) redirect("/");
@@ -102,6 +107,8 @@ export default async function BusinessPage() {
         businessName={me.business_name}
         siteOrigin={siteOrigin}
       />
+
+      <CustomDomainCard userId={user.id} initialDomain={me.custom_domain} active={me.custom_domain_active} />
 
       <div>
         <div className="flex items-center justify-between mb-4">

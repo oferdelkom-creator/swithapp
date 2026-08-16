@@ -73,6 +73,17 @@ create table public.users (
   -- subscription_valid_until (see ActivateSubscriptionButton in /admin). Also null for
   -- any dealer/importer set up the old way (direct DB update), not through the join flow.
   requested_car_cap integer,
+  -- Added 2026-08-16 (migration add_dealer_custom_domain): lets a dealer point their
+  -- own domain (e.g. www.some-dealership.co.il) at their /d/[slug] page instead of
+  -- switchapp.vercel.app/d/[slug] - see proxy.ts's resolveCustomDomainSlug(), which
+  -- rewrites any request whose Host header matches an active custom_domain. Both
+  -- columns are self-service from /business (CustomDomainCard.tsx) EXCEPT
+  -- custom_domain_active, which is admin-only (protect_privileged_user_columns()) -
+  -- a dealer can save their domain, but nothing actually routes until our team has
+  -- both added the domain to the Vercel project and verified its DNS, then flips this
+  -- from /admin (ActivateCustomDomainButton.tsx).
+  custom_domain text unique,
+  custom_domain_active boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -879,7 +890,8 @@ begin
     if new.is_admin is distinct from old.is_admin
        or new.is_banned is distinct from old.is_banned
        or new.premium_until is distinct from old.premium_until
-       or new.subscription_valid_until is distinct from old.subscription_valid_until then
+       or new.subscription_valid_until is distinct from old.subscription_valid_until
+       or new.custom_domain_active is distinct from old.custom_domain_active then
       raise exception 'Only an admin can change these fields';
     end if;
   end if;

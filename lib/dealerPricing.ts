@@ -19,3 +19,9 @@ export function tierPriceFor(cap: number | null): number | null {
   const tier = DEALER_TIERS.find((t) => t.cap === cap);
   return tier ? tier.priceMonthly : null;
 }
+
+// Flat monthly add-on for pointing a dealer's own domain at their /d/[slug] page
+// instead of switchapp.vercel.app/d/[slug] (on top of whichever tier above they're
+// already on). A recommendation, not a fixed business decision from the dealer side -
+// easy to tune in one place since /business/join's tier cards don't reference this.
+export const CUSTOM_DOMAIN_ADDON_PRICE = 199;

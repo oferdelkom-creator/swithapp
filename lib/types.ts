@@ -42,6 +42,8 @@ export interface AppUser {
   is_seed: boolean;
   last_seen_at: string | null;
   requested_car_cap: number | null;
+  custom_domain: string | null;
+  custom_domain_active: boolean;
   created_at: string;
 }
 

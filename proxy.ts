@@ -5,7 +5,38 @@ import { LOCALE_COOKIE, isLocale, parseAcceptLanguage } from "./lib/i18n/locale"
 
 const PROTECTED_PREFIXES = ["/admin", "/cars", "/swipe", "/matches", "/likes", "/business"];
 
+// Lets a dealer point their own domain at their /d/[slug] page instead of
+// switchapp.vercel.app/d/[slug] (added 2026-08-16 alongside users.custom_domain /
+// custom_domain_active). Our own hosts always short-circuit before the lookup, so this
+// can't add latency to normal traffic; an unmatched host just returns null and
+// ordinary routing continues, which for an unrecognized domain naturally means nothing
+// points at us in the first place.
+const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost"];
+
+async function resolveCustomDomainSlug(host: string): Promise<string | null> {
+  if (FIRST_PARTY_HOST_SUFFIXES.some((suffix) => host.includes(suffix))) return null;
+
+  // A raw REST call instead of the supabase-js client - this is a single anonymous
+  // read (RLS allows "select using (true)" on users), and avoids pulling in a client
+  // built around browser storage APIs that don't exist in the edge runtime.
+  const lookupUrl =
+    `${SUPABASE_URL}/rest/v1/users?select=dealer_slug&custom_domain=eq.${encodeURIComponent(host)}` +
+    `&custom_domain_active=eq.true&limit=1`;
+  try {
+    const res = await fetch(lookupUrl, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as { dealer_slug: string | null }[];
+    return rows[0]?.dealer_slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function proxy(request: NextRequest) {
+  const dealerSlug = await resolveCustomDomainSlug(request.headers.get("host") ?? "");
+
   let response = NextResponse.next({ request });
 
   // English is the default; a returning visitor's browser language (via Accept-Language,
@@ -53,6 +84,14 @@ export async function proxy(request: NextRequest) {
 
   if (!isLocale(existingLocale)) {
     response.cookies.set(LOCALE_COOKIE, resolvedLocale, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  }
+
+  if (dealerSlug) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/d/${dealerSlug}`;
+    const rewritten = NextResponse.rewrite(url, { request });
+    response.cookies.getAll().forEach((cookie) => rewritten.cookies.set(cookie));
+    return rewritten;
   }
 
   return response;

@@ -6,6 +6,7 @@ import type { AppUser, Car, Message } from "@/lib/types";
 import UserBanButton from "./UserBanButton";
 import GrantPremiumButton from "./GrantPremiumButton";
 import ActivateSubscriptionButton from "./ActivateSubscriptionButton";
+import ActivateCustomDomainButton from "./ActivateCustomDomainButton";
 import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
 import RemoveSeedDataButton from "./RemoveSeedDataButton";
@@ -131,6 +132,11 @@ export default async function AdminPage() {
                         {t("businessJoin.tierUpTo", { count: u.requested_car_cap })}
                       </span>
                     )}
+                    {u.custom_domain && (
+                      <span className="block text-xs text-neutral-400">
+                        {u.custom_domain} {u.custom_domain_active ? "✓" : `(${t("admin.customDomainPending")})`}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2 pe-4">
                     {u.premium_until ? formatDate(u.premium_until, locale) : "-"}
@@ -155,6 +161,9 @@ export default async function AdminPage() {
                         {u.role === "private" && <GrantPremiumButton userId={u.id} />}
                         {(u.role === "dealer" || u.role === "importer") && (
                           <ActivateSubscriptionButton userId={u.id} />
+                        )}
+                        {u.custom_domain && !u.custom_domain_active && (
+                          <ActivateCustomDomainButton userId={u.id} />
                         )}
                       </div>
                     )}

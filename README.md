@@ -702,6 +702,41 @@ session, or from `/business/join/finish` (reached via the same `emailRedirectTo`
 elsewhere) if it doesn't - the business name, picked tier, and phone number are
 carried through as query params on that `next` URL rather than needing a temp table.
 
+## Custom domains for dealers (2026-08-16, later)
+
+A dealer who already has their own business domain can point it at their `/d/[slug]`
+page instead of `switchapp.vercel.app/d/[slug]` - a paid add-on (`₪199/mo`, see
+`CUSTOM_DOMAIN_ADDON_PRICE` in `lib/dealerPricing.ts`) on top of whichever tier
+they're on. Two new self-service columns on `users`: `custom_domain` (settable from
+`/business`, `CustomDomainCard.tsx`, same self-service pattern as `dealer_slug`) and
+`custom_domain_active`, which is admin-only
+(added to `protect_privileged_user_columns()`) - saving a domain alone doesn't make
+it live.
+
+The actual multi-tenant routing lives in `proxy.ts` (Next 16 renamed `middleware.ts`
+to this - both files can't coexist, so this logic was merged into the existing proxy
+rather than added as a second file). `resolveCustomDomainSlug()` runs first on every
+request: any host ending in `.vercel.app` or `localhost` short-circuits immediately
+(no DB call on ordinary traffic), anything else does a single anonymous REST lookup
+(`custom_domain = host AND custom_domain_active = true`) and, on a match, rewrites to
+`/d/[slug]` while copying over whatever cookies the existing auth/locale logic already
+set on the response. An unmatched host just falls through to normal routing - safe by
+construction, since a domain nobody's pointed at us wouldn't reach this app at all.
+
+Two things this doesn't automate, both listed as limitations rather than built now:
+1. **Adding the domain to the Vercel project itself.** The DNS side (dealer points a
+   CNAME at `cname.vercel-dns.com`, shown in `CustomDomainCard.tsx`) is self-service,
+   but actually registering the domain on the Vercel project and letting Vercel issue
+   its TLS cert has to happen from the Vercel dashboard - the available Vercel tooling
+   here can register a *new* domain purchase but not attach an *existing* external one
+   to a project. `ActivateCustomDomainButton` in `/admin` only flips the DB flag; doing
+   that without also adding the domain in Vercel leaves it pointing at nothing.
+2. **A branded login page.** An unauthenticated visitor on a dealer's custom domain
+   still gets redirected to the general SwitchApp login screen (own branding, "Join as
+   a partner" link and all) before landing back on the dealer's page - the redirect
+   itself stays on the dealer's domain (a relative `Location` header), but the page
+   content doesn't yet reflect whose domain it's on.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
