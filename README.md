@@ -737,6 +737,30 @@ Two things this doesn't automate, both listed as limitations rather than built n
    itself stays on the dealer's domain (a relative `Location` header), but the page
    content doesn't yet reflect whose domain it's on.
 
+## Dealer branding + a catalog view on `/d/[slug]` (2026-08-16, later)
+
+The concern raised after the domain work: a dealer won't drop their existing business
+site for a page that's obviously just our swipe UI with their name slapped on it. So
+`/d/[slug]` got an actual hero section instead of a bare heading - a cover photo
+banner, a circular logo overlapping it, the business name, a short description, and a
+tel: "Call us" link when a public phone number is set. All four fields
+(`logo_url`, `cover_photo_url`, `dealer_description`, `public_phone`) are self-service
+from `/business` (`DealerBrandingCard.tsx`), with the two images reusing the existing
+`avatars` storage bucket (same per-user-folder RLS as profile photos, just a different
+filename prefix) rather than a new bucket.
+
+`public_phone` is a new, deliberately separate column from `user_contacts.phone` -
+the latter is only ever shown to a matched buyer after mutual consent (see the
+blocking/matches work earlier), while this one is meant to be visible to anyone who
+lands on the page, match or not.
+
+Below the hero, `DealerPageTabs.tsx` adds a second way to browse the same inventory:
+"Swipe" (the existing `DealerDeck.tsx`, unchanged) and a new "Catalog" tab
+(`DealerCatalog.tsx`) - a plain grid of cards linking into `/cars/[id]`, for a visitor
+who wants to scan the whole lot at a glance instead of one card at a time. Both tabs
+call the same `dealer_inventory()` RPC; only the active one is mounted, so switching
+tabs doesn't double the network cost.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

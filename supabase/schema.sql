@@ -84,6 +84,19 @@ create table public.users (
   -- from /admin (ActivateCustomDomainButton.tsx).
   custom_domain text unique,
   custom_domain_active boolean not null default false,
+  -- Added 2026-08-16 (migration add_dealer_branding_fields): lets a dealer's
+  -- /d/[slug] page look like a real branded business site instead of our swipe UI
+  -- with their name on it - logo/cover feed the hero on that page (see
+  -- app/d/[slug]/page.tsx), all self-service from /business
+  -- (DealerBrandingCard.tsx), stored in the existing "avatars" storage bucket
+  -- (same per-user-folder RLS, just a different filename prefix). public_phone is
+  -- deliberately separate from user_contacts.phone - that one is only visible to a
+  -- matched buyer under mutual consent, this one is meant to be shown to anyone
+  -- who lands on the page.
+  logo_url text,
+  cover_photo_url text,
+  dealer_description text,
+  public_phone text,
   created_at timestamptz not null default now()
 );
 

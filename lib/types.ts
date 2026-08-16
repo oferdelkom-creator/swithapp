@@ -44,6 +44,10 @@ export interface AppUser {
   requested_car_cap: number | null;
   custom_domain: string | null;
   custom_domain_active: boolean;
+  logo_url: string | null;
+  cover_photo_url: string | null;
+  dealer_description: string | null;
+  public_phone: string | null;
   created_at: string;
 }
 
