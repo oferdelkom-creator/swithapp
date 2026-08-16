@@ -20,6 +20,7 @@ const en = {
   "nav.admin": "Admin",
   "nav.profile": "Profile",
   "nav.signIn": "Sign In",
+  "nav.signOut": "Sign Out",
 
   "home.tagline": "Swipe right or left to sell, buy, or swap a car with other owners.",
   "home.ctaSwipe": "Go to swipe",
@@ -382,6 +383,7 @@ const he: Record<Key, string> = {
   "nav.admin": "אדמין",
   "nav.profile": "פרופיל",
   "nav.signIn": "התחברות",
+  "nav.signOut": "התנתקות",
 
   "home.tagline":
     "סווייפ ימינה או שמאלה כדי למכור, לקנות או להחליף רכב עם בעלים אחרים.",
@@ -742,6 +744,7 @@ const ru: Record<Key, string> = {
   "nav.admin": "Админ",
   "nav.profile": "Профиль",
   "nav.signIn": "Войти",
+  "nav.signOut": "Выйти",
 
   "home.tagline": "Свайпайте вправо или влево, чтобы продать, купить или обменять автомобиль с другими владельцами.",
   "home.ctaSwipe": "Перейти к свайпу",

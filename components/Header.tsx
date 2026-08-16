@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getT } from "@/lib/i18n/server";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SignOutButton from "./SignOutButton";
 
 export default async function Header({ loggedIn }: { loggedIn: boolean }) {
   const { t } = await getT();
@@ -12,7 +13,9 @@ export default async function Header({ loggedIn }: { loggedIn: boolean }) {
           SwitchApp
         </Link>
         <div className="flex items-center gap-3">
-          {!loggedIn && (
+          {loggedIn ? (
+            <SignOutButton />
+          ) : (
             <Link
               href="/login"
               className="rounded-full bg-brand-blue text-white px-4 py-1.5 text-sm hover:bg-brand-blue-dark transition-colors"
