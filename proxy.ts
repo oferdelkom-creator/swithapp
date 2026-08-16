@@ -11,7 +11,11 @@ const PROTECTED_PREFIXES = ["/admin", "/cars", "/swipe", "/matches", "/likes", "
 // can't add latency to normal traffic; an unmatched host just returns null and
 // ordinary routing continues, which for an unrecognized domain naturally means nothing
 // points at us in the first place.
-const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost"];
+//
+// switchapp.co.il (added 2026-08-16, same day) is our own primary domain, not a
+// dealer's - listed explicitly so it never takes the extra DB round trip on every
+// request once DNS/Vercel are pointed at it.
+const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost", "switchapp.co.il"];
 
 async function resolveCustomDomainSlug(host: string): Promise<string | null> {
   if (FIRST_PARTY_HOST_SUFFIXES.some((suffix) => host.includes(suffix))) return null;
