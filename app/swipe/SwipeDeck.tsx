@@ -12,6 +12,7 @@ import type { CarRegion, SwipeDirection, VehicleType } from "@/lib/types";
 import DraggableCard, { type DraggableCardHandle, type ExitDirection } from "./DraggableCard";
 import QuickSignupModal from "@/components/QuickSignupModal";
 import TradeDetailsModal from "@/components/TradeDetailsModal";
+import VehicleTypeIcon from "@/components/VehicleTypeIcon";
 
 type Mode = "sale" | "swap";
 
@@ -339,11 +340,15 @@ export default function SwipeDeck({
           <button
             key={vt.value}
             onClick={() => setVehicleType(vt.value)}
+            title={t(vt.labelKey)}
+            aria-label={t(vt.labelKey)}
             className={
-              vehicleType === vt.value ? "shrink-0 chip-active px-3 py-1" : "shrink-0 chip-inactive px-3 py-1"
+              vehicleType === vt.value
+                ? "shrink-0 inline-flex items-center justify-center chip-active px-3 py-1.5"
+                : "shrink-0 inline-flex items-center justify-center chip-inactive px-3 py-1.5"
             }
           >
-            {t(vt.labelKey)}
+            <VehicleTypeIcon type={vt.value} />
           </button>
         ))}
       </div>

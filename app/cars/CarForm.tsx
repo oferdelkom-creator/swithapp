@@ -7,6 +7,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel, fuelTypeLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES, OTHER, getMakes, getModels } from "@/lib/vehicleData";
 import { safeExtension } from "@/lib/storage";
+import VehicleTypeIcon from "@/components/VehicleTypeIcon";
 import type { Car, CarRegion, FuelType, VehicleType } from "@/lib/types";
 
 const REGIONS: CarRegion[] = [
@@ -402,9 +403,15 @@ export default function CarForm({ car }: { car?: Car }) {
                 key={vt.value}
                 type="button"
                 onClick={() => handleVehicleTypeChange(vt.value)}
-                className={vehicleType === vt.value ? "chip-active px-4 py-1.5 text-sm" : "chip-inactive px-4 py-1.5 text-sm"}
+                title={t(vt.labelKey)}
+                aria-label={t(vt.labelKey)}
+                className={
+                  vehicleType === vt.value
+                    ? "inline-flex items-center justify-center chip-active px-4 py-2"
+                    : "inline-flex items-center justify-center chip-inactive px-4 py-2"
+                }
               >
-                {t(vt.labelKey)}
+                <VehicleTypeIcon type={vt.value} />
               </button>
             ))}
           </div>

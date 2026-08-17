@@ -946,6 +946,19 @@ component's own `onPointerDown` (drag-start detection) is on the wrapper `div` w
 no target-aware exclusion, so without stopping propagation a tap on the button would
 also register as the start of a drag gesture.
 
+## Icon-only vehicle type chips (2026-08-17, later)
+
+The vehicle-type chip rows (the `/swipe` filter row, and the picker in
+`CarForm.tsx` when creating/editing a listing) showed a plain text label per
+type - swapped for a dedicated icon per `VehicleType`, `components/VehicleTypeIcon.tsx`,
+kept in the same stroke style (`currentColor`, width 2, round caps/joins) as the
+app's other inline icons. Chips are icon-only now with `title`/`aria-label` carrying
+the text for accessibility and hover tooltips, rather than icon+label - matches how
+compact the row already was. Left the small "not a car" badge on deck card photos
+and the `CarDetail.tsx` spec grid as plain text - those are single informational
+labels next to other text, not a multi-way picker, so an icon there doesn't carry
+the same "so I don't have to read 9 words" benefit and would just be decoration.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
