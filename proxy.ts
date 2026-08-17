@@ -3,7 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/config";
 import { LOCALE_COOKIE, isLocale, parseAcceptLanguage } from "./lib/i18n/locale";
 
-const PROTECTED_PREFIXES = ["/admin", "/cars", "/swipe", "/matches", "/likes", "/business"];
+// /swipe is deliberately not here - sale-mode browsing needs no account (mirrors
+// /d/[slug] being open to signed-out visitors), and SwipeDeck.tsx itself gates the
+// swap tab and any real action (Trade/Buy) behind an inline sign-up prompt instead.
+const PROTECTED_PREFIXES = ["/admin", "/cars", "/matches", "/likes", "/business"];
 
 // Lets a dealer point their own domain at their /d/[slug] page instead of
 // switchapp.vercel.app/d/[slug] (added 2026-08-16 alongside users.custom_domain /

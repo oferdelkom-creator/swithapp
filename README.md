@@ -863,6 +863,59 @@ lookalike of our own swipe UI:
   client-side (no new query - the catalog is small enough per dealer that this
   doesn't need to hit the database again).
 
+## Open browsing on /swipe + inline sign-up (2026-08-17)
+
+The main `/swipe` deck used to force a login redirect before showing a single car -
+every other classifieds site (the concrete reference was Yad2) lets you browse first.
+Brought `/swipe` in line with `/d/[slug]`, which was already open to signed-out
+visitors:
+
+- **Sale mode needs no account.** `cars_for_sale()` gained the same
+  `my_id default null` treatment `dealer_inventory()` got earlier (migration
+  `allow_anonymous_cars_for_sale`) - every `my_id`-dependent clause guarded with
+  `my_id is null or ...`, and an anonymous visitor gets the same default visibility
+  (private + dealer listings) a signed-in private user gets, instead of falling
+  through to "dealer sellers only". Removed `/swipe` from `proxy.ts`'s
+  `PROTECTED_PREFIXES` and the page's server-side redirect; `SwipeDeck` now accepts
+  `userId: string | null`. The homepage CTA also points straight at `/swipe` instead
+  of `/login` now, for both signed-in and signed-out visitors.
+- **Swap mode still requires an account** - it needs to know the visitor's own role
+  and location, which a browsing session doesn't have. An anonymous visitor hitting
+  the "For swap" tab gets a sign-in prompt instead of `nearby_swap_cars()`.
+- **Passing is free, acting isn't.** An anonymous "Pass" just advances the local deck
+  index - no swipe row, no account needed to skip a listing you're not interested in.
+  Trade or Buy is where a real account is unavoidable (`swipes` RLS requires
+  `auth.uid()`), so that's the one moment friction is acceptable - the question was
+  how to make *that* moment fast.
+- **`QuickSignupModal.tsx`** (new, shared by `SwipeDeck.tsx` and `DealerDeck.tsx`) is
+  the answer: instead of bouncing to the standalone `/login` page and losing whatever
+  the visitor was about to say, it collects a Trade description first (via the new
+  `TradeDetailsForm.tsx`, extracted out of what used to be `DealerDeck`'s
+  dealer-only `TradeDetailsModal`) and then does phone + OTP inline
+  (`signInWithOtp()`/`verifyOtp()`, the same pair `LoginForm.tsx` uses) - all without
+  leaving the deck. `verifyOtp()`'s response hands back the new session's user id
+  immediately, so the caller runs `performSwipe()` in place and the deck keeps
+  moving, instead of a full redirect round trip through `/login?next=...`.
+- This also fixed a real gap in the original `DealerDeck.tsx`: its `handleExit`
+  checked `if (!userId) router.push(loginHref)` *before* the Trade-direction branch,
+  so an anonymous visitor hitting Trade never actually saw the car-description
+  modal the June commit's message claimed - they were bounced to a bare login page
+  like every other action. `DealerDeck` now shares the same `QuickSignupModal` flow.
+- `TradeDetailsModal.tsx` (signed-in path, immediate submit) and
+  `QuickSignupModal.tsx`'s own first step (signed-out path, then phone/OTP) both
+  wrap the same `TradeDetailsForm.tsx` instead of keeping two copies of the field
+  list that could drift apart. Translation keys moved off the `dealerPage.trade*`
+  prefix to a neutral `tradeModal.*` one now that the form is shared beyond the
+  dealer page (`tradeModal.subtitle` used to say "the dealer" unconditionally, wrong
+  for a private-to-private trade on the main deck).
+- Known gap: an inline sign-up mid-`/swipe`-session doesn't re-fetch the visitor's
+  stored `lat`/`lon` even if they're a *returning* user signing back in - the
+  client-side `lat`/`lon` state was seeded from the server props at the anonymous
+  page load (both null), so a returning user still sees the "share location" prompt
+  once more that session. Not fixed here; would need an extra profile re-fetch after
+  `onAuthenticated` for a fairly rare path (browse anonymously → turn out to already
+  have an account → re-share location).
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

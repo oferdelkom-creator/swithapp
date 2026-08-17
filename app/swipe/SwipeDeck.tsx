@@ -10,6 +10,8 @@ import { regionLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES } from "@/lib/vehicleData";
 import type { CarRegion, SwipeDirection, VehicleType } from "@/lib/types";
 import DraggableCard, { type DraggableCardHandle, type ExitDirection } from "./DraggableCard";
+import QuickSignupModal from "@/components/QuickSignupModal";
+import TradeDetailsModal from "@/components/TradeDetailsModal";
 
 type Mode = "sale" | "swap";
 
@@ -86,7 +88,7 @@ export default function SwipeDeck({
   initialLon,
   isPremium,
 }: {
-  userId: string;
+  userId: string | null;
   initialLat: number | null;
   initialLon: number | null;
   isPremium: boolean;
@@ -107,9 +109,24 @@ export default function SwipeDeck({
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const [includeDealers, setIncludeDealers] = useState(false);
   const [lastAction, setLastAction] = useState<{ candidate: Candidate; direction: SwipeDirection } | null>(null);
+  const [tradeCandidate, setTradeCandidate] = useState<Candidate | null>(null);
+  const [authPrompt, setAuthPrompt] = useState<{ candidate: Candidate; showTradeDetails: boolean } | null>(null);
+  const [swapAuthOpen, setSwapAuthOpen] = useState(false);
+  // Browsing sale-mode cars needs no account (cars_for_sale() takes my_id: null) - a
+  // signed-out visitor only needs to authenticate the moment they act on real intent
+  // (Trade/Buy), via the inline QuickSignupModal below. Starts as the userId prop
+  // (set server-side if already logged in) and gets promoted once that happens.
+  const [effectiveUserId, setEffectiveUserId] = useState(userId);
   const cardRef = useRef<DraggableCardHandle>(null);
 
   async function loadDeck() {
+    if (mode === "swap" && !effectiveUserId) {
+      // Swap mode needs a real account to know the visitor's own role/location -
+      // gated behind the sign-in prompt below rather than nearby_swap_cars() itself.
+      setDeck([]);
+      setLoading(false);
+      return;
+    }
     if (mode === "swap" && (lat === null || lon === null)) {
       setDeck([]);
       setLoading(false);
@@ -121,7 +138,7 @@ export default function SwipeDeck({
 
     if (mode === "sale") {
       const { data, error: rpcError } = await supabase.rpc("cars_for_sale", {
-        my_id: userId,
+        my_id: effectiveUserId,
         p_make: filters.make || null,
         p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
         p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
@@ -136,7 +153,7 @@ export default function SwipeDeck({
       const { data, error: rpcError } = await supabase.rpc("nearby_swap_cars", {
         my_lat: lat,
         my_lon: lon,
-        my_id: userId,
+        my_id: effectiveUserId,
         p_category: vehicleType || null,
         p_make: filters.make || null,
         p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
@@ -162,16 +179,18 @@ export default function SwipeDeck({
   }, [mode, lat, lon, vehicleType]);
 
   function requestLocation() {
+    if (!effectiveUserId) return;
     if (!navigator.geolocation) {
       setError(t("swipe.browserNoLocation"));
       return;
     }
+    const uid = effectiveUserId;
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const supabase = createClient();
         const newLat = pos.coords.latitude;
         const newLon = pos.coords.longitude;
-        await supabase.from("users").update({ lat: newLat, lon: newLon }).eq("id", userId);
+        await supabase.from("users").update({ lat: newLat, lon: newLon }).eq("id", uid);
         setLat(newLat);
         setLon(newLon);
       },
@@ -179,18 +198,16 @@ export default function SwipeDeck({
     );
   }
 
-  async function swipe(direction: SwipeDirection) {
-    const candidate = deck[index];
-    if (!candidate) return;
+  async function swipe(candidate: Candidate, uid: string, direction: SwipeDirection, icebreakerText: string) {
     setError(null);
     const supabase = createClient();
 
     const result = await performSwipe(supabase, {
-      userId,
+      userId: uid,
       toUserId: candidate.user_id,
       carId: candidate.car_id,
       direction,
-      icebreakerText: t("chat.icebreaker"),
+      icebreakerText,
     });
 
     if (result.capReached) {
@@ -220,7 +237,7 @@ export default function SwipeDeck({
   // in the deck instead of just moving the index back, so it's a real undo (a re-load
   // would surface the same candidate again too), not a cosmetic one.
   async function undo() {
-    if (!lastAction) return;
+    if (!lastAction || !effectiveUserId) return;
     if (!isPremium) {
       setError(t("swipe.undoRequiresPremium"));
       return;
@@ -230,7 +247,7 @@ export default function SwipeDeck({
     const { error: deleteError } = await supabase
       .from("swipes")
       .delete()
-      .eq("from_user_id", userId)
+      .eq("from_user_id", effectiveUserId)
       .eq("car_id", lastAction.candidate.car_id)
       .eq("direction", lastAction.direction);
 
@@ -245,7 +262,28 @@ export default function SwipeDeck({
   }
 
   function handleExit(direction: ExitDirection) {
-    swipe(direction === "up" ? "maybe" : direction);
+    const candidate = deck[index];
+    if (!candidate) return;
+    const swipeDirection: SwipeDirection = direction === "up" ? "maybe" : direction;
+
+    if (!effectiveUserId) {
+      if (swipeDirection === "left") {
+        // Passing costs nothing - just move on, no account needed to skip a listing.
+        setIndex((i) => i + 1);
+        setPhotoIndex(0);
+        return;
+      }
+      setAuthPrompt({ candidate, showTradeDetails: swipeDirection === "maybe" });
+      return;
+    }
+
+    if (swipeDirection === "maybe") {
+      // Trade needs a description of the visitor's own car first - handled by the
+      // modal below instead of swiping immediately.
+      setTradeCandidate(candidate);
+      return;
+    }
+    swipe(candidate, effectiveUserId, swipeDirection, t("chat.icebreaker"));
   }
 
   // Tap-zone routing for the photo gallery on the active card: left 40% = previous
@@ -391,7 +429,14 @@ export default function SwipeDeck({
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
-      {mode === "swap" && (lat === null || lon === null) ? (
+      {mode === "swap" && !effectiveUserId ? (
+        <div className="card p-6 text-center">
+          <p className="text-sm text-neutral-600 mb-4">{t("swipe.swapSignInPrompt")}</p>
+          <button onClick={() => setSwapAuthOpen(true)} className="btn-primary">
+            {t("swipe.swapSignInCta")}
+          </button>
+        </div>
+      ) : mode === "swap" && (lat === null || lon === null) ? (
         <div className="card p-6 text-center">
           <p className="text-sm text-neutral-600 mb-4">{t("swipe.shareLocationPrompt")}</p>
           <button onClick={requestLocation} className="btn-primary">
@@ -459,6 +504,56 @@ export default function SwipeDeck({
         </>
       ) : (
         <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+      )}
+
+      {tradeCandidate && (
+        <TradeDetailsModal
+          candidateMake={tradeCandidate.make}
+          candidateModel={tradeCandidate.model}
+          onCancel={() => {
+            setTradeCandidate(null);
+            setIndex((i) => i + 1);
+            setPhotoIndex(0);
+          }}
+          onSubmit={(details) => {
+            const candidate = tradeCandidate;
+            setTradeCandidate(null);
+            swipe(candidate, effectiveUserId as string, "maybe", details);
+          }}
+        />
+      )}
+
+      {authPrompt && (
+        <QuickSignupModal
+          candidateMake={authPrompt.candidate.make}
+          candidateModel={authPrompt.candidate.model}
+          showTradeDetails={authPrompt.showTradeDetails}
+          onCancel={() => {
+            setAuthPrompt(null);
+            setIndex((i) => i + 1);
+            setPhotoIndex(0);
+          }}
+          onAuthenticated={(newUserId, icebreakerText) => {
+            const candidate = authPrompt.candidate;
+            const direction: SwipeDirection = authPrompt.showTradeDetails ? "maybe" : "right";
+            setEffectiveUserId(newUserId);
+            setAuthPrompt(null);
+            swipe(candidate, newUserId, direction, icebreakerText);
+          }}
+        />
+      )}
+
+      {swapAuthOpen && (
+        <QuickSignupModal
+          candidateMake=""
+          candidateModel=""
+          showTradeDetails={false}
+          onCancel={() => setSwapAuthOpen(false)}
+          onAuthenticated={(newUserId) => {
+            setEffectiveUserId(newUserId);
+            setSwapAuthOpen(false);
+          }}
+        />
       )}
 
       {matchModal && (

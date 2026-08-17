@@ -94,7 +94,7 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
           )}
         </div>
 
-        <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} slug={slug} />
+        <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} />
       </div>
 
       {dealer.public_phone && (

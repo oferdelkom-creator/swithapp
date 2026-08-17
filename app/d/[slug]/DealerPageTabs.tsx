@@ -7,15 +7,7 @@ import DealerCatalog from "./DealerCatalog";
 
 type Tab = "swipe" | "catalog";
 
-export default function DealerPageTabs({
-  userId,
-  dealerId,
-  slug,
-}: {
-  userId: string | null;
-  dealerId: string;
-  slug: string;
-}) {
+export default function DealerPageTabs({ userId, dealerId }: { userId: string | null; dealerId: string }) {
   const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("swipe");
 
@@ -37,7 +29,7 @@ export default function DealerPageTabs({
       </div>
 
       {tab === "swipe" ? (
-        <DealerDeck userId={userId} dealerId={dealerId} slug={slug} />
+        <DealerDeck userId={userId} dealerId={dealerId} />
       ) : (
         <DealerCatalog userId={userId} dealerId={dealerId} />
       )}

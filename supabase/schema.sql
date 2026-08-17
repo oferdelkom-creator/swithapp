@@ -403,8 +403,19 @@ $$;
 -- same day (migration add_maybe_swipe_direction) - same 'maybe' exclusion change and
 -- liked-make preference boost as nearby_swap_cars above. seller_online added
 -- 2026-08-16 (migration add_seller_online_to_cars_for_sale).
+--
+-- my_id defaults to null (migration allow_anonymous_cars_for_sale, later the same
+-- day) so /swipe's sale mode can be browsed signed-out, same pattern as
+-- dealer_inventory's allow_anonymous_dealer_inventory migration. The swipe/block
+-- exclusion subqueries already work correctly against a null my_id (vacuously true -
+-- nothing to exclude by for a visitor with no account). Two clauses needed an
+-- explicit "my_id is null or ..." guard: the ownership check (`<> my_id` evaluates to
+-- null, not true, when my_id is null - excluding every row instead of none), and the
+-- private/dealer visibility rule, which now gives an anonymous visitor the same
+-- default view as a signed-in private user (both private and dealer listings)
+-- instead of falling through to "dealer/importer sellers only".
 create or replace function public.cars_for_sale(
-  my_id uuid,
+  my_id uuid default null,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
   p_min_year integer default null, p_max_year integer default null, p_max_mileage integer default null,
   p_transmission text default null, p_category vehicle_type default null, p_color text default null,
@@ -426,7 +437,7 @@ as $$
   from public.cars c
   join public.users u on u.id = c.user_id
   where c.for_sale = true
-    and c.user_id <> my_id
+    and (my_id is null or c.user_id <> my_id)
     and not exists (
       select 1 from public.swipes s
       where s.from_user_id = my_id and s.car_id = c.id and s.direction in ('left', 'right')
@@ -438,7 +449,8 @@ as $$
          or (b.blocker_id = c.user_id and b.blocked_id = my_id)
     )
     and (
-      (select role from public.users where id = my_id) = 'private'
+      my_id is null
+      or (select role from public.users where id = my_id) = 'private'
       or u.role in ('dealer', 'importer')
     )
     and (p_make is null or c.make = p_make)
