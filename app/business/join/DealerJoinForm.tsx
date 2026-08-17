@@ -181,7 +181,20 @@ export default function DealerJoinForm() {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("businessJoin.phone")}</label>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="field" />
+          <div className="flex" dir="ltr">
+            <span className="inline-flex items-center rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm font-medium text-neutral-600">
+              +972
+            </span>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="50-1234567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="field w-full rounded-l-none"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("businessJoin.password")}</label>

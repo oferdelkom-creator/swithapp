@@ -91,14 +91,21 @@ export default function QuickSignupModal({
           <form onSubmit={handleSendCode} className="space-y-3">
             <p className="font-semibold">{t("quickAuth.title")}</p>
             <p className="text-neutral-500 text-xs">{t("quickAuth.subtitle")}</p>
-            <input
-              required
-              type="tel"
-              placeholder={t("login.phoneNumberPlaceholder")}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="field w-full"
-            />
+            <div className="flex" dir="ltr">
+              <span className="inline-flex items-center rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm font-medium text-neutral-600">
+                +972
+              </span>
+              <input
+                required
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder={t("login.phoneNumberPlaceholder")}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="field w-full rounded-l-none"
+              />
+            </div>
             {error && <p className="text-red-600 text-xs">{error}</p>}
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={loading} className="btn-primary flex-1">
