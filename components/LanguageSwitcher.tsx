@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/i18n/translations";
 
 const OPTIONS: { value: Locale; label: string }[] = [
   { value: "en", label: "EN" },
-  { value: "he", label: "עב" },
+  { value: "he", label: "עברית" },
   { value: "ru", label: "RU" },
 ];
 
