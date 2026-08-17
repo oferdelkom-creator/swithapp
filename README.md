@@ -1032,6 +1032,21 @@ Reference was mobile.de's filter panel. Two of its three ideas ported over:
   user rather than silently building a fake keyword-matching stand-in and calling it
   "AI search."
 
+## Swipe/list toggle on mobile (2026-08-17, later)
+
+The desktop grid added earlier was `hidden` below `md:` on purpose - swiping is a
+mobile gesture pattern with no desktop equivalent. But the reverse isn't true: a
+mobile visitor who wants to scan for something specific shouldn't be *forced*
+through the deck one card at a time just because they're on a phone. Added a small
+two-icon toggle (stacked-cards / 2x2 grid) next to the Filters button, mobile-only
+(`md:hidden` - desktop already always shows the grid, no toggle needed there).
+`mobileView` state controls which of the two blocks renders below `md:`; past that
+breakpoint neither the toggle nor `mobileView` matters, the grid always shows via
+the same `md:grid` override used before. The grid itself now scales
+`grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5` instead of jumping
+straight to 3 columns, so the mobile list view isn't cramped. Same `deck` array,
+same `GridCard`, no separate list-mode fetch or state to keep in sync.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
