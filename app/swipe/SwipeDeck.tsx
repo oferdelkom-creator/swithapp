@@ -35,6 +35,8 @@ interface Filters {
   maxYear: string;
   region: string;
   radiusKm: string;
+  maxMileage: string;
+  electricOnly: boolean;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -45,6 +47,8 @@ const EMPTY_FILTERS: Filters = {
   maxYear: "",
   region: "",
   radiusKm: "",
+  maxMileage: "",
+  electricOnly: false,
 };
 
 interface SaleCandidate {
@@ -120,6 +124,46 @@ export default function SwipeDeck({
   const [effectiveUserId, setEffectiveUserId] = useState(userId);
   const cardRef = useRef<DraggableCardHandle>(null);
 
+  // Shared by loadDeck() (fetches rows) and the live filter-count preview below
+  // (fetches only a count) - one place building the RPC name/args pair so the two
+  // can't drift apart on what a filter change actually queries.
+  function currentRpc(): { name: "cars_for_sale" | "nearby_swap_cars"; args: Record<string, unknown> } {
+    if (mode === "sale") {
+      return {
+        name: "cars_for_sale",
+        args: {
+          my_id: effectiveUserId,
+          p_make: filters.make || null,
+          p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
+          p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
+          p_min_year: filters.minYear ? Number(filters.minYear) : null,
+          p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
+          p_region: filters.region || null,
+          p_category: vehicleType || null,
+          p_max_mileage: filters.maxMileage ? Number(filters.maxMileage) : null,
+          p_fuel_type: filters.electricOnly ? "Electric" : null,
+        },
+      };
+    }
+    return {
+      name: "nearby_swap_cars",
+      args: {
+        my_lat: lat,
+        my_lon: lon,
+        my_id: effectiveUserId,
+        p_category: vehicleType || null,
+        p_make: filters.make || null,
+        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
+        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
+        p_min_year: filters.minYear ? Number(filters.minYear) : null,
+        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
+        p_max_distance_km: filters.radiusKm ? Number(filters.radiusKm) : null,
+        p_include_dealers: includeDealers,
+        p_max_mileage: filters.maxMileage ? Number(filters.maxMileage) : null,
+      },
+    };
+  }
+
   async function loadDeck() {
     if (mode === "swap" && !effectiveUserId) {
       // Swap mode needs a real account to know the visitor's own role/location -
@@ -136,37 +180,10 @@ export default function SwipeDeck({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-
-    if (mode === "sale") {
-      const { data, error: rpcError } = await supabase.rpc("cars_for_sale", {
-        my_id: effectiveUserId,
-        p_make: filters.make || null,
-        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
-        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
-        p_min_year: filters.minYear ? Number(filters.minYear) : null,
-        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
-        p_region: filters.region || null,
-        p_category: vehicleType || null,
-      });
-      if (rpcError) setError(rpcError.message);
-      setDeck((data as SaleCandidate[]) ?? []);
-    } else {
-      const { data, error: rpcError } = await supabase.rpc("nearby_swap_cars", {
-        my_lat: lat,
-        my_lon: lon,
-        my_id: effectiveUserId,
-        p_category: vehicleType || null,
-        p_make: filters.make || null,
-        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
-        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
-        p_min_year: filters.minYear ? Number(filters.minYear) : null,
-        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
-        p_max_distance_km: filters.radiusKm ? Number(filters.radiusKm) : null,
-        p_include_dealers: includeDealers,
-      });
-      if (rpcError) setError(rpcError.message);
-      setDeck((data as SwapCandidate[]) ?? []);
-    }
+    const { name, args } = currentRpc();
+    const { data, error: rpcError } = await supabase.rpc(name, args);
+    if (rpcError) setError(rpcError.message);
+    setDeck((data as Candidate[]) ?? []);
     setIndex(0);
     setPhotoIndex(0);
     setLastAction(null);
@@ -178,6 +195,28 @@ export default function SwipeDeck({
     loadDeck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, lat, lon, vehicleType]);
+
+  // Live "N cars" count on the Apply button while the filter panel is open, so
+  // adjusting a field shows its effect before committing to it (mobile.de-style) -
+  // a debounced count-only request (head: true, no rows transferred) against the
+  // same RPC loadDeck() would call, not a second endpoint to keep in sync.
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!showFilters) return;
+    if (mode === "swap" && (!effectiveUserId || lat === null || lon === null)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing a stale count when the panel can't query is intentional
+      setPreviewCount(null);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      const supabase = createClient();
+      const { name, args } = currentRpc();
+      const { count } = await supabase.rpc(name, args, { count: "exact", head: true });
+      setPreviewCount(count ?? null);
+    }, 400);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFilters, filters, vehicleType, mode, effectiveUserId, lat, lon, includeDealers]);
 
   function requestLocation() {
     if (!effectiveUserId) return;
@@ -411,6 +450,21 @@ export default function SwipeDeck({
             onChange={(e) => setFilters((f) => ({ ...f, maxYear: e.target.value }))}
             className="field"
           />
+          <input
+            type="number"
+            placeholder={t("swipe.maxMileage")}
+            value={filters.maxMileage}
+            onChange={(e) => setFilters((f) => ({ ...f, maxMileage: e.target.value }))}
+            className="field"
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={filters.electricOnly}
+              onChange={(e) => setFilters((f) => ({ ...f, electricOnly: e.target.checked }))}
+            />
+            {t("swipe.electricOnly")}
+          </label>
           {mode === "swap" && (
             <label className="col-span-2 flex items-center gap-2 text-sm">
               <input
@@ -423,7 +477,7 @@ export default function SwipeDeck({
           )}
           <div className="col-span-2 flex gap-2">
             <button onClick={loadDeck} className="btn-primary flex-1">
-              {t("swipe.applyFilters")}
+              {previewCount !== null ? t("swipe.applyFiltersCount", { count: previewCount }) : t("swipe.applyFilters")}
             </button>
             <button onClick={() => setFilters(EMPTY_FILTERS)} className="btn-secondary">
               {t("swipe.reset")}

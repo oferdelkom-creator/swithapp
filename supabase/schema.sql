@@ -335,13 +335,17 @@ create trigger on_swipe_created
 -- where a stray duplicate overload (left behind when p_include_dealers was added via
 -- CREATE OR REPLACE with a different parameter count, which creates a new overload
 -- instead of replacing in place) got cleaned up; there should only ever be one.
+-- p_max_mileage added 2026-08-17 (migration add_max_mileage_to_nearby_swap_cars) -
+-- matches cars_for_sale()'s p_max_mileage below; mileage was already selected/
+-- returned here, just never filterable.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
   p_category vehicle_type default null,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
   p_min_year integer default null, p_max_year integer default null,
   p_max_distance_km double precision default null,
-  p_include_dealers boolean default false
+  p_include_dealers boolean default false,
+  p_max_mileage integer default null
 )
 returns table (
   user_id uuid, name text, seller_online boolean, lat double precision, lon double precision,
@@ -383,6 +387,7 @@ as $$
     and (p_max_price is null or c.price <= p_max_price)
     and (p_min_year is null or c.year >= p_min_year)
     and (p_max_year is null or c.year <= p_max_year)
+    and (p_max_mileage is null or c.mileage <= p_max_mileage)
     and (
       p_max_distance_km is null
       or public.haversine_km(my_lat, my_lon, u.lat, u.lon) <= p_max_distance_km

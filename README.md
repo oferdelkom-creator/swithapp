@@ -1000,6 +1000,38 @@ website with no companion app, so this isn't a nice-to-have.
   `__agentproxy/status`), so the RPC response was mocked via Playwright's
   `page.route()` for the grid screenshot specifically, real data everywhere else.
 
+## Mileage/electric filters + a live "N cars" count (2026-08-17, later)
+
+Reference was mobile.de's filter panel. Two of its three ideas ported over:
+
+- **Mileage + electric-only filters** on `/swipe`'s filter panel. `cars_for_sale()`
+  already accepted `p_max_mileage`/`p_fuel_type` - just never wired up client-side.
+  `nearby_swap_cars()` only had the former column selected, not filterable; added
+  `p_max_mileage` there too (migration `add_max_mileage_to_nearby_swap_cars`) for
+  parity between sale and swap mode. Skipped "payment type" (no leasing in this
+  product) and "city/postcode" (no free-text location search - `region` is already
+  the closest equivalent and was already there).
+- **Live result count on the Apply button** (mobile.de shows "275 Offers" live as
+  filters change, before you commit to them). `SwipeDeck.tsx` now has a debounced
+  (400ms) effect while the filter panel is open that fires the *same* RPC
+  `loadDeck()` would call, but with `{count: 'exact', head: true}` - a real HTTP
+  `HEAD` request whose `Content-Range` response header carries the total instead of
+  transferring any rows, so adjusting a filter is cheap to preview. `currentRpc()`
+  builds the name/args pair once, shared by both the real fetch and the count
+  preview, so they can't drift onto different filter logic. Couldn't get a real
+  screenshot of the populated count in this sandbox - Playwright's mocked `HEAD`
+  responses don't carry custom headers through to the page's `fetch()` (confirmed
+  directly: a bare mocked `HEAD` response arrived with zero headers on the page
+  side, a Playwright/Chromium mocking quirk, not a fetch-spec or app issue) - the
+  request itself was verified going out correctly (method `HEAD`, `Prefer:
+  count=exact`), and `Content-Range` parsing is standard, widely-used
+  `postgrest-js` behavior against a real server.
+- **Not built**: the third piece, an AI natural-language search box ("Station wagon
+  with panoramic roof") - needs a real LLM call, and this project has no
+  Anthropic/OpenAI/Vercel-AI-Gateway credentials configured anywhere. Flagged to the
+  user rather than silently building a fake keyword-matching stand-in and calling it
+  "AI search."
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
