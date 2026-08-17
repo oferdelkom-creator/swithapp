@@ -6,7 +6,17 @@ import { LOCALE_COOKIE, isLocale, parseAcceptLanguage } from "./lib/i18n/locale"
 // /swipe is deliberately not here - sale-mode browsing needs no account (mirrors
 // /d/[slug] being open to signed-out visitors), and SwipeDeck.tsx itself gates the
 // swap tab and any real action (Trade/Buy) behind an inline sign-up prompt instead.
-const PROTECTED_PREFIXES = ["/admin", "/cars", "/matches", "/likes", "/business"];
+const PROTECTED_PREFIXES = ["/admin", "/matches", "/likes", "/business"];
+
+// /cars needs finer-grained handling than a flat prefix: "/cars" itself (manage your
+// own listings) and "/cars/[id]/edit" stay behind login, but "/cars/[id]" (the read-only
+// detail view, reachable from the deck's info button) is open to signed-out visitors,
+// same as /swipe and /d/[slug] - the whole point of that button is letting a visitor
+// read everything about a car before deciding whether to sign up and act on it.
+function isCarsRouteProtected(pathname: string): boolean {
+  if (pathname === "/cars") return true;
+  return /^\/cars\/[^/]+\/edit(\/|$)/.test(pathname);
+}
 
 // Lets a dealer point their own domain at their /d/[slug] page instead of
 // switchapp.vercel.app/d/[slug] (added 2026-08-16 alongside users.custom_domain /
@@ -76,7 +86,9 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtected = PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p));
+  const isProtected =
+    PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p)) ||
+    isCarsRouteProtected(request.nextUrl.pathname);
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();

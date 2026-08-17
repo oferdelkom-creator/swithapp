@@ -1,15 +1,19 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Car } from "@/lib/types";
 import CarDetail from "./CarDetail";
 
+// Open to signed-out visitors (2026-08-17) - the deck's new info button exists
+// precisely so a visitor can read everything about a car before deciding whether to
+// sign up and act on it, same reasoning as /swipe and /d/[slug]. cars/users SELECT
+// RLS already allows anonymous reads; only the viewer-specific bits below (own-like,
+// existing match) need a real user id, guarded accordingly.
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/cars/${id}`);
 
   const { data: car } = await supabase.from("cars").select("*").eq("id", id).maybeSingle<Car>();
   if (!car) notFound();
@@ -24,11 +28,11 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
   twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
   const sellerOnline = !!seller?.last_seen_at && new Date(seller.last_seen_at) > twoMinutesAgo;
 
-  const isOwner = car.user_id === user.id;
+  const isOwner = user ? car.user_id === user.id : false;
   let alreadyLiked = false;
   let existingMatchId: string | null = null;
 
-  if (!isOwner) {
+  if (user && !isOwner) {
     const [{ data: swipeRow }, { data: matchRow }] = await Promise.all([
       supabase
         .from("swipes")
@@ -55,7 +59,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
       sellerName={seller?.name ?? ""}
       sellerMemberSinceYear={seller?.created_at ? new Date(seller.created_at).getFullYear() : null}
       sellerOnline={sellerOnline}
-      userId={user.id}
+      userId={user?.id ?? null}
       isOwner={isOwner}
       initiallyLiked={alreadyLiked}
       existingMatchId={existingMatchId}

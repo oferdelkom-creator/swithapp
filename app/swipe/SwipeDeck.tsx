@@ -608,6 +608,18 @@ function CardVisual({ candidate, photoIndex }: { candidate: Candidate; photoInde
           {t(VEHICLE_TYPES.find((vt) => vt.value === candidate.category)?.labelKey ?? "vehicleType.car")}
         </span>
       )}
+      {/* Explicit, discoverable "see everything about this car" action, separate
+          from the center tap-zone below - the whole point is letting someone who
+          wants the full picture find it before they commit to Pass/Trade/Buy. */}
+      <Link
+        href={`/cars/${candidate.car_id}`}
+        aria-label={t("swipe.viewDetails")}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-4 end-4 z-10 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center backdrop-blur"
+      >
+        <InfoIcon />
+      </Link>
       <div className="absolute bottom-0 inset-x-0 p-5 text-white">
         <p className="font-bold text-2xl drop-shadow">
           {candidate.make} {candidate.model} {candidate.year ?? ""}
@@ -647,6 +659,16 @@ function TradeIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 7h11l-3-3" />
       <path d="M17 17H6l3 3" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5" />
+      <circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none" />
     </svg>
   );
 }

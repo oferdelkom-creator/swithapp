@@ -916,6 +916,36 @@ visitors:
   `onAuthenticated` for a fairly rare path (browse anonymously → turn out to already
   have an account → re-share location).
 
+## Info button on the deck card + open /cars/[id] (2026-08-17, later)
+
+Both decks got an explicit ⓘ button on the card photo (top end corner, opposite the
+vehicle-type badge) linking to the full `/cars/[id]` details page - the ask was
+letting someone see everything about a car before committing to Trade. Two real
+gaps this closed:
+
+- `DealerDeck.tsx` had no path to the details page at all before this - only the
+  main `SwipeDeck.tsx` had a hidden center-tap-zone shortcut to it. Both decks now
+  have the same explicit, discoverable button (the old center-tap zone in
+  `SwipeDeck.tsx` still works too, it's just no longer the only way in).
+- `/cars/[id]` itself still forced a login redirect, which would have made the new
+  button pointless for exactly the visitors it's aimed at - the whole point is
+  reading details *before* deciding whether to sign up. Opened it to signed-out
+  visitors the same way `/swipe` and `/d/[slug]` already are: `proxy.ts`'s blanket
+  `/cars` prefix protection was replaced with `isCarsRouteProtected()`, which still
+  protects `/cars` itself (manage your own listings) and `/cars/[id]/edit`, but not
+  the read-only `/cars/[id]` view. `CarDetail.tsx`'s Pass/Trade/Buy footer and Save
+  button now go through the same `effectiveUserId`/`QuickSignupModal` pattern as the
+  decks - Pass costs nothing for an anonymous visitor, Trade/Buy trigger the inline
+  sign-up flow. Also added the Trade-details step here for a *signed-in* visitor too
+  (it didn't have one before, unlike the decks) for consistency across all three
+  entry points.
+
+The button uses a plain Next.js `Link` with `onPointerDown`/`onClick` calling
+`stopPropagation()` - it sits inside `DraggableCard`'s children, and that
+component's own `onPointerDown` (drag-start detection) is on the wrapper `div` with
+no target-aware exclusion, so without stopping propagation a tap on the button would
+also register as the start of a drag gesture.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

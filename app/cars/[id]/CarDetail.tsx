@@ -9,6 +9,8 @@ import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel, fuelTypeLabel } from "@/lib/i18n/enumLabels";
 import { VEHICLE_TYPES } from "@/lib/vehicleData";
 import type { Car, SwipeDirection } from "@/lib/types";
+import QuickSignupModal from "@/components/QuickSignupModal";
+import TradeDetailsModal from "@/components/TradeDetailsModal";
 
 export default function CarDetail({
   car,
@@ -24,7 +26,7 @@ export default function CarDetail({
   sellerName: string;
   sellerMemberSinceYear: number | null;
   sellerOnline: boolean;
-  userId: string;
+  userId: string | null;
   isOwner: boolean;
   initiallyLiked: boolean;
   existingMatchId: string | null;
@@ -36,6 +38,9 @@ export default function CarDetail({
   const [liked, setLiked] = useState(initiallyLiked);
   const [swiping, setSwiping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tradeDetailsOpen, setTradeDetailsOpen] = useState(false);
+  const [authPrompt, setAuthPrompt] = useState<{ showTradeDetails: boolean } | null>(null);
+  const [effectiveUserId, setEffectiveUserId] = useState(userId);
   const photos = car.photo_urls ?? [];
 
   function handleGalleryScroll() {
@@ -46,20 +51,24 @@ export default function CarDetail({
 
   async function handleLike() {
     if (liked || swiping) return;
+    if (!effectiveUserId) {
+      setAuthPrompt({ showTradeDetails: false });
+      return;
+    }
     setLiked(true);
-    await runSwipe("right");
+    await runSwipe(effectiveUserId, "right", t("chat.icebreaker"));
   }
 
-  async function runSwipe(direction: SwipeDirection) {
+  async function runSwipe(uid: string, direction: SwipeDirection, icebreakerText: string) {
     setSwiping(true);
     setError(null);
     const supabase = createClient();
     const result = await performSwipe(supabase, {
-      userId,
+      userId: uid,
       toUserId: car.user_id,
       carId: car.id,
       direction,
-      icebreakerText: t("chat.icebreaker"),
+      icebreakerText,
     });
     setSwiping(false);
 
@@ -72,6 +81,31 @@ export default function CarDetail({
       return;
     }
     router.back();
+  }
+
+  function handlePass() {
+    if (!effectiveUserId) {
+      // Passing costs nothing - just leave, no account needed to skip a listing.
+      router.back();
+      return;
+    }
+    runSwipe(effectiveUserId, "left", t("chat.icebreaker"));
+  }
+
+  function handleTrade() {
+    if (!effectiveUserId) {
+      setAuthPrompt({ showTradeDetails: true });
+      return;
+    }
+    setTradeDetailsOpen(true);
+  }
+
+  function handleBuy() {
+    if (!effectiveUserId) {
+      setAuthPrompt({ showTradeDetails: false });
+      return;
+    }
+    runSwipe(effectiveUserId, "right", t("chat.icebreaker"));
   }
 
   return (
@@ -226,7 +260,7 @@ export default function CarDetail({
         <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-neutral-200 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-2xl mx-auto flex justify-center items-center gap-6 py-3">
             <button
-              onClick={() => runSwipe("left")}
+              onClick={handlePass}
               disabled={swiping}
               aria-label={t("swipe.skip")}
               className="w-[52px] h-[52px] rounded-full bg-gray-400 shadow-lg text-white text-lg flex items-center justify-center disabled:opacity-50"
@@ -234,7 +268,7 @@ export default function CarDetail({
               ✕
             </button>
             <button
-              onClick={() => runSwipe("maybe")}
+              onClick={handleTrade}
               disabled={swiping}
               aria-label={t("swipe.maybe")}
               className="w-[52px] h-[52px] rounded-full bg-amber-500 shadow-lg text-white flex items-center justify-center disabled:opacity-50"
@@ -242,7 +276,7 @@ export default function CarDetail({
               <TradeIcon />
             </button>
             <button
-              onClick={() => runSwipe("right")}
+              onClick={handleBuy}
               disabled={swiping}
               aria-label={t("swipe.interested")}
               className="w-[52px] h-[52px] rounded-full bg-green-500 shadow-lg text-white text-lg flex items-center justify-center disabled:opacity-50"
@@ -251,6 +285,33 @@ export default function CarDetail({
             </button>
           </div>
         </div>
+      )}
+
+      {tradeDetailsOpen && (
+        <TradeDetailsModal
+          candidateMake={car.make}
+          candidateModel={car.model}
+          onCancel={() => setTradeDetailsOpen(false)}
+          onSubmit={(details) => {
+            setTradeDetailsOpen(false);
+            if (effectiveUserId) runSwipe(effectiveUserId, "maybe", details);
+          }}
+        />
+      )}
+
+      {authPrompt && (
+        <QuickSignupModal
+          candidateMake={car.make}
+          candidateModel={car.model}
+          showTradeDetails={authPrompt.showTradeDetails}
+          onCancel={() => setAuthPrompt(null)}
+          onAuthenticated={(newUserId, icebreakerText) => {
+            const direction: SwipeDirection = authPrompt.showTradeDetails ? "maybe" : "right";
+            setEffectiveUserId(newUserId);
+            setAuthPrompt(null);
+            runSwipe(newUserId, direction, icebreakerText);
+          }}
+        />
       )}
     </div>
   );
