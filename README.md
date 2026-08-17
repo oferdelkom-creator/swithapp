@@ -816,6 +816,53 @@ Five small `/business` changes:
   rare case something actually fails - the same last-resort pattern already used in
   `LoginForm.tsx` elsewhere in the app, not a new gap introduced here.
 
+## Undo on the main swipe deck (2026-08-16, later)
+
+A small circular rewind button now sits before the Pass/Trade/Buy row on `/swipe`
+(Tinder-inspired). Deliberately gated as a **premium feature with zero DB changes** -
+`swipes` already has a `"Premium users can delete their own swipes"` RLS policy (from
+an earlier session), so undo just deletes the swipe row a non-premium `undo()` call
+would already be blocked from deleting; the button shows an upsell message instead of
+attempting it. Only offered for the immediately-preceding swipe, and only if it didn't
+just create a match - `lastAction` is cleared instead of set whenever `performSwipe()`
+returns a match, so an undo can never silently delete a real conversation. Deleting
+the actual row (not just moving `index` back) matters: a plain rewind would still
+exclude that car from a fresh `loadDeck()` call since the cap/filter RPCs check the
+`swipes` table, so it has to actually be gone to reappear.
+
+Scoped to the main `SwipeDeck.tsx` only, not `DealerDeck.tsx` - could be extended
+there too if wanted.
+
+## Dealer page: trust bar, WhatsApp, address, budget filter (2026-08-16, later)
+
+A round of `/d/[slug]` changes inspired by looking at a real Israeli dealer site
+(Trade Mobile) for what makes a page feel like a legitimate business rather than a
+lookalike of our own swipe UI:
+
+- **Trust bar** - two real numbers under the header (active listings, completed
+  deals), from a new `get_dealer_public_stats()` RPC. Deliberately only shows
+  numbers we can actually back with data - skipped things like "customer
+  satisfaction %" that Trade Mobile's own site shows but we have no honest source
+  for. `SECURITY DEFINER` is required here specifically (unlike the other stats
+  RPCs in this file, which all rely on the caller's own RLS to do the real
+  filtering) since an anonymous visitor is asking about a *different* user, the
+  dealer - without it the underlying RLS on `cars`/`matches` would just return
+  zero for everyone but the dealer themselves.
+- **WhatsApp**, alongside the existing phone `tel:` link - `toWhatsAppLink()`
+  (`lib/phone.ts`, extracted from `LoginForm.tsx`'s existing `toE164Israel()`
+  rather than duplicated) builds a `wa.me` link from the same `public_phone` field.
+- **Address** - new `users.dealer_address` column, self-service from
+  `DealerBrandingCard.tsx`, shown with a pin icon under the description.
+- **Sticky bottom Call/WhatsApp bar** - persistent regardless of scroll position or
+  which tab (Swipe/Catalog) is active, only rendered when a phone number is set.
+  Sits at `bottom-16` instead of `bottom-0` for a logged-in visitor, so it stacks
+  above the app's own `BottomNav` instead of covering it - anonymous visitors have
+  no `BottomNav` at all, so it sits flush at `bottom-0` for them.
+- **Budget quick-filter** on the Catalog tab (`DealerCatalog.tsx`) - "All / up to
+  ₪50,000 / ₪100,000 / ₪200,000" chips, filtering the already-loaded list
+  client-side (no new query - the catalog is small enough per dealer that this
+  doesn't need to hit the database again).
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

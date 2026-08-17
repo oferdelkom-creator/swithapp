@@ -97,6 +97,9 @@ create table public.users (
   cover_photo_url text,
   dealer_description text,
   public_phone text,
+  -- Added 2026-08-16 (migration add_dealer_address), same day, same self-service
+  -- pattern - shown with a pin icon on /d/[slug].
+  dealer_address text,
   created_at timestamptz not null default now()
 );
 
@@ -714,6 +717,29 @@ as $$
     group by 1
   ) x on x.day = gs.d::date
   order by gs.d;
+$$;
+
+-- RPC: the small public "trust bar" on /d/[slug] (active listing count, completed
+-- deals) - added 2026-08-16, migration add_dealer_public_stats_rpc. SECURITY DEFINER
+-- is required here, unlike the other stats RPCs above: those are always called with
+-- the caller's own id, so the underlying RLS (which only lets a user see their own
+-- swipes/matches) does the real filtering and the function body is just a convenience
+-- wrapper. This one is called by an anonymous or unrelated visitor about a *different*
+-- user (the dealer), so without SECURITY DEFINER the same RLS would silently return
+-- zero for everything. Safe to expose broadly since it only returns two aggregate
+-- counts, never row-level data.
+create function public.get_dealer_public_stats(p_dealer_id uuid)
+returns table (active_listings integer, completed_matches integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    (select count(*)::int from public.cars c
+       where c.user_id = p_dealer_id and c.sold_at is null and (c.for_sale or c.for_swap)),
+    (select count(*)::int from public.matches m
+       where m.user_a_id = p_dealer_id or m.user_b_id = p_dealer_id);
 $$;
 
 -- ── Row Level Security ───────────────────────────────────────────────────

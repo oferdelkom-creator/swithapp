@@ -12,12 +12,14 @@ export default function DealerBrandingCard({
   initialCoverPhotoUrl,
   initialDescription,
   initialPublicPhone,
+  initialAddress,
 }: {
   userId: string;
   initialLogoUrl: string | null;
   initialCoverPhotoUrl: string | null;
   initialDescription: string | null;
   initialPublicPhone: string | null;
+  initialAddress: string | null;
 }) {
   const { t } = useLocale();
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function DealerBrandingCard({
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl);
   const [description, setDescription] = useState(initialDescription ?? "");
   const [publicPhone, setPublicPhone] = useState(initialPublicPhone ?? "");
+  const [address, setAddress] = useState(initialAddress ?? "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,7 +70,11 @@ export default function DealerBrandingCard({
     const supabase = createClient();
     const { error: updateError } = await supabase
       .from("users")
-      .update({ dealer_description: description.trim() || null, public_phone: publicPhone.trim() || null })
+      .update({
+        dealer_description: description.trim() || null,
+        public_phone: publicPhone.trim() || null,
+        dealer_address: address.trim() || null,
+      })
       .eq("id", userId);
     setSaving(false);
     if (updateError) {
@@ -148,6 +155,16 @@ export default function DealerBrandingCard({
           value={publicPhone}
           onChange={(e) => setPublicPhone(e.target.value)}
           placeholder={t("business.publicPhonePlaceholder")}
+          className="field w-full"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs text-neutral-500 mb-1">{t("business.address")}</label>
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={t("business.addressPlaceholder")}
           className="field w-full"
         />
       </div>

@@ -13,14 +13,16 @@ export default async function SwipePage() {
 
   const { data: me } = await supabase
     .from("users")
-    .select("lat, lon")
+    .select("lat, lon, premium_until")
     .eq("id", user.id)
-    .maybeSingle<{ lat: number | null; lon: number | null }>();
+    .maybeSingle<{ lat: number | null; lon: number | null; premium_until: string | null }>();
+
+  const isPremium = !!me?.premium_until && new Date(me.premium_until) > new Date();
 
   return (
     <div className="max-w-md mx-auto px-4 py-4">
       <h1 className="text-xl font-semibold mb-3">{t("swipe.title")}</h1>
-      <SwipeDeck userId={user.id} initialLat={me?.lat ?? null} initialLon={me?.lon ?? null} />
+      <SwipeDeck userId={user.id} initialLat={me?.lat ?? null} initialLon={me?.lon ?? null} isPremium={isPremium} />
     </div>
   );
 }

@@ -84,10 +84,12 @@ export default function SwipeDeck({
   userId,
   initialLat,
   initialLon,
+  isPremium,
 }: {
   userId: string;
   initialLat: number | null;
   initialLon: number | null;
+  isPremium: boolean;
 }) {
   const { t, locale } = useLocale();
   const router = useRouter();
@@ -104,6 +106,7 @@ export default function SwipeDeck({
   const [showFilters, setShowFilters] = useState(false);
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const [includeDealers, setIncludeDealers] = useState(false);
+  const [lastAction, setLastAction] = useState<{ candidate: Candidate; direction: SwipeDirection } | null>(null);
   const cardRef = useRef<DraggableCardHandle>(null);
 
   async function loadDeck() {
@@ -148,6 +151,7 @@ export default function SwipeDeck({
     }
     setIndex(0);
     setPhotoIndex(0);
+    setLastAction(null);
     setLoading(false);
   }
 
@@ -191,18 +195,53 @@ export default function SwipeDeck({
 
     if (result.capReached) {
       setError(t("swipe.swipeCapReached"));
+      setLastAction(null);
       setIndex((i) => i + 1);
       setPhotoIndex(0);
       return;
     }
 
     if (result.match) {
+      // Undoing a swipe that just created a match would silently destroy a real
+      // conversation - not offered as an option once that's happened.
       const name = isSale(candidate) ? candidate.seller_name : candidate.name;
       setMatchModal({ matchId: result.match.matchId, name });
+      setLastAction(null);
+    } else {
+      setLastAction({ candidate, direction });
     }
 
     setIndex((i) => i + 1);
     setPhotoIndex(0);
+  }
+
+  // Undo is gated by the same "Premium users can delete their own swipes" RLS policy
+  // already used for the rest of the app - deleting the swipe row lets it be re-shown
+  // in the deck instead of just moving the index back, so it's a real undo (a re-load
+  // would surface the same candidate again too), not a cosmetic one.
+  async function undo() {
+    if (!lastAction) return;
+    if (!isPremium) {
+      setError(t("swipe.undoRequiresPremium"));
+      return;
+    }
+    setError(null);
+    const supabase = createClient();
+    const { error: deleteError } = await supabase
+      .from("swipes")
+      .delete()
+      .eq("from_user_id", userId)
+      .eq("car_id", lastAction.candidate.car_id)
+      .eq("direction", lastAction.direction);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+
+    setIndex((i) => Math.max(0, i - 1));
+    setPhotoIndex(0);
+    setLastAction(null);
   }
 
   function handleExit(direction: ExitDirection) {
@@ -376,6 +415,17 @@ export default function SwipeDeck({
             <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
               <div className="pointer-events-auto flex flex-col items-center gap-1">
                 <button
+                  onClick={undo}
+                  disabled={!lastAction}
+                  aria-label={t("swipe.undo")}
+                  title={isPremium ? t("swipe.undo") : t("swipe.undoRequiresPremium")}
+                  className="w-[44px] h-[44px] rounded-full bg-white border border-neutral-200 shadow text-neutral-500 flex items-center justify-center hover:scale-105 hover:text-neutral-700 disabled:opacity-30 disabled:pointer-events-none transition-transform"
+                >
+                  <UndoIcon />
+                </button>
+              </div>
+              <div className="pointer-events-auto flex flex-col items-center gap-1">
+                <button
                   onClick={() => cardRef.current?.triggerExit("left")}
                   aria-label={t("swipe.skip")}
                   className="w-[60px] h-[60px] rounded-full bg-gray-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-gray-500 transition-transform"
@@ -502,6 +552,15 @@ function TradeIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 7h11l-3-3" />
       <path d="M17 17H6l3 3" />
+    </svg>
+  );
+}
+
+function UndoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
     </svg>
   );
 }

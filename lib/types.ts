@@ -48,6 +48,7 @@ export interface AppUser {
   cover_photo_url: string | null;
   dealer_description: string | null;
   public_phone: string | null;
+  dealer_address: string | null;
   created_at: string;
 }
 

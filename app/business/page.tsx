@@ -29,7 +29,7 @@ export default async function BusinessPage() {
   const { data: me } = await supabase
     .from("users")
     .select(
-      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone, requested_car_cap"
+      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone, dealer_address, requested_car_cap"
     )
     .eq("id", user.id)
     .maybeSingle<{
@@ -44,6 +44,7 @@ export default async function BusinessPage() {
       cover_photo_url: string | null;
       dealer_description: string | null;
       public_phone: string | null;
+      dealer_address: string | null;
       requested_car_cap: number | null;
     }>();
 
@@ -135,6 +136,7 @@ export default async function BusinessPage() {
         initialCoverPhotoUrl={me.cover_photo_url}
         initialDescription={me.dealer_description}
         initialPublicPhone={me.public_phone}
+        initialAddress={me.dealer_address}
       />
 
       <div>
