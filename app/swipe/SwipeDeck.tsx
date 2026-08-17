@@ -7,12 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { performSwipe } from "@/lib/swipeActions";
 import { useLocale } from "@/components/LocaleProvider";
 import { regionLabel } from "@/lib/i18n/enumLabels";
-import { VEHICLE_TYPES } from "@/lib/vehicleData";
+import { VEHICLE_TYPES, getMakes, getModels } from "@/lib/vehicleData";
 import type { CarRegion, SwipeDirection, VehicleType } from "@/lib/types";
 import DraggableCard, { type DraggableCardHandle, type ExitDirection } from "./DraggableCard";
 import QuickSignupModal from "@/components/QuickSignupModal";
 import TradeDetailsModal from "@/components/TradeDetailsModal";
 import VehicleTypeIcon from "@/components/VehicleTypeIcon";
+import { parseSearchQuery } from "@/lib/searchParser";
 
 type Mode = "sale" | "swap";
 
@@ -29,6 +30,7 @@ const REGIONS: CarRegion[] = [
 
 interface Filters {
   make: string;
+  model: string;
   minPrice: string;
   maxPrice: string;
   minYear: string;
@@ -41,6 +43,7 @@ interface Filters {
 
 const EMPTY_FILTERS: Filters = {
   make: "",
+  model: "",
   minPrice: "",
   maxPrice: "",
   minYear: "",
@@ -111,6 +114,8 @@ export default function SwipeDeck({
   const [matchModal, setMatchModal] = useState<{ matchId: string; name: string } | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchSummary, setSearchSummary] = useState<string[] | null>(null);
   // Mobile-only choice between the one-card swipe deck and a scrollable grid of
   // every matching car - desktop always gets the grid (no swipe gesture to offer
   // there in the first place), but a mobile visitor who wants to scan and find a
@@ -131,22 +136,31 @@ export default function SwipeDeck({
 
   // Shared by loadDeck() (fetches rows) and the live filter-count preview below
   // (fetches only a count) - one place building the RPC name/args pair so the two
-  // can't drift apart on what a filter change actually queries.
-  function currentRpc(): { name: "cars_for_sale" | "nearby_swap_cars"; args: Record<string, unknown> } {
+  // can't drift apart on what a filter change actually queries. Accepts explicit
+  // overrides so the search bar can fetch with brand-new filters immediately,
+  // instead of reading stale `filters`/`vehicleType` state from before the setState
+  // calls that requested them have actually re-rendered.
+  function currentRpc(
+    overrideFilters?: Filters,
+    overrideVehicleType?: VehicleType | ""
+  ): { name: "cars_for_sale" | "nearby_swap_cars"; args: Record<string, unknown> } {
+    const f = overrideFilters ?? filters;
+    const vt = overrideVehicleType ?? vehicleType;
     if (mode === "sale") {
       return {
         name: "cars_for_sale",
         args: {
           my_id: effectiveUserId,
-          p_make: filters.make || null,
-          p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
-          p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
-          p_min_year: filters.minYear ? Number(filters.minYear) : null,
-          p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
-          p_region: filters.region || null,
-          p_category: vehicleType || null,
-          p_max_mileage: filters.maxMileage ? Number(filters.maxMileage) : null,
-          p_fuel_type: filters.electricOnly ? "Electric" : null,
+          p_make: f.make || null,
+          p_model: f.model || null,
+          p_min_price: f.minPrice ? Number(f.minPrice) : null,
+          p_max_price: f.maxPrice ? Number(f.maxPrice) : null,
+          p_min_year: f.minYear ? Number(f.minYear) : null,
+          p_max_year: f.maxYear ? Number(f.maxYear) : null,
+          p_region: f.region || null,
+          p_category: vt || null,
+          p_max_mileage: f.maxMileage ? Number(f.maxMileage) : null,
+          p_fuel_type: f.electricOnly ? "Electric" : null,
         },
       };
     }
@@ -156,20 +170,21 @@ export default function SwipeDeck({
         my_lat: lat,
         my_lon: lon,
         my_id: effectiveUserId,
-        p_category: vehicleType || null,
-        p_make: filters.make || null,
-        p_min_price: filters.minPrice ? Number(filters.minPrice) : null,
-        p_max_price: filters.maxPrice ? Number(filters.maxPrice) : null,
-        p_min_year: filters.minYear ? Number(filters.minYear) : null,
-        p_max_year: filters.maxYear ? Number(filters.maxYear) : null,
-        p_max_distance_km: filters.radiusKm ? Number(filters.radiusKm) : null,
+        p_category: vt || null,
+        p_make: f.make || null,
+        p_model: f.model || null,
+        p_min_price: f.minPrice ? Number(f.minPrice) : null,
+        p_max_price: f.maxPrice ? Number(f.maxPrice) : null,
+        p_min_year: f.minYear ? Number(f.minYear) : null,
+        p_max_year: f.maxYear ? Number(f.maxYear) : null,
+        p_max_distance_km: f.radiusKm ? Number(f.radiusKm) : null,
         p_include_dealers: includeDealers,
-        p_max_mileage: filters.maxMileage ? Number(filters.maxMileage) : null,
+        p_max_mileage: f.maxMileage ? Number(f.maxMileage) : null,
       },
     };
   }
 
-  async function loadDeck() {
+  async function loadDeck(overrideFilters?: Filters, overrideVehicleType?: VehicleType | "") {
     if (mode === "swap" && !effectiveUserId) {
       // Swap mode needs a real account to know the visitor's own role/location -
       // gated behind the sign-in prompt below rather than nearby_swap_cars() itself.
@@ -185,7 +200,7 @@ export default function SwipeDeck({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { name, args } = currentRpc();
+    const { name, args } = currentRpc(overrideFilters, overrideVehicleType);
     const { data, error: rpcError } = await supabase.rpc(name, args);
     if (rpcError) setError(rpcError.message);
     setDeck((data as Candidate[]) ?? []);
@@ -222,6 +237,69 @@ export default function SwipeDeck({
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showFilters, filters, vehicleType, mode, effectiveUserId, lat, lon, includeDealers]);
+
+  // Free-text search bar (mobile.de-inspired) - parseSearchQuery() is a local
+  // keyword/regex parser, not a real LLM (no AI API key configured anywhere in this
+  // project), so it only recognizes a fixed set of common phrasings. Replaces the
+  // whole filter set rather than merging with whatever was there before, matching a
+  // single search box's usual behavior - and calls loadDeck() with the new values
+  // directly instead of relying on the just-requested state to have re-rendered yet.
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
+      setSearchSummary(null);
+      setFilters(EMPTY_FILTERS);
+      setVehicleType("");
+      loadDeck(EMPTY_FILTERS, "");
+      return;
+    }
+    const parsed = parseSearchQuery(searchQuery);
+    const newFilters: Filters = {
+      ...EMPTY_FILTERS,
+      make: parsed.make ?? "",
+      minPrice: parsed.minPrice != null ? String(parsed.minPrice) : "",
+      maxPrice: parsed.maxPrice != null ? String(parsed.maxPrice) : "",
+      minYear: parsed.minYear != null ? String(parsed.minYear) : "",
+      maxYear: parsed.maxYear != null ? String(parsed.maxYear) : "",
+      maxMileage: parsed.maxMileage != null ? String(parsed.maxMileage) : "",
+      electricOnly: parsed.electricOnly,
+      region: parsed.region ?? "",
+    };
+    const newVehicleType: VehicleType | "" = parsed.vehicleType ?? "";
+
+    const summary: string[] = [];
+    if (parsed.vehicleType) {
+      const vt = VEHICLE_TYPES.find((v) => v.value === parsed.vehicleType);
+      if (vt) summary.push(t(vt.labelKey));
+    }
+    if (parsed.make) summary.push(parsed.make);
+    if (parsed.electricOnly) summary.push(t("swipe.electricOnly"));
+    if (parsed.minYear != null || parsed.maxYear != null) {
+      summary.push(
+        parsed.minYear != null && parsed.maxYear != null
+          ? `${parsed.minYear}-${parsed.maxYear}`
+          : parsed.minYear != null
+            ? `${parsed.minYear}+`
+            : `≤${parsed.maxYear}`
+      );
+    }
+    if (parsed.minPrice != null || parsed.maxPrice != null) {
+      summary.push(
+        parsed.minPrice != null && parsed.maxPrice != null
+          ? `₪${parsed.minPrice}-₪${parsed.maxPrice}`
+          : parsed.minPrice != null
+            ? `₪${parsed.minPrice}+`
+            : `≤₪${parsed.maxPrice}`
+      );
+    }
+    if (parsed.maxMileage != null) summary.push(`≤${parsed.maxMileage}km`);
+    if (parsed.region) summary.push(regionLabel(parsed.region, locale));
+
+    setFilters(newFilters);
+    setVehicleType(newVehicleType);
+    setSearchSummary(summary);
+    loadDeck(newFilters, newVehicleType);
+  }
 
   function requestLocation() {
     if (!effectiveUserId) return;
@@ -355,6 +433,31 @@ export default function SwipeDeck({
 
   return (
     <div>
+      <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-3">
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("swipe.searchPlaceholder")}
+          className="field flex-1"
+        />
+        <button type="submit" className="btn-primary px-4" aria-label={t("swipe.search")}>
+          <SearchIcon />
+        </button>
+      </form>
+      {searchSummary && (
+        <div className="flex flex-wrap gap-1.5 mb-3 text-xs">
+          {searchSummary.length ? (
+            searchSummary.map((s, i) => (
+              <span key={i} className="chip-active px-2.5 py-1">
+                {s}
+              </span>
+            ))
+          ) : (
+            <span className="text-neutral-500">{t("swipe.searchNoMatch")}</span>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-2 mb-3 text-sm">
         <button
           onClick={() => setMode("sale")}
@@ -415,12 +518,32 @@ export default function SwipeDeck({
 
       {showFilters && (
         <div className="card p-4 mb-3 grid grid-cols-2 gap-3 text-sm">
-          <input
-            placeholder={t("swipe.make")}
+          <select
             value={filters.make}
-            onChange={(e) => setFilters((f) => ({ ...f, make: e.target.value }))}
+            onChange={(e) => setFilters((f) => ({ ...f, make: e.target.value, model: "" }))}
             className="field"
-          />
+          >
+            <option value="">{t("swipe.allMakes")}</option>
+            {getMakes(vehicleType || "car").map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.model}
+            onChange={(e) => setFilters((f) => ({ ...f, model: e.target.value }))}
+            disabled={!filters.make}
+            className="field disabled:opacity-50"
+          >
+            <option value="">{t("swipe.allModels")}</option>
+            {filters.make &&
+              getModels(vehicleType || "car", filters.make).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+          </select>
           {mode === "sale" ? (
             <select
               value={filters.region}
@@ -497,7 +620,7 @@ export default function SwipeDeck({
             </label>
           )}
           <div className="col-span-2 flex gap-2">
-            <button onClick={loadDeck} className="btn-primary flex-1">
+            <button onClick={() => loadDeck()} className="btn-primary flex-1">
               {previewCount !== null ? t("swipe.applyFiltersCount", { count: previewCount }) : t("swipe.applyFilters")}
             </button>
             <button onClick={() => setFilters(EMPTY_FILTERS)} className="btn-secondary">
@@ -803,6 +926,15 @@ function TradeIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 7h11l-3-3" />
       <path d="M17 17H6l3 3" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
     </svg>
   );
 }

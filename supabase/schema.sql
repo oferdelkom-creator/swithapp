@@ -337,7 +337,8 @@ create trigger on_swipe_created
 -- instead of replacing in place) got cleaned up; there should only ever be one.
 -- p_max_mileage added 2026-08-17 (migration add_max_mileage_to_nearby_swap_cars) -
 -- matches cars_for_sale()'s p_max_mileage below; mileage was already selected/
--- returned here, just never filterable.
+-- returned here, just never filterable. p_model added the same day (migration
+-- add_model_filter_to_deck_rpcs) alongside cars_for_sale()'s - see the note there.
 create or replace function public.nearby_swap_cars(
   my_lat double precision, my_lon double precision, my_id uuid,
   p_category vehicle_type default null,
@@ -345,7 +346,8 @@ create or replace function public.nearby_swap_cars(
   p_min_year integer default null, p_max_year integer default null,
   p_max_distance_km double precision default null,
   p_include_dealers boolean default false,
-  p_max_mileage integer default null
+  p_max_mileage integer default null,
+  p_model text default null
 )
 returns table (
   user_id uuid, name text, seller_online boolean, lat double precision, lon double precision,
@@ -383,6 +385,7 @@ as $$
     )
     and (p_category is null or c.category = p_category)
     and (p_make is null or c.make = p_make)
+    and (p_model is null or c.model = p_model)
     and (p_min_price is null or c.price >= p_min_price)
     and (p_max_price is null or c.price <= p_max_price)
     and (p_min_year is null or c.year >= p_min_year)
@@ -419,12 +422,18 @@ $$;
 -- private/dealer visibility rule, which now gives an anonymous visitor the same
 -- default view as a signed-in private user (both private and dealer listings)
 -- instead of falling through to "dealer/importer sellers only".
+--
+-- p_model added 2026-08-17 (migration add_model_filter_to_deck_rpcs) - the filter
+-- panel's Make field became a constrained dropdown (getMakes()) with a cascading
+-- Model dropdown (getModels()) instead of free text, so only a real, known model can
+-- ever be filtered by, matching CarForm's own make/model picker.
 create or replace function public.cars_for_sale(
   my_id uuid default null,
   p_make text default null, p_min_price numeric default null, p_max_price numeric default null,
   p_min_year integer default null, p_max_year integer default null, p_max_mileage integer default null,
   p_transmission text default null, p_category vehicle_type default null, p_color text default null,
-  p_fuel_type fuel_type default null, p_region car_region default null, p_max_hand integer default null
+  p_fuel_type fuel_type default null, p_region car_region default null, p_max_hand integer default null,
+  p_model text default null
 )
 returns table (
   user_id uuid, seller_name text, seller_role user_role, seller_online boolean,
@@ -459,6 +468,7 @@ as $$
       or u.role in ('dealer', 'importer')
     )
     and (p_make is null or c.make = p_make)
+    and (p_model is null or c.model = p_model)
     and (p_min_price is null or c.price >= p_min_price)
     and (p_max_price is null or c.price <= p_max_price)
     and (p_min_year is null or c.year >= p_min_year)

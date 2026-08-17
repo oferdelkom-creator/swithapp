@@ -1047,6 +1047,44 @@ the same `md:grid` override used before. The grid itself now scales
 straight to 3 columns, so the mobile list view isn't cramped. Same `deck` array,
 same `GridCard`, no separate list-mode fetch or state to keep in sync.
 
+## Free-text search bar + constrained Make/Model dropdowns (2026-08-17, later)
+
+Closed out the mobile.de-inspired round with the piece that was deliberately deferred
+earlier (the AI search box), once the user confirmed a local/no-credentials approach
+was fine for now, plus a follow-up request for real make/model dropdowns instead of
+free text.
+
+- **`lib/searchParser.ts`** - a keyword/regex parser, explicitly *not* an LLM (still
+  no Anthropic/OpenAI/AI-Gateway credentials configured anywhere in this project).
+  Recognizes a fixed set of common English/Hebrew phrasings: vehicle type words,
+  "electric"/"חשמלי", make names (matched against the same `getMakes()` data used
+  everywhere else), price/year/mileage ranges ("under X", "from Y", "משנת 2020"), and
+  region names. A 4-digit number is disambiguated between year and price by
+  plausibility (1980-2036) rather than always winning one or the other, so "up to
+  2020" reads as a model year and "up to 20000" as a price. Deliberately matches
+  nothing it doesn't recognize instead of guessing.
+- The search bar (`SwipeDeck.tsx`, styled after mobile.de's) always **replaces** the
+  whole filter set on submit rather than merging with whatever was already there -
+  the usual behavior for a single search box - and shows a chip row of what it
+  actually understood (`searchSummary`) so a wrong or partial parse is visible and
+  fixable via the regular filter panel, instead of a search that silently did the
+  wrong thing.
+- `loadDeck()`/`currentRpc()` gained optional filter/vehicleType overrides so the
+  search handler can fetch with the just-parsed values immediately, instead of
+  reading `filters`/`vehicleType` state from before the `setFilters`/`setVehicleType`
+  calls that requested them have re-rendered (a stale-closure bug that's easy to hit
+  wiring a second entry point into state that a `useEffect` elsewhere already reads).
+- **Make/Model became constrained dropdowns.** The filter panel's Make field was
+  free text (any string, RPC-filtered by exact equality - a typo just silently
+  matched nothing). Replaced with `getMakes()`/`getModels()` selects, same cascading
+  pattern `CarForm.tsx` already uses - Model is disabled until a Make is chosen, and
+  resets whenever Make changes. Added `p_model` to both `cars_for_sale()` and
+  `nearby_swap_cars()` (migration `add_model_filter_to_deck_rpcs`) since neither had
+  it before; `p_make` already existed but nothing filtered by exact model. Verified
+  end-to-end with Playwright: searching "electric Toyota under 100000" correctly
+  populates Make=Toyota/Only electric/Price≤100000 in the panel, and selecting
+  Toyota in the Make dropdown populates the Model dropdown with Corolla, Camry, etc.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a
