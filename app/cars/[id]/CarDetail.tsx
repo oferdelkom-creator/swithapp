@@ -291,6 +291,7 @@ export default function CarDetail({
         <TradeDetailsModal
           candidateMake={car.make}
           candidateModel={car.model}
+          candidatePrice={car.price}
           onCancel={() => setTradeDetailsOpen(false)}
           onSubmit={(details) => {
             setTradeDetailsOpen(false);
@@ -303,6 +304,7 @@ export default function CarDetail({
         <QuickSignupModal
           candidateMake={car.make}
           candidateModel={car.model}
+          candidatePrice={car.price}
           showTradeDetails={authPrompt.showTradeDetails}
           onCancel={() => setAuthPrompt(null)}
           onAuthenticated={(newUserId, icebreakerText) => {

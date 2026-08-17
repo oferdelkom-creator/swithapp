@@ -9,11 +9,13 @@ import TradeDetailsForm from "@/components/TradeDetailsForm";
 export default function TradeDetailsModal({
   candidateMake,
   candidateModel,
+  candidatePrice,
   onCancel,
   onSubmit,
 }: {
   candidateMake: string;
   candidateModel: string;
+  candidatePrice: number | null;
   onCancel: () => void;
   onSubmit: (icebreakerText: string) => void;
 }) {
@@ -24,6 +26,7 @@ export default function TradeDetailsModal({
         <TradeDetailsForm
           candidateMake={candidateMake}
           candidateModel={candidateModel}
+          candidatePrice={candidatePrice}
           submitLabel={t("tradeModal.send")}
           onCancel={onCancel}
           onSubmit={onSubmit}

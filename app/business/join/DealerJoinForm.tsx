@@ -16,9 +16,26 @@ const BENEFIT_KEYS = [
   "businessJoin.benefit5",
 ] as const;
 
+type BusinessType = "dealer" | "official_importer" | "parallel_importer";
+
+const BUSINESS_TYPES: {
+  value: BusinessType;
+  role: "dealer" | "importer";
+  labelKey: "businessJoin.typeDealer" | "businessJoin.typeOfficialImporter" | "businessJoin.typeParallelImporter";
+  descriptionKey:
+    | "businessJoin.typeDealerDescription"
+    | "businessJoin.typeOfficialImporterDescription"
+    | "businessJoin.typeParallelImporterDescription";
+}[] = [
+  { value: "dealer", role: "dealer", labelKey: "businessJoin.typeDealer", descriptionKey: "businessJoin.typeDealerDescription" },
+  { value: "official_importer", role: "importer", labelKey: "businessJoin.typeOfficialImporter", descriptionKey: "businessJoin.typeOfficialImporterDescription" },
+  { value: "parallel_importer", role: "importer", labelKey: "businessJoin.typeParallelImporter", descriptionKey: "businessJoin.typeParallelImporterDescription" },
+];
+
 export default function DealerJoinForm() {
   const { t } = useLocale();
   const router = useRouter();
+  const [businessType, setBusinessType] = useState<BusinessType>("dealer");
   const [tier, setTier] = useState<number | null | undefined>(undefined);
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
@@ -39,9 +56,10 @@ export default function DealerJoinForm() {
     setLoading(true);
     const supabase = createClient();
 
+    const role = BUSINESS_TYPES.find((type) => type.value === businessType)!.role;
     const finishPath = `/business/join/finish?business_name=${encodeURIComponent(businessName)}&cap=${
       tier ?? ""
-    }&phone=${encodeURIComponent(phone)}`;
+    }&phone=${encodeURIComponent(phone)}&role=${role}`;
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -64,7 +82,7 @@ export default function DealerJoinForm() {
       return;
     }
 
-    await finishDealerSignup(supabase, { userId: data.user.id, businessName, cap: tier, phone });
+    await finishDealerSignup(supabase, { userId: data.user.id, businessName, cap: tier, phone, role });
     router.push("/business");
     router.refresh();
   }
@@ -85,6 +103,25 @@ export default function DealerJoinForm() {
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">{t("businessJoin.heroTitle")}</h1>
         <p className="mt-3 text-neutral-500">{t("businessJoin.heroSubtitle")}</p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {BUSINESS_TYPES.map((type) => {
+          const selected = businessType === type.value;
+          return (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => setBusinessType(type.value)}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                selected ? "border-brand-pink bg-[#fff1f3]" : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}
+            >
+              <p className="font-semibold">{t(type.labelKey)}</p>
+              <p className="mt-1 text-xs text-neutral-500">{t(type.descriptionKey)}</p>
+            </button>
+          );
+        })}
       </div>
 
       <div className="card p-6 space-y-3">

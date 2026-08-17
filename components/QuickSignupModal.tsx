@@ -18,12 +18,14 @@ import TradeDetailsForm from "@/components/TradeDetailsForm";
 export default function QuickSignupModal({
   candidateMake,
   candidateModel,
+  candidatePrice,
   showTradeDetails,
   onCancel,
   onAuthenticated,
 }: {
   candidateMake: string;
   candidateModel: string;
+  candidatePrice: number | null;
   showTradeDetails: boolean;
   onCancel: () => void;
   onAuthenticated: (userId: string, icebreakerText: string) => void;
@@ -75,6 +77,7 @@ export default function QuickSignupModal({
           <TradeDetailsForm
             candidateMake={candidateMake}
             candidateModel={candidateModel}
+            candidatePrice={candidatePrice}
             submitLabel={t("tradeModal.continue")}
             onCancel={onCancel}
             onSubmit={(text) => {

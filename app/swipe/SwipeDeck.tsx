@@ -735,6 +735,7 @@ export default function SwipeDeck({
         <TradeDetailsModal
           candidateMake={tradeCandidate.make}
           candidateModel={tradeCandidate.model}
+          candidatePrice={tradeCandidate.price}
           onCancel={() => {
             setTradeCandidate(null);
             setIndex((i) => i + 1);
@@ -752,6 +753,7 @@ export default function SwipeDeck({
         <QuickSignupModal
           candidateMake={authPrompt.candidate.make}
           candidateModel={authPrompt.candidate.model}
+          candidatePrice={authPrompt.candidate.price}
           showTradeDetails={authPrompt.showTradeDetails}
           onCancel={() => {
             setAuthPrompt(null);
@@ -772,6 +774,7 @@ export default function SwipeDeck({
         <QuickSignupModal
           candidateMake=""
           candidateModel=""
+          candidatePrice={null}
           showTradeDetails={false}
           onCancel={() => setSwapAuthOpen(false)}
           onAuthenticated={(newUserId) => {
