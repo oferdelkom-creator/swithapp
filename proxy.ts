@@ -6,7 +6,14 @@ import { LOCALE_COOKIE, isLocale, parseAcceptLanguage } from "./lib/i18n/locale"
 // /swipe is deliberately not here - sale-mode browsing needs no account (mirrors
 // /d/[slug] being open to signed-out visitors), and SwipeDeck.tsx itself gates the
 // swap tab and any real action (Trade/Buy) behind an inline sign-up prompt instead.
-const PROTECTED_PREFIXES = ["/admin", "/matches", "/likes", "/business"];
+const PROTECTED_PREFIXES = ["/admin", "/matches", "/likes"];
+
+function isBusinessRouteProtected(pathname: string): boolean {
+  // The partner page and its signup form are sales pages, so a prospect must be
+  // able to reach them before creating an account. The actual business dashboard
+  // remains private.
+  return pathname.startsWith("/business") && !pathname.startsWith("/business/join");
+}
 
 // /cars needs finer-grained handling than a flat prefix: "/cars" itself (manage your
 // own listings) and "/cars/[id]/edit" stay behind login, but "/cars/[id]" (the read-only
@@ -88,6 +95,7 @@ export async function proxy(request: NextRequest) {
 
   const isProtected =
     PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p)) ||
+    isBusinessRouteProtected(request.nextUrl.pathname) ||
     isCarsRouteProtected(request.nextUrl.pathname);
 
   if (isProtected && !user) {

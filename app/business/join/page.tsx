@@ -1,10 +1,5 @@
-import { Suspense } from "react";
-import DealerJoinForm from "./DealerJoinForm";
+import PartnerLanding from "./PartnerLanding";
 
 export default function DealerJoinPage() {
-  return (
-    <Suspense fallback={null}>
-      <DealerJoinForm />
-    </Suspense>
-  );
+  return <PartnerLanding />;
 }
