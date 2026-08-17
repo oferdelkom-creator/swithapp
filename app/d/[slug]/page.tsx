@@ -46,8 +46,11 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
   const displayName = dealer.business_name || dealer.name;
 
   return (
-    <div className="max-w-md mx-auto pb-28">
-      <div className="relative h-40 bg-gradient-to-br from-brand-blue to-brand-blue-dark">
+    <div className="pb-28">
+      {/* Full-bleed on desktop instead of capped at the same narrow column as the
+          text below it - a wide cover banner reads as a real branded page, not a
+          mobile card stretched thin. */}
+      <div className="relative h-40 md:h-56 bg-gradient-to-br from-brand-blue to-brand-blue-dark">
         {dealer.cover_photo_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={dealer.cover_photo_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -55,7 +58,7 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
       </div>
 
-      <div className="px-4">
+      <div className="max-w-md mx-auto px-4">
         <div className="-mt-10 flex items-end gap-3">
           {dealer.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -93,13 +96,18 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
             </div>
           )}
         </div>
+      </div>
 
+      {/* The catalog/swipe tabs get their own, wider column at md: - the profile
+          header above stays a centered narrow block, but a browsable grid of
+          inventory benefits from the extra width the same way /swipe's does. */}
+      <div className="max-w-md md:max-w-6xl mx-auto px-4">
         <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} />
       </div>
 
       {dealer.public_phone && (
         <div
-          className={`fixed inset-x-0 z-30 border-t border-neutral-200 bg-white/95 backdrop-blur px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] ${
+          className={`fixed inset-x-0 z-30 border-t border-neutral-200 bg-white/95 backdrop-blur px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:bottom-0 ${
             user ? "bottom-16" : "bottom-0"
           }`}
         >

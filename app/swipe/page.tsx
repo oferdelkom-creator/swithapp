@@ -23,7 +23,7 @@ export default async function SwipePage() {
   const isPremium = !!me?.premium_until && new Date(me.premium_until) > new Date();
 
   return (
-    <div className="max-w-md mx-auto px-4 py-4">
+    <div className="max-w-md md:max-w-6xl mx-auto px-4 py-4">
       <h1 className="text-xl font-semibold mb-3">{t("swipe.title")}</h1>
       <SwipeDeck
         userId={user?.id ?? null}

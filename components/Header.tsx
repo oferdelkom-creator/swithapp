@@ -2,17 +2,38 @@ import Link from "next/link";
 import { getT } from "@/lib/i18n/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SignOutButton from "./SignOutButton";
+import DesktopNav from "./DesktopNav";
 
-export default async function Header({ loggedIn }: { loggedIn: boolean }) {
+export default async function Header({
+  loggedIn,
+  isAdmin,
+  isBusiness,
+  likesCount,
+  unreadMatches,
+}: {
+  loggedIn: boolean;
+  isAdmin: boolean;
+  isBusiness: boolean;
+  likesCount: number | null;
+  unreadMatches: number | null;
+}) {
   const { t } = await getT();
 
   return (
     <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="font-bold text-lg text-brand-blue-dark tracking-tight">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+        <Link href="/" className="font-bold text-lg text-brand-blue-dark tracking-tight shrink-0">
           SwitchApp
         </Link>
-        <div className="flex items-center gap-3">
+        {loggedIn && (
+          <DesktopNav
+            isAdmin={isAdmin}
+            isBusiness={isBusiness}
+            likesCount={likesCount}
+            unreadMatches={unreadMatches}
+          />
+        )}
+        <div className="flex items-center gap-3 shrink-0">
           {loggedIn ? (
             <SignOutButton />
           ) : (

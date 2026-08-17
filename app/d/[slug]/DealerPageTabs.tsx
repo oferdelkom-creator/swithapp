@@ -29,7 +29,11 @@ export default function DealerPageTabs({ userId, dealerId }: { userId: string | 
       </div>
 
       {tab === "swipe" ? (
-        <DealerDeck userId={userId} dealerId={dealerId} />
+        // Swiping one card at a time doesn't need the wider column its parent gets
+        // for the grid tab - capped back to the mobile card width even on desktop.
+        <div className="md:max-w-md md:mx-auto">
+          <DealerDeck userId={userId} dealerId={dealerId} />
+        </div>
       ) : (
         <DealerCatalog userId={userId} dealerId={dealerId} />
       )}

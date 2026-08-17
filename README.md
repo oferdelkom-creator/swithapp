@@ -959,6 +959,47 @@ and the `CarDetail.tsx` spec grid as plain text - those are single informational
 labels next to other text, not a multi-way picker, so an icon there doesn't carry
 the same "so I don't have to read 9 words" benefit and would just be decoration.
 
+## Desktop layout pass (2026-08-17, later)
+
+The app was mobile-first with essentially zero responsive breakpoints - every page
+was a `max-w-md` (or `max-w-2xl`) column, meaning a wide desktop browser just showed
+a phone-width strip of content with the rest of the screen empty. Confirmed with an
+actual screenshot at 1440px before touching anything (see chat) - the product is a
+website with no companion app, so this isn't a nice-to-have.
+
+- **Desktop top nav** - `components/DesktopNav.tsx`, a horizontal counterpart to
+  `BottomNav.tsx` (same items, same badges, same active-route logic), rendered
+  inside `Header.tsx` and shown only at `md:` and up; `BottomNav` itself gained
+  `md:hidden` so the two never show at once, and `layout.tsx`'s `<main>` drops the
+  bottom padding reserved for the fixed mobile bar (`pb-20 md:pb-0`) once it's gone.
+- **`/swipe` gets a real desktop mode.** Swiping one card at a time is a mobile
+  gesture pattern that doesn't map to a mouse - past `md:`, `SwipeDeck.tsx` now
+  renders the same `deck` array as a browsable grid (`GridCard`, 3-5 columns by
+  breakpoint) instead of the drag-card UI, which is now wrapped in `md:hidden`.
+  Grid tiles link straight to `/cars/[id]`, reusing the full Pass/Trade/Buy +
+  inline sign-up flow already built there rather than re-deriving tile-level
+  actions. The page's outer container widens with it (`max-w-md md:max-w-6xl`).
+- **`/d/[slug]` follows the same split**: the cover banner is now full-bleed at
+  `md:h-56` instead of capped to the same narrow column as the text below it; the
+  profile header (logo/name/description/stats) stays a centered `max-w-md` block on
+  its own; the tabs get a wider `md:max-w-6xl` container. Inside that, the Catalog
+  grid widens to `md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`, while the Swipe tab
+  (`DealerDeck.tsx`) is deliberately capped back to `md:max-w-md md:mx-auto` even
+  inside the wider parent - swiping one dealer car at a time doesn't need (or want)
+  the extra width the grid tab does.
+- Deliberately did **not** touch `/matches`, `/likes`, `/profile`, `/business`, or
+  the `/cars` add/edit forms in this pass - a centered narrow column is a normal,
+  intentional pattern for lists and forms on desktop (most desktop apps do this),
+  not a symptom of the same problem `/swipe` had. The complaint and the fix were
+  specifically about a swipeable browsing surface stranded in a corner of an empty
+  screen, not about every page needing to fill 1440px.
+- Verified with real Playwright screenshots at 1440×900 (desktop) and 390×844
+  (mobile, to confirm the swipe deck and its info button/undo/Pass-Trade-Buy row
+  still work unchanged) - `cars_for_sale()` can't actually be reached from this
+  sandbox (outbound network policy blocks the Supabase host, confirmed earlier via
+  `__agentproxy/status`), so the RPC response was mocked via Playwright's
+  `page.route()` for the grid screenshot specifically, real data everywhere else.
+
 ## Product concept (reverse-engineered from the schema)
 
 - Users have a role: `private` owner, `dealer`, or `importer`. Dealers/importers have a

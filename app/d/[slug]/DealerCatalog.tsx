@@ -64,7 +64,7 @@ export default function DealerCatalog({ userId, dealerId }: { userId: string | n
       </div>
 
       {filtered.length ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filtered.map((car) => (
             <Link key={car.car_id} href={`/cars/${car.car_id}`} className="card overflow-hidden">
               <div className="relative aspect-square bg-neutral-200">

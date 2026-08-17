@@ -450,65 +450,83 @@ export default function SwipeDeck({
         </div>
       ) : loading ? (
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
-      ) : current ? (
+      ) : deck.length === 0 ? (
+        <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+      ) : (
         <>
-          <div className="relative h-[64dvh] max-h-[580px] min-h-[360px] [overscroll-behavior-x:contain]">
-            {peek && (
-              <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
-                <CardVisual candidate={peek} photoIndex={0} />
-              </div>
-            )}
-            <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit} onTap={handleTap}>
-              <CardVisual candidate={current} photoIndex={photoIndex} />
-            </DraggableCard>
+          {/* Swiping one card at a time is a mobile-gesture pattern - a mouse-and-
+              keyboard desktop visitor gets the same result set as a browsable grid
+              instead (below), so this whole block is hidden at md: and up. */}
+          <div className="md:hidden">
+            {current ? (
+              <div className="relative h-[64dvh] max-h-[580px] min-h-[360px] [overscroll-behavior-x:contain]">
+                {peek && (
+                  <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
+                    <CardVisual candidate={peek} photoIndex={0} />
+                  </div>
+                )}
+                <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit} onTap={handleTap}>
+                  <CardVisual candidate={current} photoIndex={photoIndex} />
+                </DraggableCard>
 
-            <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
-              <div className="pointer-events-auto flex flex-col items-center gap-1">
-                <button
-                  onClick={undo}
-                  disabled={!lastAction}
-                  aria-label={t("swipe.undo")}
-                  title={isPremium ? t("swipe.undo") : t("swipe.undoRequiresPremium")}
-                  className="w-[44px] h-[44px] rounded-full bg-white border border-neutral-200 shadow text-neutral-500 flex items-center justify-center hover:scale-105 hover:text-neutral-700 disabled:opacity-30 disabled:pointer-events-none transition-transform"
-                >
-                  <UndoIcon />
-                </button>
+                <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
+                  <div className="pointer-events-auto flex flex-col items-center gap-1">
+                    <button
+                      onClick={undo}
+                      disabled={!lastAction}
+                      aria-label={t("swipe.undo")}
+                      title={isPremium ? t("swipe.undo") : t("swipe.undoRequiresPremium")}
+                      className="w-[44px] h-[44px] rounded-full bg-white border border-neutral-200 shadow text-neutral-500 flex items-center justify-center hover:scale-105 hover:text-neutral-700 disabled:opacity-30 disabled:pointer-events-none transition-transform"
+                    >
+                      <UndoIcon />
+                    </button>
+                  </div>
+                  <div className="pointer-events-auto flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => cardRef.current?.triggerExit("left")}
+                      aria-label={t("swipe.skip")}
+                      className="w-[60px] h-[60px] rounded-full bg-gray-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-gray-500 transition-transform"
+                    >
+                      ✕
+                    </button>
+                    <span className="text-xs font-medium text-gray-400">{t("swipe.passLabel")}</span>
+                  </div>
+                  <div className="pointer-events-auto flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => cardRef.current?.triggerExit("up")}
+                      aria-label={t("swipe.maybe")}
+                      className="w-[60px] h-[60px] rounded-full bg-amber-500 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-600 transition-transform"
+                    >
+                      <TradeIcon />
+                    </button>
+                    <span className="text-xs font-medium text-amber-500">{t("swipe.tradeLabel")}</span>
+                  </div>
+                  <div className="pointer-events-auto flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => cardRef.current?.triggerExit("right")}
+                      aria-label={t("swipe.interested")}
+                      className="w-[60px] h-[60px] rounded-full bg-green-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-green-600 transition-transform"
+                    >
+                      ♥
+                    </button>
+                    <span className="text-xs font-medium text-green-500">{t("swipe.buyLabel")}</span>
+                  </div>
+                </div>
               </div>
-              <div className="pointer-events-auto flex flex-col items-center gap-1">
-                <button
-                  onClick={() => cardRef.current?.triggerExit("left")}
-                  aria-label={t("swipe.skip")}
-                  className="w-[60px] h-[60px] rounded-full bg-gray-400 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-gray-500 transition-transform"
-                >
-                  ✕
-                </button>
-                <span className="text-xs font-medium text-gray-400">{t("swipe.passLabel")}</span>
-              </div>
-              <div className="pointer-events-auto flex flex-col items-center gap-1">
-                <button
-                  onClick={() => cardRef.current?.triggerExit("up")}
-                  aria-label={t("swipe.maybe")}
-                  className="w-[60px] h-[60px] rounded-full bg-amber-500 shadow-lg text-white flex items-center justify-center hover:scale-105 hover:bg-amber-600 transition-transform"
-                >
-                  <TradeIcon />
-                </button>
-                <span className="text-xs font-medium text-amber-500">{t("swipe.tradeLabel")}</span>
-              </div>
-              <div className="pointer-events-auto flex flex-col items-center gap-1">
-                <button
-                  onClick={() => cardRef.current?.triggerExit("right")}
-                  aria-label={t("swipe.interested")}
-                  className="w-[60px] h-[60px] rounded-full bg-green-500 shadow-lg text-white text-xl flex items-center justify-center hover:scale-105 hover:bg-green-600 transition-transform"
-                >
-                  ♥
-                </button>
-                <span className="text-xs font-medium text-green-500">{t("swipe.buyLabel")}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+            )}
+          </div>
+
+          {/* Desktop: the same result set as a browsable grid, clicking through to
+              /cars/[id] for the full details + Pass/Trade/Buy footer - no separate
+              swipe-vs-grid state to keep in sync, both read straight from `deck`. */}
+          <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {deck.map((c) => (
+              <GridCard key={c.car_id} candidate={c} />
+            ))}
           </div>
         </>
-      ) : (
-        <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
       )}
 
       {tradeCandidate && (
@@ -565,6 +583,48 @@ export default function SwipeDeck({
         <MatchModal matchId={matchModal.matchId} name={matchModal.name} onClose={() => setMatchModal(null)} />
       )}
     </div>
+  );
+}
+
+function GridCard({ candidate }: { candidate: Candidate }) {
+  const { t } = useLocale();
+  const photo = candidate.photo_urls?.[0];
+  const sellerName = isSale(candidate) ? candidate.seller_name : candidate.name;
+  const sellerOnline = candidate.seller_online;
+
+  return (
+    <Link href={`/cars/${candidate.car_id}`} className="card overflow-hidden">
+      <div className="relative aspect-[4/3] bg-neutral-200">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt={`${candidate.make} ${candidate.model}`} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs">
+            {t("swipe.noPhoto")}
+          </div>
+        )}
+        {candidate.category !== "car" && (
+          <span className="absolute top-2 start-2 rounded-full bg-white/90 text-neutral-900 text-[10px] font-medium px-2 py-0.5">
+            {t(VEHICLE_TYPES.find((vt) => vt.value === candidate.category)?.labelKey ?? "vehicleType.car")}
+          </span>
+        )}
+      </div>
+      <div className="p-3">
+        <p className="text-sm font-medium truncate">
+          {candidate.make} {candidate.model} {candidate.year ?? ""}
+        </p>
+        <p className="text-xs text-neutral-500 mt-0.5 truncate">
+          {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
+          {!isSale(candidate) && candidate.distance_km != null
+            ? ` · ${t("swipe.distanceKm", { distance: candidate.distance_km.toFixed(0) })}`
+            : ""}
+        </p>
+        <p className="text-xs text-neutral-400 mt-0.5 truncate flex items-center gap-1">
+          {sellerOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
+          {sellerName}
+        </p>
+      </div>
+    </Link>
   );
 }
 
