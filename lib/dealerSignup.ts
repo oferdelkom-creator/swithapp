@@ -9,14 +9,14 @@ import { createClient } from "@/lib/supabase/client";
 // team activates payment (see ActivateSubscriptionButton in /admin).
 export async function finishDealerSignup(
   supabase: ReturnType<typeof createClient>,
-  params: { userId: string; businessName: string; cap: number | null; phone: string }
+  params: { userId: string; businessName: string; cap: number | null; phone: string; role: "dealer" | "importer" }
 ) {
-  const { userId, businessName, cap, phone } = params;
+  const { userId, businessName, cap, phone, role } = params;
 
   await supabase
     .from("users")
     .update({
-      role: "dealer",
+      role,
       business_name: businessName,
       billing_plan: "subscription",
       requested_car_cap: cap,

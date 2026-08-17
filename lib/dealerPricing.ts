@@ -8,10 +8,8 @@ export interface DealerTier {
 }
 
 export const DEALER_TIERS: DealerTier[] = [
+  { cap: 10, priceMonthly: 1000 },
   { cap: 50, priceMonthly: 2500 },
-  { cap: 100, priceMonthly: 3500 },
-  { cap: 150, priceMonthly: 4500 },
-  { cap: 200, priceMonthly: 5500 },
   { cap: null, priceMonthly: null },
 ];
 
