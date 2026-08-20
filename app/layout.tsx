@@ -8,6 +8,7 @@ import MatchNotifier from "@/components/MatchNotifier";
 import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 // Inter has no Hebrew glyphs, so Hebrew text falls through to the system-font
 // fallbacks in globals.css automatically - only Latin/Cyrillic (en/ru) render in Inter.
@@ -16,8 +17,22 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" }
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
   return {
+    metadataBase: new URL(SITE_URL),
     title: t("meta.title"),
     description: t("meta.description"),
+    applicationName: SITE_NAME,
+    openGraph: {
+      title: t("meta.title"),
+      description: t("meta.description"),
+      siteName: SITE_NAME,
+      url: SITE_URL,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("meta.title"),
+      description: t("meta.description"),
+    },
   };
 }
 

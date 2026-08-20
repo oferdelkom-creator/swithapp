@@ -3,6 +3,37 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import { toWhatsAppLink } from "@/lib/phone";
 import DealerPageTabs from "./DealerPageTabs";
+import type { Metadata } from "next";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: dealer } = await supabase
+    .from("users")
+    .select("name, business_name, dealer_description, logo_url, cover_photo_url, role")
+    .eq("dealer_slug", slug)
+    .maybeSingle<Pick<Dealer, "name" | "business_name" | "dealer_description" | "logo_url" | "cover_photo_url" | "role">>();
+  if (!dealer || (dealer.role !== "dealer" && dealer.role !== "importer")) {
+    return { title: SITE_NAME, robots: { index: false, follow: false } };
+  }
+
+  const displayName = dealer.business_name || dealer.name;
+  const url = `${SITE_URL}/d/${slug}`;
+  const description = dealer.dealer_description || `Browse vehicles from ${displayName} on ${SITE_NAME}.`;
+  return {
+    title: `${displayName} | ${SITE_NAME}`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: displayName,
+      description,
+      url,
+      images: [dealer.cover_photo_url, dealer.logo_url].filter((image): image is string => Boolean(image)).slice(0, 1),
+      type: "website",
+    },
+  };
+}
 
 interface Dealer {
   id: string;
