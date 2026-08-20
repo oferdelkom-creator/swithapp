@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import { formatDate, formatDateTime } from "@/lib/i18n/format";
-import type { AppUser, Car, Message } from "@/lib/types";
+import type { AppUser, Car, DealerFeatureRequest, Message } from "@/lib/types";
 import UserBanButton from "./UserBanButton";
 import GrantPremiumButton from "./GrantPremiumButton";
 import ActivateSubscriptionButton from "./ActivateSubscriptionButton";
@@ -10,11 +10,15 @@ import ActivateCustomDomainButton from "./ActivateCustomDomainButton";
 import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
 import RemoveSeedDataButton from "./RemoveSeedDataButton";
+import FeatureRequestActions from "./FeatureRequestActions";
 
 type CarRow = Car & { users: { name: string } | null };
 type ReportRow = Message & {
   sender: { name: string } | null;
   matches: { user_a_id: string; user_b_id: string } | null;
+};
+type FeatureRequestRow = DealerFeatureRequest & {
+  users: { name: string; business_name: string | null } | null;
 };
 
 export default async function AdminPage() {
@@ -33,7 +37,7 @@ export default async function AdminPage() {
 
   if (!me?.is_admin) redirect("/");
 
-  const [{ data: users }, { data: cars }, { data: reports }, { count: seedUserCount }] = await Promise.all([
+  const [{ data: users }, { data: cars }, { data: reports }, { count: seedUserCount }, { data: featureRequests }] = await Promise.all([
     supabase
       .from("users")
       .select("*")
@@ -53,6 +57,11 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .returns<ReportRow[]>(),
     supabase.from("users").select("id", { count: "exact", head: true }).eq("is_seed", true),
+    supabase
+      .from("dealer_feature_requests")
+      .select("*, users(name, business_name)")
+      .order("created_at", { ascending: false })
+      .returns<FeatureRequestRow[]>(),
   ]);
 
   const twoMinutesAgo = new Date();
@@ -92,6 +101,27 @@ export default async function AdminPage() {
           ) : (
             <p className="text-neutral-500 text-sm">{t("admin.reportsEmpty")}</p>
           )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-medium mb-4">{t("admin.featureRequests", { count: featureRequests?.length ?? 0 })}</h2>
+        <div className="space-y-3">
+          {featureRequests?.length ? featureRequests.map((request) => (
+            <div key={request.id} className="card px-6 py-5">
+              <p className="text-sm text-neutral-500">
+                {request.users?.business_name ?? request.users?.name ?? t("admin.unknown")} · {formatDateTime(request.created_at, locale)}
+              </p>
+              {request.site_url && <a href={request.site_url} target="_blank" rel="noreferrer" className="mt-1 block text-sm text-brand-blue">{request.site_url}</a>}
+              {request.allow_site_analysis && <p className="mt-1 text-xs text-emerald-700">{t("admin.featureRequestAnalysisApproved")}</p>}
+              {request.reference_logo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={request.reference_logo_url} alt="" className="mt-3 h-16 w-16 rounded-lg border border-neutral-200 object-contain" />
+              )}
+              <p className="mt-2 whitespace-pre-wrap">{request.requested_change}</p>
+              <FeatureRequestActions requestId={request.id} initialStatus={request.status} initialNote={request.admin_note} />
+            </div>
+          )) : <p className="text-neutral-500 text-sm">{t("admin.featureRequestsEmpty")}</p>}
         </div>
       </section>
 

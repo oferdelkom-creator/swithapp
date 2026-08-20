@@ -199,6 +199,25 @@ create table public.blocks (
   primary key (blocker_id, blocked_id)
 );
 
+-- Product requests from dealer/importer accounts. Dealers can submit and read
+-- their own requests; administrators review them and decide whether a capability
+-- should become a platform-wide upgrade.
+create table public.dealer_feature_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  site_url text check (site_url is null or site_url ~* '^https?://[^[:space:]]+$'),
+  reference_logo_url text check (reference_logo_url is null or reference_logo_url ~* '^https://[^[:space:]]+$'),
+  allow_site_analysis boolean not null default false,
+  requested_change text not null check (char_length(requested_change) between 10 and 3000),
+  status text not null default 'new' check (status in ('new', 'reviewing', 'planned', 'released', 'declined')),
+  admin_note text check (admin_note is null or char_length(admin_note) <= 2000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index dealer_feature_requests_user_created_idx
+  on public.dealer_feature_requests (user_id, created_at desc);
+
 -- ── Functions ────────────────────────────────────────────────────────────
 
 create or replace function public.haversine_km(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision)
@@ -778,6 +797,7 @@ alter table public.swipes enable row level security;
 alter table public.matches enable row level security;
 alter table public.messages enable row level security;
 alter table public.blocks enable row level security;
+alter table public.dealer_feature_requests enable row level security;
 
 create policy "Users can view all profiles" on public.users
   for select using (true);
@@ -972,6 +992,25 @@ create policy "Admins can delete any message" on public.messages
 
 create policy "Admins can view all matches" on public.matches
   for select using (public.is_admin(auth.uid()));
+
+create policy "Dealers can submit feature requests" on public.dealer_feature_requests
+  for insert to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.users
+      where id = (select auth.uid()) and role in ('dealer', 'importer')
+    )
+  );
+
+create policy "Dealers can view own feature requests" on public.dealer_feature_requests
+  for select to authenticated
+  using ((select auth.uid()) = user_id or public.is_admin((select auth.uid())));
+
+create policy "Admins can update feature requests" on public.dealer_feature_requests
+  for update to authenticated
+  using (public.is_admin((select auth.uid())))
+  with check (public.is_admin((select auth.uid())));
 
 -- ── Column-level protection (added 2026-08-14, migration protect_privileged_user_columns)
 

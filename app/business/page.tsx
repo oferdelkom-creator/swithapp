@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import { formatDate } from "@/lib/i18n/format";
-import type { Car } from "@/lib/types";
+import type { Car, DealerFeatureRequest } from "@/lib/types";
 import ProfileStats, { type Stats } from "@/app/profile/ProfileStats";
 import InventoryTable from "./InventoryTable";
 import PublicPageLink from "./PublicPageLink";
@@ -12,6 +12,7 @@ import CustomDomainCard from "./CustomDomainCard";
 import DealerBrandingCard from "./DealerBrandingCard";
 import ActivateSubscriptionCTA from "./ActivateSubscriptionCTA";
 import LeadsChart, { type LeadsByDay } from "./LeadsChart";
+import FeatureRequestCard from "./FeatureRequestCard";
 
 type InventoryCar = Pick<
   Car,
@@ -54,7 +55,7 @@ export default async function BusinessPage() {
   const host = headerList.get("host") ?? "";
   const siteOrigin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
 
-  const [{ data: cars }, { data: statsRows }, { data: leadsRows }] = await Promise.all([
+  const [{ data: cars }, { data: statsRows }, { data: leadsRows }, { data: featureRequests }] = await Promise.all([
     supabase
       .from("cars")
       .select("id, make, model, year, photo_urls, for_sale, for_swap, sold_at, price")
@@ -63,6 +64,13 @@ export default async function BusinessPage() {
       .returns<InventoryCar[]>(),
     supabase.rpc("get_profile_stats", { my_id: user.id }),
     supabase.rpc("get_dealer_leads_by_day", { my_id: user.id }),
+    supabase
+      .from("dealer_feature_requests")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .returns<DealerFeatureRequest[]>(),
   ]);
 
   const stats = (statsRows as Stats[] | null)?.[0] ?? null;
@@ -168,6 +176,8 @@ export default async function BusinessPage() {
         initialPublicPhone={me.public_phone}
         initialAddress={me.dealer_address}
       />
+
+      <FeatureRequestCard userId={user.id} initialRequests={featureRequests ?? []} />
 
       <div>
         <div className="flex items-center justify-between mb-4">

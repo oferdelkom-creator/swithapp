@@ -124,3 +124,18 @@ export interface Block {
   blocked_id: string;
   created_at: string;
 }
+
+export type DealerFeatureRequestStatus = "new" | "reviewing" | "planned" | "released" | "declined";
+
+export interface DealerFeatureRequest {
+  id: string;
+  user_id: string;
+  site_url: string | null;
+  reference_logo_url: string | null;
+  allow_site_analysis: boolean;
+  requested_change: string;
+  status: DealerFeatureRequestStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
