@@ -151,7 +151,7 @@ const overlays = [
 ];
 
 export default function EmptyCampaignCards() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const text = copy[locale];
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -254,6 +254,44 @@ export default function EmptyCampaignCards() {
             </article>
           );
         })}
+      </div>
+
+      <div className="sticky bottom-4 z-20 mx-auto flex w-fit items-end justify-center gap-5 rounded-full border border-white/70 bg-white/90 px-5 py-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={() => move(1)}
+            aria-label={t("swipe.skip")}
+            className="grid h-[58px] w-[58px] place-items-center rounded-full bg-gray-400 text-2xl font-bold text-white shadow-lg transition hover:scale-105 hover:bg-gray-500"
+          >
+            ✕
+          </button>
+          <span className="text-[11px] font-bold text-gray-500">{t("swipe.passLabel")}</span>
+        </div>
+
+        <div className="flex flex-col items-center gap-1">
+          <Link
+            href="/business/join/signup"
+            aria-label={t("swipe.maybe")}
+            className="grid h-[64px] w-[64px] place-items-center rounded-full bg-amber-500 text-white shadow-lg transition hover:scale-105 hover:bg-amber-600"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current stroke-2">
+              <path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+          <span className="text-[11px] font-bold text-amber-600">{t("swipe.tradeLabel")}</span>
+        </div>
+
+        <div className="flex flex-col items-center gap-1">
+          <Link
+            href="/business/join/signup"
+            aria-label={t("swipe.interested")}
+            className="grid h-[64px] w-[64px] place-items-center rounded-full bg-green-500 text-2xl text-white shadow-lg transition hover:scale-105 hover:bg-green-600"
+          >
+            ♥
+          </Link>
+          <span className="text-[11px] font-bold text-green-600">{t("swipe.buyLabel")}</span>
+        </div>
       </div>
     </section>
   );
