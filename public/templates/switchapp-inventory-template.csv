@@ -1,0 +1,2 @@
+make,model,year,mileage,transmission,category,color,plate_number,description,price,hand,fuel_type,region,for_sale,for_swap,want_make,want_model,photo_urls
+Toyota,Corolla,2022,45000,Automatic,car,White,12-345-67,One owner with service history,98000,1,Hybrid,Center,true,true,Toyota,RAV4,https://example.com/photo-1.jpg|https://example.com/photo-2.jpg

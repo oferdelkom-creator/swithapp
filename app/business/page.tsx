@@ -82,9 +82,39 @@ export default async function BusinessPage() {
 
       {stats && <ProfileStats stats={stats} />}
 
-      <Link href="/cars" className="btn-primary w-full text-center block">
-        {t("business.addNewCar")}
-      </Link>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {me.dealer_slug ? (
+          <Link href={`/d/${me.dealer_slug}`} className="card p-5 transition-colors hover:border-brand-blue">
+            <p className="font-semibold text-brand-blue-dark">{t("business.myStoreTitle")}</p>
+            <p className="mt-1 text-sm text-muted">{t("business.myStoreDescription")}</p>
+          </Link>
+        ) : (
+          <div className="card p-5 opacity-70">
+            <p className="font-semibold text-brand-blue-dark">{t("business.myStoreTitle")}</p>
+            <p className="mt-1 text-sm text-muted">{t("business.myStoreNeedsSlug")}</p>
+          </div>
+        )}
+        {active ? (
+          <Link href="/business/market" className="card p-5 transition-colors hover:border-brand-pink">
+            <p className="font-semibold text-brand-blue-dark">{t("business.marketTitle")}</p>
+            <p className="mt-1 text-sm text-muted">{t("business.marketDescription")}</p>
+          </Link>
+        ) : (
+          <div className="card p-5 opacity-70">
+            <p className="font-semibold text-brand-blue-dark">{t("business.marketTitle")}</p>
+            <p className="mt-1 text-sm text-muted">{t("business.marketNeedsSubscription")}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/cars" className="btn-primary block w-full text-center">
+          {t("business.addNewCar")}
+        </Link>
+        <Link href="/business/import" className="btn-secondary block w-full text-center">
+          {t("business.importInventory")}
+        </Link>
+      </div>
 
       <LeadsChart data={leadsByDay} />
 
