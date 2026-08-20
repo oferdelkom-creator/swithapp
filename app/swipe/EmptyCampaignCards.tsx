@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -168,6 +169,13 @@ const logoSlugs: Record<string, string> = {
 export default function EmptyCampaignCards() {
   const { locale } = useLocale();
   const text = copy[locale];
+  const railRef = useRef<HTMLDivElement>(null);
+
+  function move(direction: -1 | 1) {
+    const rail = railRef.current;
+    if (!rail) return;
+    rail.scrollBy({ left: direction * Math.max(300, rail.clientWidth * 0.85), behavior: "smooth" });
+  }
 
   return (
     <section aria-labelledby="empty-campaign-title" className="space-y-5">
@@ -178,7 +186,35 @@ export default function EmptyCampaignCards() {
         <p className="mt-2 text-sm leading-6 text-neutral-600">{text.intro}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-neutral-700">
+          {locale === "he" ? "החליקו בין ההזדמנויות" : locale === "ar" ? "اسحب بين الفرص" : locale === "ru" ? "Листайте предложения" : "Swipe through the opportunities"}
+        </p>
+        <div className="flex gap-2" dir="ltr">
+          <button
+            type="button"
+            onClick={() => move(-1)}
+            aria-label={locale === "he" ? "לכרטיס הקודם" : locale === "ar" ? "البطاقة السابقة" : "Previous card"}
+            className="grid h-11 w-11 place-items-center rounded-full border border-neutral-200 bg-white text-xl font-black text-neutral-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={() => move(1)}
+            aria-label={locale === "he" ? "לכרטיס הבא" : locale === "ar" ? "البطاقة التالية" : "Next card"}
+            className="grid h-11 w-11 place-items-center rounded-full border border-neutral-200 bg-white text-xl font-black text-neutral-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={railRef}
+        dir="ltr"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {Array.from({ length: 50 }, (_, index) => {
           const number = index + 1;
           const headline = text.headline[index % text.headline.length];
@@ -192,7 +228,8 @@ export default function EmptyCampaignCards() {
           return (
             <article
               key={number}
-              className="group relative isolate min-h-[430px] overflow-hidden rounded-[1.75rem] bg-slate-950 shadow-lg ring-1 ring-black/5 transition duration-300 [content-visibility:auto] [contain-intrinsic-size:430px] hover:-translate-y-1 hover:shadow-2xl"
+              dir={locale === "he" || locale === "ar" ? "rtl" : "ltr"}
+              className="group relative isolate min-h-[500px] w-[86vw] max-w-[360px] shrink-0 snap-center overflow-hidden rounded-[1.75rem] bg-slate-950 shadow-lg ring-1 ring-black/5 transition duration-300 [content-visibility:auto] [contain-intrinsic-size:500px] sm:w-[46vw] lg:w-[30vw] xl:w-[23vw] hover:-translate-y-1 hover:shadow-2xl"
             >
               <Image
                 src={image}
