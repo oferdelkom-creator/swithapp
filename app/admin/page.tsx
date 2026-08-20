@@ -11,6 +11,7 @@ import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
 import RemoveSeedDataButton from "./RemoveSeedDataButton";
 import FeatureRequestActions from "./FeatureRequestActions";
+import { tierForRequestedCap } from "@/lib/dealerPricing";
 
 type CarRow = Car & { users: { name: string } | null };
 type ReportRow = Message & {
@@ -145,6 +146,7 @@ export default async function AdminPage() {
             <tbody>
               {users?.map((u) => {
                 const online = !!u.last_seen_at && new Date(u.last_seen_at) > twoMinutesAgo;
+                const requestedTier = tierForRequestedCap(u.requested_car_cap);
                 return (
                 <tr key={u.id} className="border-b border-neutral-100">
                   <td className="py-2 pe-4">
@@ -159,7 +161,9 @@ export default async function AdminPage() {
                     {u.business_name ?? "-"}
                     {u.requested_car_cap != null && (
                       <span className="block text-xs text-neutral-400">
-                        {t("businessJoin.tierUpTo", { count: u.requested_car_cap })}
+                        {requestedTier.cap
+                          ? t("businessJoin.tierRange", { min: requestedTier.minCars, max: requestedTier.cap })
+                          : t("businessJoin.tierFrom", { count: requestedTier.minCars })}
                       </span>
                     )}
                     {u.custom_domain && (

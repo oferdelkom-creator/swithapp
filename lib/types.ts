@@ -34,6 +34,7 @@ export interface AppUser {
   business_name: string | null;
   billing_plan: BillingPlan | null;
   subscription_valid_until: string | null;
+  dealer_trial_started_at: string | null;
   premium_until: string | null;
   accepts_hello_messages: boolean;
   notify_on_match: boolean;

@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className={`h-full antialiased ${inter.variable}`}>
+    <html lang={locale} dir={locale === "he" || locale === "ar" ? "rtl" : "ltr"} className={`h-full antialiased ${inter.variable}`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <LocaleProvider locale={locale}>
           <Header

@@ -80,9 +80,11 @@ export async function proxy(request: NextRequest) {
   // explicitly after that. Applied to whichever response actually gets returned below,
   // since the Supabase cookie handler may swap `response` out for a new object.
   const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value;
-  const resolvedLocale = isLocale(existingLocale)
+  const forcedLocale = request.nextUrl.pathname === "/ar" || request.nextUrl.pathname.startsWith("/ar/") ? "ar" : null;
+  const resolvedLocale = forcedLocale ?? (isLocale(existingLocale)
     ? existingLocale
-    : parseAcceptLanguage(request.headers.get("accept-language"));
+    : parseAcceptLanguage(request.headers.get("accept-language")));
+  if (forcedLocale && existingLocale !== forcedLocale) request.cookies.set(LOCALE_COOKIE, forcedLocale);
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       cookies: {
@@ -120,7 +122,7 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (!isLocale(existingLocale)) {
+  if (!isLocale(existingLocale) || forcedLocale) {
     response.cookies.set(LOCALE_COOKIE, resolvedLocale, { path: "/", maxAge: 60 * 60 * 24 * 365 });
   }
 

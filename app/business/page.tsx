@@ -30,7 +30,7 @@ export default async function BusinessPage() {
   const { data: me } = await supabase
     .from("users")
     .select(
-      "role, business_name, billing_plan, subscription_valid_until, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone, dealer_address, requested_car_cap"
+      "role, business_name, billing_plan, subscription_valid_until, dealer_trial_started_at, dealer_slug, custom_domain, custom_domain_active, logo_url, cover_photo_url, dealer_description, public_phone, dealer_address, requested_car_cap"
     )
     .eq("id", user.id)
     .maybeSingle<{
@@ -38,6 +38,7 @@ export default async function BusinessPage() {
       business_name: string | null;
       billing_plan: string | null;
       subscription_valid_until: string | null;
+      dealer_trial_started_at: string | null;
       dealer_slug: string | null;
       custom_domain: string | null;
       custom_domain_active: boolean;
@@ -76,6 +77,10 @@ export default async function BusinessPage() {
   const stats = (statsRows as Stats[] | null)?.[0] ?? null;
   const leadsByDay = (leadsRows as LeadsByDay[] | null) ?? [];
   const active = me.subscription_valid_until && new Date(me.subscription_valid_until) > new Date();
+  const trialEndsAt = me.dealer_trial_started_at
+    ? new Date(new Date(me.dealer_trial_started_at).getTime() + 30 * 24 * 60 * 60 * 1000)
+    : null;
+  const trialActive = Boolean(trialEndsAt && trialEndsAt > new Date());
   const inventory = cars ?? [];
   const forSaleCount = inventory.filter((c) => c.for_sale && !c.sold_at).length;
   const forSwapCount = inventory.filter((c) => c.for_swap && !c.sold_at).length;
@@ -147,7 +152,9 @@ export default async function BusinessPage() {
           <p>
             {t("business.subscription")}{" "}
             <span className="text-emerald-700 font-medium">
-              {t("business.activeUntil", { date: formatDate(me.subscription_valid_until!, locale) })}
+              {trialActive
+                ? t("business.freeTrialActiveUntil", { date: formatDate(me.subscription_valid_until!, locale) })
+                : t("business.activeUntil", { date: formatDate(me.subscription_valid_until!, locale) })}
             </span>
           </p>
         ) : (

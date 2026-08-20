@@ -5,7 +5,10 @@ import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
 
 export function generateMetadata(): Metadata {
-  return { alternates: { canonical: SITE_URL }, openGraph: { url: SITE_URL } };
+  return {
+    alternates: { canonical: SITE_URL, languages: { ar: `${SITE_URL}/ar`, "x-default": SITE_URL } },
+    openGraph: { url: SITE_URL },
+  };
 }
 
 export default async function HomePage() {
