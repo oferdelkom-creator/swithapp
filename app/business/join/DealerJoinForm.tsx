@@ -49,6 +49,19 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
+  function localizedSignupError(message: string) {
+    const normalized = message.toLowerCase();
+    if (normalized.includes("already registered") || normalized.includes("already been registered")) {
+      return "כתובת האימייל כבר רשומה. אפשר להתחבר לחשבון הקיים.";
+    }
+    if (normalized.includes("password") && normalized.includes("least")) {
+      return "הסיסמה קצרה מדי. יש להזין לפחות 6 תווים.";
+    }
+    if (normalized.includes("invalid email")) return "כתובת האימייל אינה תקינה.";
+    if (normalized.includes("rate limit")) return "בוצעו יותר מדי ניסיונות. המתינו מספר דקות ונסו שוב.";
+    return "לא הצלחנו להשלים את ההרשמה כרגע. בדקו את הפרטים ונסו שוב.";
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -95,7 +108,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      setError(localizedSignupError(signUpError.message));
       setLoading(false);
       return;
     }
@@ -118,7 +131,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       });
     } catch (signupError) {
       const message = signupError instanceof Error ? signupError.message : String(signupError);
-      setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : message);
+      setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : localizedSignupError(message));
       setLoading(false);
       return;
     }

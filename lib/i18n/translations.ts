@@ -1,7 +1,11 @@
 export type Locale = "en" | "he" | "ru" | "ar";
 
 export const LOCALES: Locale[] = ["en", "he", "ru", "ar"];
-export const DEFAULT_LOCALE: Locale = "en";
+// SwitchApp launches in Israel, so a visitor without a saved preference should
+// never land in an English registration flow. Browser preferences still select
+// English/Russian/Arabic when explicitly supplied, and the language switcher
+// remains authoritative afterwards.
+export const DEFAULT_LOCALE: Locale = "he";
 
 // Flat dot-namespaced keys, one string per locale. Adding a third language later means
 // adding one more entry to this record - nothing else in the app assumes only en/he.
@@ -368,6 +372,9 @@ const en = {
   "quickAuth.title": "Almost there",
   "quickAuth.subtitle": "Verify your phone number to send this to the seller.",
 
+  "businessJoin.eyebrow": "SwitchApp for business",
+  "businessJoin.viewDealerDemo": "View a sample dealership",
+  "businessJoin.viewImporterDemo": "View a sample importer",
   "businessJoin.heroTitle": "Your digital showroom starts here",
   "businessJoin.heroSubtitle":
     "For dealerships, agencies and car importers — manage inventory, receive trade-in leads and create a branded customer experience.",
@@ -855,6 +862,9 @@ const he: Record<Key, string> = {
   "quickAuth.title": "עוד רגע אחד",
   "quickAuth.subtitle": "אמתו את מספר הטלפון שלכם כדי לשלוח את זה למוכר.",
 
+  "businessJoin.eyebrow": "SwitchApp לעסקים",
+  "businessJoin.viewDealerDemo": "צפייה במגרש לדוגמה",
+  "businessJoin.viewImporterDemo": "צפייה ביבואן לדוגמה",
   "businessJoin.heroTitle": "אולם התצוגה הדיגיטלי שלכם מתחיל כאן",
   "businessJoin.heroSubtitle": "למגרשי רכב, סוכנויות ויבואני רכב — ניהול מלאי, לידים לטרייד־אין וחוויית לקוח ממותגת במקום אחד.",
   "businessJoin.systemDescription": "מערכת מסודרת למגרשי רכב, דילרים ויבואנים — מהליד ועד עסקת החלפה.",
@@ -1337,6 +1347,9 @@ const ru: Record<Key, string> = {
   "quickAuth.title": "Ещё один шаг",
   "quickAuth.subtitle": "Подтвердите номер телефона, чтобы отправить это продавцу.",
 
+  "businessJoin.eyebrow": "SwitchApp для бизнеса",
+  "businessJoin.viewDealerDemo": "Пример страницы автосалона",
+  "businessJoin.viewImporterDemo": "Пример страницы импортёра",
   "businessJoin.heroTitle": "Ваш цифровой автосалон начинается здесь",
   "businessJoin.heroSubtitle":
     "Для автосалонов, агентств и импортёров — управление инвентарём, заявки на обмен и фирменный клиентский опыт в одном месте.",
@@ -1486,6 +1499,9 @@ const ar: Record<Key, string> = {
   "home.benefitBrowse": "تصفّح سيارات للبيع والتبديل",
   "home.benefitMatch": "اعثر على الصفقة المناسبة",
   "home.benefitChat": "تواصل وأغلق الصفقة",
+  "businessJoin.eyebrow": "SwitchApp للأعمال",
+  "businessJoin.viewDealerDemo": "عرض معرض سيارات تجريبي",
+  "businessJoin.viewImporterDemo": "عرض صفحة مستورد تجريبية",
   "businessJoin.heroTitle": "معرضك الرقمي يبدأ من هنا",
   "businessJoin.heroSubtitle": "للمعارض والوكلاء والمستوردين: إدارة المخزون، طلبات الاستبدال وتجربة عميل تحمل علامتك التجارية.",
   "businessJoin.systemDescription": "نظام متكامل لمعارض وتجار السيارات، من أول عميل حتى صفقة الاستبدال.",

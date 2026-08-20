@@ -17,7 +17,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
   return (
     <main className="mx-auto max-w-5xl px-4 py-12 sm:py-20">
       <section className="mx-auto max-w-3xl text-center">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-brand-pink">SwitchApp for business</p>
+        <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-pink">{t("businessJoin.eyebrow")}</p>
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-neutral-600">{t("businessJoin.heroSubtitle")}</p>
         <div className={`mx-auto mt-5 max-w-xl rounded-2xl px-5 py-4 ${remainingTrialSlots > 0 ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-600"}`}>
@@ -35,6 +35,11 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
           <a href="#pricing" className="btn-secondary px-7 py-3 text-base">
             {t("businessJoin.pricingTitle")}
           </a>
+        </div>
+        <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
+          <a href="/demo/dealer" className="text-brand-blue underline underline-offset-4">{t("businessJoin.viewDealerDemo")}</a>
+          <span className="text-neutral-300">•</span>
+          <a href="/demo/importer" className="text-brand-blue underline underline-offset-4">{t("businessJoin.viewImporterDemo")}</a>
         </div>
       </section>
 
