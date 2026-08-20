@@ -368,6 +368,7 @@ const en = {
   "businessJoin.heroTitle": "Your digital showroom starts here",
   "businessJoin.heroSubtitle":
     "For dealerships, agencies and car importers — manage inventory, receive trade-in leads and create a branded customer experience.",
+  "businessJoin.systemDescription": "An organized system for dealerships, dealers and importers — from the first lead to the trade transaction.",
   "businessJoin.typeDealer": "Dealership / agency",
   "businessJoin.typeDealerDescription": "For car lots and sales agencies.",
   "businessJoin.typeOfficialImporter": "Official importer",
@@ -842,6 +843,7 @@ const he: Record<Key, string> = {
 
   "businessJoin.heroTitle": "אולם התצוגה הדיגיטלי שלכם מתחיל כאן",
   "businessJoin.heroSubtitle": "למגרשי רכב, סוכנויות ויבואני רכב — ניהול מלאי, לידים לטרייד־אין וחוויית לקוח ממותגת במקום אחד.",
+  "businessJoin.systemDescription": "מערכת מסודרת למגרשי רכב, דילרים ויבואנים — מהליד ועד עסקת החלפה.",
   "businessJoin.typeDealer": "מגרש / סוכנות",
   "businessJoin.typeDealerDescription": "למגרשי רכב וסוכנויות מכירה.",
   "businessJoin.typeOfficialImporter": "יבואן רשמי",
@@ -1313,6 +1315,7 @@ const ru: Record<Key, string> = {
   "businessJoin.heroTitle": "Ваш цифровой автосалон начинается здесь",
   "businessJoin.heroSubtitle":
     "Для автосалонов, агентств и импортёров — управление инвентарём, заявки на обмен и фирменный клиентский опыт в одном месте.",
+  "businessJoin.systemDescription": "Удобная система для автосалонов, дилеров и импортёров — от первого лида до сделки по обмену.",
   "businessJoin.typeDealer": "Автосалон / агентство",
   "businessJoin.typeDealerDescription": "Для автосалонов и агентств по продаже автомобилей.",
   "businessJoin.typeOfficialImporter": "Официальный импортёр",

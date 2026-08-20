@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LOCALE_COOKIE } from "@/lib/i18n/locale";
 import { useLocale } from "./LocaleProvider";
 import type { Locale } from "@/lib/i18n/translations";
@@ -12,14 +11,15 @@ const OPTIONS: { value: Locale; label: string }[] = [
 ];
 
 export default function LanguageSwitcher() {
-  const router = useRouter();
   const { locale } = useLocale();
 
   function setLocale(next: Locale) {
     if (next === locale) return;
     // eslint-disable-next-line react-hooks/immutability -- setting a cookie from a click handler is a legitimate side effect, not a render-time mutation
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
-    router.refresh();
+    // Clear route payloads prefetched in the previous language as well as
+    // re-rendering the current page with the new locale cookie.
+    window.location.reload();
   }
 
   return (

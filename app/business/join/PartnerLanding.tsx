@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 
@@ -22,9 +21,9 @@ export default function PartnerLanding() {
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-neutral-600">{t("businessJoin.heroSubtitle")}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/business/join/signup" className="btn-primary px-7 py-3 text-base">
+          <a href="/business/join/signup" className="btn-primary px-7 py-3 text-base">
             {t("businessJoin.submit")}
-          </Link>
+          </a>
           <a href="#pricing" className="btn-secondary px-7 py-3 text-base">
             {t("businessJoin.pricingTitle")}
           </a>
@@ -34,7 +33,7 @@ export default function PartnerLanding() {
       <section className="mt-16 grid gap-5 rounded-3xl bg-neutral-50 p-6 sm:grid-cols-2 sm:p-9">
         <div>
           <h2 className="text-2xl font-semibold">{t("businessJoin.whatYouGetTitle")}</h2>
-          <p className="mt-2 text-sm text-neutral-500">מערכת מסודרת למגרשי רכב, דילרים ויבואנים — מהליד ועד עסקת החלפה.</p>
+          <p className="mt-2 text-sm text-neutral-500">{t("businessJoin.systemDescription")}</p>
         </div>
         <ul className="space-y-3 text-sm text-neutral-700">
           {BENEFIT_KEYS.map((key) => (
@@ -64,9 +63,9 @@ export default function PartnerLanding() {
           ))}
         </div>
         <div className="mt-8 text-center">
-          <Link href="/business/join/signup" className="btn-primary inline-flex px-8 py-3">
+          <a href="/business/join/signup" className="btn-primary inline-flex px-8 py-3">
             {t("businessJoin.submit")}
-          </Link>
+          </a>
         </div>
       </section>
     </main>
