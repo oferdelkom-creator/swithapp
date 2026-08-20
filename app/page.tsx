@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
+
+export function generateMetadata(): Metadata {
+  return { alternates: { canonical: SITE_URL }, openGraph: { url: SITE_URL } };
+}
 
 export default async function HomePage() {
   const supabase = await createClient();
