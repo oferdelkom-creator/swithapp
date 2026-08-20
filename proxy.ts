@@ -35,17 +35,13 @@ function isCarsRouteProtected(pathname: string): boolean {
 // switchapp.co.il (added 2026-08-16, same day) is our own primary domain, not a
 // dealer's - listed explicitly so it never takes the extra DB round trip on every
 // request once DNS/Vercel are pointed at it.
-const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost", "switchapp.co.il"];
+const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost"];
 
-async function resolveCustomDomainSlug(host: string): Promise<string | null> {
-  if (FIRST_PARTY_HOST_SUFFIXES.some((suffix) => host.includes(suffix))) return null;
-
-  // A raw REST call instead of the supabase-js client - this is a single anonymous
-  // read (RLS allows "select using (true)" on users), and avoids pulling in a client
-  // built around browser storage APIs that don't exist in the edge runtime.
+async function lookupDealerSlug(column: "dealer_slug" | "custom_domain", value: string, activeDomainOnly = false): Promise<string | null> {
+  const activeFilter = activeDomainOnly ? "&custom_domain_active=eq.true" : "";
   const lookupUrl =
-    `${SUPABASE_URL}/rest/v1/users?select=dealer_slug&custom_domain=eq.${encodeURIComponent(host)}` +
-    `&custom_domain_active=eq.true&limit=1`;
+    `${SUPABASE_URL}/rest/v1/users?select=dealer_slug&${column}=eq.${encodeURIComponent(value)}` +
+    `${activeFilter}&role=in.(dealer,importer)&limit=1`;
   try {
     const res = await fetch(lookupUrl, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
@@ -56,6 +52,21 @@ async function resolveCustomDomainSlug(host: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function resolveCustomDomainSlug(host: string): Promise<string | null> {
+  const hostname = host.toLowerCase().split(":")[0].replace(/\.$/, "");
+  if (hostname.endsWith(".switchapp.co.il")) {
+    const slug = hostname.slice(0, -".switchapp.co.il".length);
+    if (slug && slug !== "www" && !slug.includes(".")) return lookupDealerSlug("dealer_slug", slug);
+    return null;
+  }
+  if (hostname === "switchapp.co.il" || FIRST_PARTY_HOST_SUFFIXES.some((suffix) => hostname.includes(suffix))) return null;
+
+  // A raw REST call instead of the supabase-js client - this is a single anonymous
+  // read (RLS allows "select using (true)" on users), and avoids pulling in a client
+  // built around browser storage APIs that don't exist in the edge runtime.
+  return lookupDealerSlug("custom_domain", hostname, true);
 }
 
 export async function proxy(request: NextRequest) {

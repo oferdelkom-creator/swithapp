@@ -28,8 +28,10 @@ export default function FinishSignup() {
       const cap = capParam ? Number(capParam) : null;
       const phone = searchParams.get("phone") ?? "";
       const role = searchParams.get("role") === "importer" ? "importer" : "dealer";
+      const dealerSlug = searchParams.get("dealer_slug") ?? "";
+      const customDomain = searchParams.get("custom_domain") || null;
 
-      await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role });
+      await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
       router.push("/business");
       router.refresh();
     }
