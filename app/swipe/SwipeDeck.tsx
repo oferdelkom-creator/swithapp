@@ -14,6 +14,7 @@ import QuickSignupModal from "@/components/QuickSignupModal";
 import TradeDetailsModal from "@/components/TradeDetailsModal";
 import VehicleTypeIcon from "@/components/VehicleTypeIcon";
 import { parseSearchQuery } from "@/lib/searchParser";
+import EmptyCampaignCards from "./EmptyCampaignCards";
 
 type Mode = "sale" | "swap";
 
@@ -649,7 +650,7 @@ export default function SwipeDeck({
       ) : loading ? (
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
       ) : deck.length === 0 ? (
-        <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
+        mode === "sale" ? <EmptyCampaignCards /> : <p className="text-neutral-500 text-sm">{t("swipe.noMoreCars")}</p>
       ) : (
         <>
           {/* Swiping one card at a time is a mobile-gesture pattern - a mouse-and-
