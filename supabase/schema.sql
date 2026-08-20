@@ -41,6 +41,10 @@ create table public.users (
   business_name text,
   billing_plan billing_plan,
   subscription_valid_until timestamptz,
+  -- Set once when a private account first becomes a dealer/importer. The matching
+  -- trigger grants 30 days of full access without collecting payment details and
+  -- prevents the same account from repeatedly restarting the trial.
+  dealer_trial_started_at timestamptz,
   premium_until timestamptz,
   accepts_hello_messages boolean not null default true,
   -- Foreground match-notification opt-in (added 2026-08-15, migration
@@ -1030,6 +1034,7 @@ begin
        or new.is_banned is distinct from old.is_banned
        or new.premium_until is distinct from old.premium_until
        or new.subscription_valid_until is distinct from old.subscription_valid_until
+       or new.dealer_trial_started_at is distinct from old.dealer_trial_started_at
        or new.custom_domain_active is distinct from old.custom_domain_active then
       raise exception 'Only an admin can change these fields';
     end if;
@@ -1041,6 +1046,35 @@ $$;
 create trigger before_users_update_protect
   before update on public.users
   for each row execute function public.protect_privileged_user_columns();
+
+create or replace function public.start_dealer_trial_on_role_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.role = 'private'
+     and new.role in ('dealer', 'importer')
+     and old.dealer_trial_started_at is null then
+    -- Serialize claims so simultaneous signups cannot both take the final slot.
+    perform pg_advisory_xact_lock(hashtext('switchapp_dealer_trial_first_30'));
+    if (select count(*) from public.users where dealer_trial_started_at is not null) < 30 then
+      new.dealer_trial_started_at := now();
+      new.subscription_valid_until := now() + interval '30 days';
+      new.billing_plan := 'subscription';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- PostgreSQL executes triggers with the same timing/event alphabetically. The z_
+-- prefix intentionally runs this after before_users_update_protect has verified
+-- that the client itself did not attempt to edit protected subscription fields.
+create trigger z_before_users_update_start_dealer_trial
+  before update on public.users
+  for each row execute function public.start_dealer_trial_on_role_change();
 
 -- Same gap on cars: "Users can update their own car" has no column restriction, so an
 -- owner could self-set listing_fee_paid or boosted_until, bypassing admin-only billing.

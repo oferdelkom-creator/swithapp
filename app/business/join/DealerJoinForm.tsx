@@ -33,7 +33,7 @@ const BUSINESS_TYPES: {
   { value: "parallel_importer", role: "importer", labelKey: "businessJoin.typeParallelImporter", descriptionKey: "businessJoin.typeParallelImporterDescription" },
 ];
 
-export default function DealerJoinForm() {
+export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrialSlots: number }) {
   const { t } = useLocale();
   const router = useRouter();
   const [businessType, setBusinessType] = useState<BusinessType>("dealer");
@@ -142,6 +142,11 @@ export default function DealerJoinForm() {
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">{t("businessJoin.heroTitle")}</h1>
         <p className="mt-3 text-neutral-500">{t("businessJoin.heroSubtitle")}</p>
+        <p className={`mt-3 rounded-xl px-4 py-3 text-sm font-medium ${remainingTrialSlots > 0 ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-600"}`}>
+          {remainingTrialSlots > 0
+            ? t("businessJoin.freeTrialDescription", { remaining: remainingTrialSlots })
+            : t("businessJoin.freeTrialEndedDescription")}
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -178,24 +183,27 @@ export default function DealerJoinForm() {
       <div>
         <h2 className="font-semibold mb-1">{t("businessJoin.pricingTitle")}</h2>
         <p className="text-sm text-neutral-500 mb-4">{t("businessJoin.pricingSubtitle")}</p>
+        <p className="mb-4 text-sm font-medium text-emerald-700">{t("businessJoin.minimumInventory")}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {DEALER_TIERS.map((tierOption) => {
-            const selected = tier === tierOption.cap;
+            const selected = tier === tierOption.requestValue;
             return (
               <button
-                key={tierOption.cap ?? "custom"}
+                key={tierOption.requestValue}
                 type="button"
-                onClick={() => setTier(tierOption.cap)}
+                onClick={() => setTier(tierOption.requestValue)}
                 className={`text-start rounded-2xl p-4 border-2 transition-colors ${
                   selected ? "border-brand-pink bg-[#fff1f3]" : "border-neutral-200 bg-white hover:border-neutral-300"
                 }`}
               >
                 <p className="font-medium">
-                  {tierOption.cap ? t("businessJoin.tierUpTo", { count: tierOption.cap }) : t("businessJoin.tierCustomLabel")}
+                  {tierOption.cap
+                    ? t("businessJoin.tierRange", { min: tierOption.minCars, max: tierOption.cap })
+                    : t("businessJoin.tierFrom", { count: tierOption.minCars })}
                 </p>
                 <p className="text-sm text-neutral-500 mt-1">
-                  {tierOption.priceMonthly
-                    ? t("businessJoin.perMonth", { price: tierOption.priceMonthly.toLocaleString() })
+                  {tierOption.pricePerCar
+                    ? t("businessJoin.perCarMonth", { price: tierOption.pricePerCar })
                     : t("businessJoin.tierCustomPrice")}
                 </p>
               </button>

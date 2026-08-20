@@ -4,6 +4,7 @@ const INTL_LOCALE: Record<Locale, string> = {
   en: "en-US",
   he: "he-IL",
   ru: "ru-RU",
+  ar: "ar-IL",
 };
 
 export function formatDate(iso: string, locale: Locale): string {

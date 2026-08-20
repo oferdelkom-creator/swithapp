@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
-import { DEALER_TIERS, tierPriceFor } from "@/lib/dealerPricing";
+import { tierForRequestedCap } from "@/lib/dealerPricing";
 
 // No payment gateway is wired up (see README) - clicking this doesn't charge anything.
 // It just self-sets billing_plan (not an admin-protected column), which flips the UI
@@ -28,7 +28,7 @@ export default function ActivateSubscriptionCTA({
   const router = useRouter();
   const [requesting, setRequesting] = useState(false);
   const [requested, setRequested] = useState(billingPlan === "subscription");
-  const price = tierPriceFor(requestedCarCap) ?? DEALER_TIERS[0].priceMonthly ?? 0;
+  const tier = tierForRequestedCap(requestedCarCap);
 
   async function activate() {
     setRequesting(true);
@@ -45,7 +45,11 @@ export default function ActivateSubscriptionCTA({
 
   return (
     <button type="button" onClick={activate} disabled={requesting} className="btn-primary text-sm">
-      {requesting ? t("carForm.saving") : t("business.activateSubscriptionCta", { price })}
+      {requesting
+        ? t("carForm.saving")
+        : tier.pricePerCar
+          ? t("business.activateSubscriptionPerCarCta", { price: tier.pricePerCar })
+          : t("business.activateSubscriptionCustomCta")}
     </button>
   );
 }
