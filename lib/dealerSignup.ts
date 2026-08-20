@@ -9,19 +9,31 @@ import { createClient } from "@/lib/supabase/client";
 // team activates payment (see ActivateSubscriptionButton in /admin).
 export async function finishDealerSignup(
   supabase: ReturnType<typeof createClient>,
-  params: { userId: string; businessName: string; cap: number | null; phone: string; role: "dealer" | "importer" }
+  params: {
+    userId: string;
+    businessName: string;
+    cap: number | null;
+    phone: string;
+    role: "dealer" | "importer";
+    dealerSlug: string;
+    customDomain: string | null;
+  }
 ) {
-  const { userId, businessName, cap, phone, role } = params;
+  const { userId, businessName, cap, phone, role, dealerSlug, customDomain } = params;
 
-  await supabase
+  const { error } = await supabase
     .from("users")
     .update({
       role,
       business_name: businessName,
       billing_plan: "subscription",
       requested_car_cap: cap,
+      dealer_slug: dealerSlug,
+      custom_domain: customDomain,
+      custom_domain_active: false,
     })
     .eq("id", userId);
+  if (error) throw error;
 
   if (phone.trim()) {
     // Best-effort - a duplicate phone (unique constraint) shouldn't block the signup.

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { finishDealerSignup } from "@/lib/dealerSignup";
+import { isValidDealerSlug, normalizeCustomDomain, normalizeDealerSlug } from "@/lib/dealerDomains";
 
 const BENEFIT_KEYS = [
   "businessJoin.benefit1",
@@ -41,6 +42,8 @@ export default function DealerJoinForm() {
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [dealerSlug, setDealerSlug] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,13 +56,34 @@ export default function DealerJoinForm() {
       setError(t("businessJoin.selectTierError"));
       return;
     }
+    const cleanedSlug = normalizeDealerSlug(dealerSlug);
+    if (!isValidDealerSlug(cleanedSlug)) {
+      setError(t("businessJoin.slugError"));
+      return;
+    }
+    const cleanedDomain = customDomain.trim() ? normalizeCustomDomain(customDomain) : null;
+    if (customDomain.trim() && !cleanedDomain) {
+      setError(t("businessJoin.domainError"));
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
+
+    const availabilityChecks = [
+      supabase.from("users").select("id").eq("dealer_slug", cleanedSlug).limit(1),
+      ...(cleanedDomain ? [supabase.from("users").select("id").eq("custom_domain", cleanedDomain).limit(1)] : []),
+    ];
+    const availability = await Promise.all(availabilityChecks);
+    if (availability.some(({ data, error: checkError }) => checkError || (data?.length ?? 0) > 0)) {
+      setError(t("businessJoin.addressTaken"));
+      setLoading(false);
+      return;
+    }
 
     const role = BUSINESS_TYPES.find((type) => type.value === businessType)!.role;
     const finishPath = `/business/join/finish?business_name=${encodeURIComponent(businessName)}&cap=${
       tier ?? ""
-    }&phone=${encodeURIComponent(phone)}&role=${role}`;
+    }&phone=${encodeURIComponent(phone)}&role=${role}&dealer_slug=${encodeURIComponent(cleanedSlug)}&custom_domain=${encodeURIComponent(cleanedDomain ?? "")}`;
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -82,7 +106,22 @@ export default function DealerJoinForm() {
       return;
     }
 
-    await finishDealerSignup(supabase, { userId: data.user.id, businessName, cap: tier, phone, role });
+    try {
+      await finishDealerSignup(supabase, {
+        userId: data.user.id,
+        businessName,
+        cap: tier,
+        phone,
+        role,
+        dealerSlug: cleanedSlug,
+        customDomain: cleanedDomain,
+      });
+    } catch (signupError) {
+      const message = signupError instanceof Error ? signupError.message : String(signupError);
+      setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : message);
+      setLoading(false);
+      return;
+    }
     router.push("/business");
     router.refresh();
   }
@@ -169,7 +208,28 @@ export default function DealerJoinForm() {
         <h2 className="font-semibold">{t("businessJoin.formTitle")}</h2>
         <div>
           <label className="block text-sm font-medium mb-1">{t("businessJoin.businessName")}</label>
-          <input required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="field" />
+          <input
+            required
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            onBlur={() => {
+              if (!dealerSlug) setDealerSlug(normalizeDealerSlug(businessName));
+            }}
+            className="field"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("businessJoin.storeAddress")}</label>
+          <div className="flex" dir="ltr">
+            <input required value={dealerSlug} onChange={(e) => setDealerSlug(normalizeDealerSlug(e.target.value))} placeholder="my-dealership" className="field w-full rounded-r-none" />
+            <span className="inline-flex items-center rounded-r-xl border border-l-0 border-neutral-300 bg-neutral-50 px-3 text-xs text-neutral-600">.switchapp.co.il</span>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">{t("businessJoin.storeAddressHint")}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("businessJoin.existingDomain")}</label>
+          <input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="www.my-dealership.co.il" className="field" dir="ltr" />
+          <p className="mt-1 text-xs text-neutral-500">{t("businessJoin.existingDomainHint")}</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("businessJoin.contactName")}</label>
