@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import VehicleTypeIcon from "@/components/VehicleTypeIcon";
 import type { Locale } from "@/lib/i18n/translations";
 
 const copy: Record<
@@ -149,23 +150,6 @@ const overlays = [
   "from-violet-950/90 via-fuchsia-900/35 to-transparent",
 ];
 
-const brands = [
-  "Toyota", "Hyundai", "Kia", "Mazda", "Skoda", "Suzuki", "Mitsubishi", "Nissan", "Honda", "Ford",
-  "Chevrolet", "Renault", "Peugeot", "Citroen", "Volkswagen", "SEAT", "Cupra", "Opel", "Fiat", "Volvo",
-  "BMW", "Mini", "Mercedes-Benz", "Smart", "Audi", "Lexus", "Subaru", "Dacia", "Jeep", "Chrysler",
-  "Jaguar", "Land Rover", "Porsche", "Alfa Romeo", "Isuzu", "Genesis", "Cadillac", "Tesla", "Polestar", "BYD",
-  "Chery", "MG", "Geely", "Zeekr", "Xpeng", "NIO", "Yamaha", "Kawasaki", "Scania", "Iveco",
-];
-
-const logoSlugs: Record<string, string> = {
-  Toyota: "toyota", Hyundai: "hyundai", Kia: "kia", Mazda: "mazda", Suzuki: "suzuki", Mitsubishi: "mitsubishi",
-  Nissan: "nissan", Honda: "honda", Ford: "ford", Chevrolet: "chevrolet", Renault: "renault", Peugeot: "peugeot",
-  Volkswagen: "volkswagen", SEAT: "seat", Opel: "opel", Fiat: "fiat", Volvo: "volvo", BMW: "bmw", Mini: "mini",
-  Smart: "smart", Audi: "audi", Subaru: "subaru", Dacia: "dacia", Jeep: "jeep", Chrysler: "chrysler",
-  Porsche: "porsche", Cadillac: "cadillac", Tesla: "tesla", Polestar: "polestar", MG: "mg",
-  Citroen: "citroen", Yamaha: "yamahamotorcorporation", Scania: "scania", Iveco: "iveco",
-};
-
 export default function EmptyCampaignCards() {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -221,8 +205,6 @@ export default function EmptyCampaignCards() {
           const body = text.body[Math.floor(index / text.headline.length)];
           const image = images[index % images.length];
           const overlay = overlays[index % overlays.length];
-          const brand = brands[index];
-          const logoSlug = logoSlugs[brand];
           const importerCard = number % 5 === 0;
 
           return (
@@ -239,17 +221,19 @@ export default function EmptyCampaignCards() {
                 className="object-cover transition duration-700 group-hover:scale-105"
               />
               <div className={`absolute inset-0 bg-gradient-to-t ${overlay}`} />
+              <div
+                aria-hidden="true"
+                className="absolute start-5 top-5 z-10 grid h-16 w-16 place-items-center rounded-2xl border border-white/30 bg-white/90 text-slate-950 shadow-xl backdrop-blur-md"
+              >
+                <VehicleTypeIcon type="car" className="h-10 w-10" />
+              </div>
               <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[65%] flex-col justify-end p-5 text-white">
                 <div className="mb-auto flex items-center justify-between gap-3 text-[11px] font-bold tracking-wide">
                   <span className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-md">
-                    {logoSlug ? (
-                      <Image src={`/vehicle-logos/${logoSlug}.svg`} alt="" width={24} height={24} className="h-6 w-6 object-contain" />
-                    ) : (
-                      <span aria-hidden="true" className="grid h-6 w-6 place-items-center rounded-full bg-slate-900 text-[9px] font-black text-white">
-                        {brand.slice(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                    <span>{brand}</span>
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-950 text-white">
+                      <VehicleTypeIcon type="car" className="h-5 w-5" />
+                    </span>
+                    <span>{locale === "he" ? "רכב" : locale === "ar" ? "سيارة" : locale === "ru" ? "Автомобиль" : "Vehicle"}</span>
                   </span>
                   <span aria-label={`${number} / 50`} className="rounded-full bg-black/30 px-2.5 py-1.5 tabular-nums backdrop-blur-md">
                     {String(number).padStart(2, "0")}/50
