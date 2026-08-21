@@ -7,6 +7,10 @@ export function parseAcceptLanguage(header: string | null): Locale {
   if (!header) return DEFAULT_LOCALE;
   // "he-IL,he;q=0.9,en-US;q=0.8" -> first tag's primary subtag.
   const first = header.split(",")[0]?.trim().split("-")[0]?.toLowerCase();
+  // The Israeli launch defaults first-time visitors to Hebrew even when their
+  // device/browser ships with English. English remains fully available through
+  // the language switcher, whose cookie is checked before this fallback runs.
+  if (first === "en") return DEFAULT_LOCALE;
   return (LOCALES as string[]).includes(first) ? (first as Locale) : DEFAULT_LOCALE;
 }
 

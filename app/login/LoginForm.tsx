@@ -62,6 +62,7 @@ export default function LoginForm() {
       setError(verifyError.message);
       return;
     }
+    await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
     const next = searchParams.get("next") || "/";
     router.push(next);
     router.refresh();
@@ -97,6 +98,7 @@ export default function LoginForm() {
           setLoading(false);
           return;
         }
+        await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,

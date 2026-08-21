@@ -129,6 +129,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         dealerSlug: cleanedSlug,
         customDomain: cleanedDomain,
       });
+      await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
     } catch (signupError) {
       const message = signupError instanceof Error ? signupError.message : String(signupError);
       setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : localizedSignupError(message));
