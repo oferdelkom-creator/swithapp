@@ -75,9 +75,10 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
   const stats = (statsRows as DealerPublicStats[] | null)?.[0] ?? null;
 
   const displayName = dealer.business_name || dealer.name;
+  const isEinavLuxury = slug === "einav-luxury";
 
   return (
-    <div className="pb-28">
+    <div className={`pb-28 ${isEinavLuxury ? "einav-luxury-page" : ""}`}>
       {/* Full-bleed on desktop instead of capped at the same narrow column as the
           text below it - a wide cover banner reads as a real branded page, not a
           mobile card stretched thin. */}
@@ -114,6 +115,12 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
             </p>
           )}
 
+          {isEinavLuxury && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+              אולם תצוגה דיגיטלי להדגמה — התמונות, המחירים והמפרטים להמחשה בלבד.
+            </div>
+          )}
+
           {stats && (stats.active_listings > 0 || stats.completed_matches > 0) && (
             <div className="flex gap-2 mt-4">
               <div className="flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-center">
@@ -133,7 +140,7 @@ export default async function DealerPage({ params }: { params: Promise<{ slug: s
           header above stays a centered narrow block, but a browsable grid of
           inventory benefits from the extra width the same way /swipe's does. */}
       <div className="max-w-md md:max-w-6xl mx-auto px-4">
-        <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} />
+        <DealerPageTabs userId={user?.id ?? null} dealerId={dealer.id} luxuryMode={isEinavLuxury} />
       </div>
 
       {dealer.public_phone && (

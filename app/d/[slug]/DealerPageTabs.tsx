@@ -7,7 +7,15 @@ import DealerCatalog from "./DealerCatalog";
 
 type Tab = "swipe" | "catalog";
 
-export default function DealerPageTabs({ userId, dealerId }: { userId: string | null; dealerId: string }) {
+export default function DealerPageTabs({
+  userId,
+  dealerId,
+  luxuryMode = false,
+}: {
+  userId: string | null;
+  dealerId: string;
+  luxuryMode?: boolean;
+}) {
   const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("swipe");
 
@@ -32,10 +40,10 @@ export default function DealerPageTabs({ userId, dealerId }: { userId: string | 
         // Swiping one card at a time doesn't need the wider column its parent gets
         // for the grid tab - capped back to the mobile card width even on desktop.
         <div className="md:max-w-md md:mx-auto">
-          <DealerDeck userId={userId} dealerId={dealerId} />
+          <DealerDeck userId={userId} dealerId={dealerId} luxuryMode={luxuryMode} />
         </div>
       ) : (
-        <DealerCatalog userId={userId} dealerId={dealerId} />
+        <DealerCatalog userId={userId} dealerId={dealerId} luxuryMode={luxuryMode} />
       )}
     </div>
   );

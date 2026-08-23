@@ -19,9 +19,22 @@ interface DealerCar {
   for_swap: boolean;
 }
 
-const BUDGETS = [50000, 100000, 200000];
+const STANDARD_BUDGETS = [50000, 100000, 200000];
+const LUXURY_BUDGETS = [1000000, 1500000, 2000000, 3500000];
 
-export default function DealerCatalog({ userId, dealerId }: { userId: string | null; dealerId: string }) {
+function formatPrice(price: number) {
+  return `₪${price.toLocaleString("he-IL")}`;
+}
+
+export default function DealerCatalog({
+  userId,
+  dealerId,
+  luxuryMode = false,
+}: {
+  userId: string | null;
+  dealerId: string;
+  luxuryMode?: boolean;
+}) {
   const { t } = useLocale();
   const [cars, setCars] = useState<DealerCar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +55,7 @@ export default function DealerCatalog({ userId, dealerId }: { userId: string | n
   if (!cars.length) return <p className="text-neutral-500 text-sm">{t("dealerPage.catalogEmpty")}</p>;
 
   const filtered = maxBudget === null ? cars : cars.filter((c) => c.price != null && c.price <= maxBudget);
+  const budgets = luxuryMode ? LUXURY_BUDGETS : STANDARD_BUDGETS;
 
   return (
     <div>
@@ -52,7 +66,7 @@ export default function DealerCatalog({ userId, dealerId }: { userId: string | n
         >
           {t("dealerPage.budgetAll")}
         </button>
-        {BUDGETS.map((b) => (
+        {budgets.map((b) => (
           <button
             key={b}
             onClick={() => setMaxBudget(b)}
@@ -67,7 +81,7 @@ export default function DealerCatalog({ userId, dealerId }: { userId: string | n
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filtered.map((car) => (
             <Link key={car.car_id} href={`/cars/${car.car_id}`} className="card overflow-hidden">
-              <div className="relative aspect-square bg-neutral-200">
+              <div className="relative aspect-[4/3] bg-neutral-950">
                 {car.photo_urls?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -86,11 +100,16 @@ export default function DealerCatalog({ userId, dealerId }: { userId: string | n
                   </span>
                 )}
               </div>
-              <div className="p-2">
-                <p className="text-sm font-medium truncate">
-                  {car.make} {car.model} {car.year ?? ""}
+              <div className="p-2.5 min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500 truncate">
+                  {car.make}
                 </p>
-                <p className="text-xs text-neutral-500">{car.price ? `₪${car.price}` : t("swipe.noPriceListed")}</p>
+                <p className="text-sm font-semibold leading-5 line-clamp-2 min-h-10">
+                  {car.model} {car.year ?? ""}
+                </p>
+                <p className="mt-1 text-sm font-bold text-neutral-900" dir="ltr">
+                  {car.price ? formatPrice(car.price) : t("swipe.noPriceListed")}
+                </p>
               </div>
             </Link>
           ))}

@@ -80,7 +80,9 @@ export async function proxy(request: NextRequest) {
   // explicitly after that. Applied to whichever response actually gets returned below,
   // since the Supabase cookie handler may swap `response` out for a new object.
   const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value;
-  const forcedLocale = request.nextUrl.pathname === "/ar" || request.nextUrl.pathname.startsWith("/ar/") ? "ar" : null;
+  const isArabicRoute = request.nextUrl.pathname === "/ar" || request.nextUrl.pathname.startsWith("/ar/");
+  const isEinavShowroom = request.nextUrl.pathname === "/d/einav-luxury";
+  const forcedLocale = isArabicRoute ? "ar" : isEinavShowroom ? "he" : null;
   const resolvedLocale = forcedLocale ?? (isLocale(existingLocale)
     ? existingLocale
     : parseAcceptLanguage(request.headers.get("accept-language")));

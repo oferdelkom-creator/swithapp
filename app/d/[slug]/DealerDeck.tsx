@@ -24,7 +24,15 @@ interface DealerCandidate {
   want_make: string | null;
 }
 
-export default function DealerDeck({ userId, dealerId }: { userId: string | null; dealerId: string }) {
+export default function DealerDeck({
+  userId,
+  dealerId,
+  luxuryMode = false,
+}: {
+  userId: string | null;
+  dealerId: string;
+  luxuryMode?: boolean;
+}) {
   const { t } = useLocale();
   const [deck, setDeck] = useState<DealerCandidate[]>([]);
   const [index, setIndex] = useState(0);
@@ -134,17 +142,19 @@ export default function DealerDeck({ userId, dealerId }: { userId: string | null
       {loading ? (
         <p className="text-neutral-500 text-sm">{t("swipe.loading")}</p>
       ) : current ? (
-        <div className="relative h-[64dvh] max-h-[580px] min-h-[360px] [overscroll-behavior-x:contain]">
-          {peek && (
-            <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
-              <CardVisual candidate={peek} photoIndex={0} />
-            </div>
-          )}
-          <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit} onTap={handleTap}>
-            <CardVisual candidate={current} photoIndex={photoIndex} />
-          </DraggableCard>
+        <div>
+          <div className="relative h-[min(58dvh,540px)] min-h-[390px] [overscroll-behavior-x:contain]">
+            {peek && (
+              <div key={peek.car_id} className="absolute inset-0 scale-[0.96] opacity-70 translate-y-2">
+                <CardVisual candidate={peek} photoIndex={0} luxuryMode={luxuryMode} />
+              </div>
+            )}
+            <DraggableCard key={current.car_id} ref={cardRef} active onExit={handleExit} onTap={handleTap}>
+              <CardVisual candidate={current} photoIndex={photoIndex} luxuryMode={luxuryMode} />
+            </DraggableCard>
+          </div>
 
-          <div className="absolute bottom-24 inset-x-0 z-20 flex justify-center items-end gap-4 pointer-events-none">
+          <div className="relative z-20 mt-4 flex justify-center items-start gap-6">
             <div className="pointer-events-auto flex flex-col items-center gap-1">
               <button
                 onClick={() => cardRef.current?.triggerExit("left")}
@@ -227,7 +237,15 @@ export default function DealerDeck({ userId, dealerId }: { userId: string | null
   );
 }
 
-function CardVisual({ candidate, photoIndex }: { candidate: DealerCandidate; photoIndex: number }) {
+function CardVisual({
+  candidate,
+  photoIndex,
+  luxuryMode,
+}: {
+  candidate: DealerCandidate;
+  photoIndex: number;
+  luxuryMode: boolean;
+}) {
   const { t } = useLocale();
   const [broken, setBroken] = useState<Record<number, boolean>>({});
   const photos = candidate.photo_urls ?? [];
@@ -283,12 +301,14 @@ function CardVisual({ candidate, photoIndex }: { candidate: DealerCandidate; pho
       >
         <InfoIcon />
       </Link>
-      <div className="absolute bottom-0 inset-x-0 p-5 text-white">
-        <p className="font-bold text-2xl drop-shadow">
-          {candidate.make} {candidate.model} {candidate.year ?? ""}
+      <div className="absolute bottom-0 inset-x-0 p-5 pb-6 text-white">
+        {luxuryMode && <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-amber-300">EINAV LUXURY</p>}
+        <p className="font-bold text-xl sm:text-2xl leading-tight drop-shadow line-clamp-2">
+          {candidate.make} {candidate.model}
         </p>
-        <p className="text-sm text-white/90 mt-1">
-          {candidate.price ? `₪${candidate.price}` : t("swipe.noPriceListed")}
+        <p className="text-sm text-white/90 mt-1" dir="ltr">
+          {candidate.year ?? ""}
+          {candidate.price ? ` · ₪${candidate.price.toLocaleString("he-IL")}` : ` · ${t("swipe.noPriceListed")}`}
           {candidate.for_sale && ` · ${t("swipe.forSale")}`}
           {candidate.for_swap && ` · ${t("swipe.forSwap")}`}
           {candidate.want_make ? ` · ${t("swipe.lookingFor", { make: candidate.want_make })}` : ""}
