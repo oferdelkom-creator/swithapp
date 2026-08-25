@@ -9,6 +9,7 @@ import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { Analytics } from "@vercel/analytics/next";
 
 // Inter has no Hebrew glyphs, so Hebrew text falls through to the system-font
 // fallbacks in globals.css automatically - only Latin/Cyrillic (en/ru) render in Inter.
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {user && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
           {user && <PresenceHeartbeat userId={user.id} />}
         </LocaleProvider>
+        <Analytics />
       </body>
     </html>
   );

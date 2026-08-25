@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { finishDealerSignup } from "@/lib/dealerSignup";
 import { isValidDealerSlug, normalizeCustomDomain, normalizeDealerSlug } from "@/lib/dealerDomains";
+import { trackSignupFunnel } from "@/lib/signupFunnel";
 
 const BENEFIT_KEYS = [
   "businessJoin.benefit1",
@@ -49,6 +50,10 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
+  useEffect(() => {
+    trackSignupFunnel("dealer_signup_form_view", { trial_available: remainingTrialSlots > 0 });
+  }, [remainingTrialSlots]);
+
   function localizedSignupError(message: string) {
     const normalized = message.toLowerCase();
     if (normalized.includes("already registered") || normalized.includes("already been registered")) {
@@ -65,17 +70,27 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const role = BUSINESS_TYPES.find((type) => type.value === businessType)!.role;
+    trackSignupFunnel("dealer_signup_submit_attempt", {
+      business_type: businessType,
+      role,
+      tier: tier === undefined ? "unselected" : tier ?? "custom",
+      has_custom_domain: customDomain.trim().length > 0,
+    });
     if (tier === undefined) {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "validation", reason: "tier_unselected" });
       setError(t("businessJoin.selectTierError"));
       return;
     }
     const cleanedSlug = normalizeDealerSlug(dealerSlug);
     if (!isValidDealerSlug(cleanedSlug)) {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "validation", reason: "invalid_slug" });
       setError(t("businessJoin.slugError"));
       return;
     }
     const cleanedDomain = customDomain.trim() ? normalizeCustomDomain(customDomain) : null;
     if (customDomain.trim() && !cleanedDomain) {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "validation", reason: "invalid_domain" });
       setError(t("businessJoin.domainError"));
       return;
     }
@@ -88,12 +103,12 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     ];
     const availability = await Promise.all(availabilityChecks);
     if (availability.some(({ data, error: checkError }) => checkError || (data?.length ?? 0) > 0)) {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "availability", reason: "address_unavailable" });
       setError(t("businessJoin.addressTaken"));
       setLoading(false);
       return;
     }
 
-    const role = BUSINESS_TYPES.find((type) => type.value === businessType)!.role;
     const finishPath = `/business/join/finish?business_name=${encodeURIComponent(businessName)}&cap=${
       tier ?? ""
     }&phone=${encodeURIComponent(phone)}&role=${role}&dealer_slug=${encodeURIComponent(cleanedSlug)}&custom_domain=${encodeURIComponent(cleanedDomain ?? "")}`;
@@ -108,12 +123,15 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     });
 
     if (signUpError) {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "auth", reason: "signup_rejected" });
       setError(localizedSignupError(signUpError.message));
       setLoading(false);
       return;
     }
 
     if (!data.session || !data.user) {
+      trackSignupFunnel("dealer_signup_submit_success", { confirmation_required: true, role });
+      trackSignupFunnel("dealer_signup_email_confirmation_pending", { role });
       setAwaitingConfirmation(true);
       setLoading(false);
       return;
@@ -130,8 +148,11 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         customDomain: cleanedDomain,
       });
       await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      trackSignupFunnel("dealer_signup_submit_success", { confirmation_required: false, role });
+      trackSignupFunnel("dealer_signup_complete", { completion_path: "immediate", role });
     } catch (signupError) {
       const message = signupError instanceof Error ? signupError.message : String(signupError);
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "profile", reason: "profile_creation_failed" });
       setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : localizedSignupError(message));
       setLoading(false);
       return;

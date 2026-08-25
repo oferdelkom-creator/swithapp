@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { finishDealerSignup } from "@/lib/dealerSignup";
+import { trackSignupFunnel } from "@/lib/signupFunnel";
 
 export default function FinishSignup() {
   const { t } = useLocale();
@@ -33,10 +34,14 @@ export default function FinishSignup() {
 
       await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
       await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      trackSignupFunnel("dealer_signup_complete", { completion_path: "email_confirmation", role });
       router.push("/business");
       router.refresh();
     }
-    run().catch((err) => setError(err instanceof Error ? err.message : String(err)));
+    run().catch((err) => {
+      trackSignupFunnel("dealer_signup_submit_failure", { stage: "confirmation", reason: "profile_creation_failed" });
+      setError(err instanceof Error ? err.message : String(err));
+    });
   }, [router, searchParams]);
 
   return (

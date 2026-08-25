@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
+import { trackSignupFunnel } from "@/lib/signupFunnel";
 
 const BENEFIT_KEYS = [
   "businessJoin.benefit1",
@@ -13,6 +15,10 @@ const BENEFIT_KEYS = [
 
 export default function PartnerLanding({ remainingTrialSlots }: { remainingTrialSlots: number }) {
   const { t } = useLocale();
+
+  useEffect(() => {
+    trackSignupFunnel("dealer_join_view", { trial_available: remainingTrialSlots > 0 });
+  }, [remainingTrialSlots]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-12 sm:py-20">
@@ -29,7 +35,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
           </p>
         </div>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="/business/join/signup" className="btn-primary px-7 py-3 text-base">
+          <a href="/business/join/signup" onClick={() => trackSignupFunnel("dealer_signup_cta_click", { placement: "hero" })} className="btn-primary px-7 py-3 text-base">
             {t("businessJoin.submit")}
           </a>
           <a href="#pricing" className="btn-secondary px-7 py-3 text-base">
@@ -81,7 +87,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
           ))}
         </div>
         <div className="mt-8 text-center">
-          <a href="/business/join/signup" className="btn-primary inline-flex px-8 py-3">
+          <a href="/business/join/signup" onClick={() => trackSignupFunnel("dealer_signup_cta_click", { placement: "pricing" })} className="btn-primary inline-flex px-8 py-3">
             {t("businessJoin.submit")}
           </a>
         </div>
