@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getT } from "@/lib/i18n/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SignOutButton from "./SignOutButton";
@@ -24,8 +25,9 @@ export default async function Header({
   return (
     <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-        <Link href="/" className={`font-bold text-lg tracking-tight shrink-0 ${partnerSite ? "text-slate-950" : "text-brand-blue-dark"}`}>
-          {partnerSite ? "SwitchAuto AI" : "SwitchApp"}
+        <Link href="/" className={`flex items-center gap-2 font-bold text-lg tracking-tight shrink-0 ${partnerSite ? "text-slate-950" : "text-brand-blue-dark"}`}>
+          {partnerSite ? <Image src="/brand/switchautoai-mark.svg" alt="" width={32} height={32} priority /> : null}
+          <span>{partnerSite ? "SwitchAuto AI" : "SwitchApp"}</span>
         </Link>
         {loggedIn && partnerSite && isBusiness && (
           <nav className="hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Business">

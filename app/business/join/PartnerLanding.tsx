@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 
@@ -47,20 +48,16 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
 
           <div className="relative mx-auto w-full max-w-xl" aria-label={t("businessJoin.whatYouGetTitle")}>
             <div className="absolute -inset-8 -z-10 rounded-full bg-blue-400/20 blur-3xl" />
-            <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-slate-950 p-3 shadow-2xl shadow-slate-950/25">
-              <div className="rounded-[1.4rem] bg-white p-5 sm:p-7">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-5">
-                  <div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">SwitchAuto AI</p><p className="mt-1 text-xl font-bold text-slate-950">{t("nav.business")}</p></div>
-                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 font-black text-white">S</div>
+            <div className="relative min-h-[470px] overflow-hidden rounded-[2rem] border border-white/80 bg-slate-950 shadow-2xl shadow-slate-950/25 sm:min-h-[560px]">
+              <Image src="/brand/switchautoai-showroom-hero.webp" alt="אולם תצוגה מודרני לניהול מלאי רכב באמצעות SwitchAuto AI" fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover object-left" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+                <div className="mb-4 flex items-center gap-3 text-white">
+                  <Image src="/brand/switchautoai-mark.svg" alt="" width={44} height={44} />
+                  <div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-200">SwitchAuto AI</p><p className="font-bold">{t("businessJoin.systemDescription")}</p></div>
                 </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  {PRODUCT_AREAS.map(([key, number]) => <div key={key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-black text-blue-700">{number}</span><p className="mt-5 text-sm font-bold text-slate-900">{t(key)}</p></div>)}
-                </div>
-                <div className="mt-4 rounded-2xl bg-[linear-gradient(120deg,#0f172a,#1e3a8a)] p-5 text-white">
-                  <div className="flex items-end justify-between gap-4">
-                    <div><p className="text-sm text-blue-100">{t("businessJoin.systemDescription")}</p><div className="mt-4 flex items-end gap-1.5" aria-hidden="true">{[45, 68, 52, 82, 64, 92, 76].map((height, index) => <span key={index} className="w-4 rounded-t bg-white/80" style={{ height }} />)}</div></div>
-                    <span className="shrink-0 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-200">LIVE</span>
-                  </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {PRODUCT_AREAS.map(([key, number]) => <div key={key} className="rounded-2xl border border-white/15 bg-slate-950/70 p-3 text-white backdrop-blur"><span className="text-[10px] font-black text-blue-300">{number}</span><p className="mt-2 text-xs font-bold sm:text-sm">{t(key)}</p></div>)}
                 </div>
               </div>
             </div>
