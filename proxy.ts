@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/config";
 import { LOCALE_COOKIE, isLocale, parseAcceptLanguage } from "./lib/i18n/locale";
+import { PARTNER_SITE_URL, isPartnerHostname, normalizeHostname } from "./lib/partnerSite";
 
 // /swipe is deliberately not here - sale-mode browsing needs no account (mirrors
 // /d/[slug] being open to signed-out visitors), and SwipeDeck.tsx itself gates the
@@ -55,13 +56,18 @@ async function lookupDealerSlug(column: "dealer_slug" | "custom_domain", value: 
 }
 
 async function resolveCustomDomainSlug(host: string): Promise<string | null> {
-  const hostname = host.toLowerCase().split(":")[0].replace(/\.$/, "");
+  const hostname = normalizeHostname(host);
   if (hostname.endsWith(".switchapp.co.il")) {
     const slug = hostname.slice(0, -".switchapp.co.il".length);
     if (slug && slug !== "www" && !slug.includes(".")) return lookupDealerSlug("dealer_slug", slug);
     return null;
   }
-  if (hostname === "switchapp.co.il" || FIRST_PARTY_HOST_SUFFIXES.some((suffix) => hostname.includes(suffix))) return null;
+  if (
+    hostname === "switchapp.co.il" ||
+    hostname === "www.switchapp.co.il" ||
+    isPartnerHostname(hostname) ||
+    FIRST_PARTY_HOST_SUFFIXES.some((suffix) => hostname.includes(suffix))
+  ) return null;
 
   // A raw REST call instead of the supabase-js client - this is a single anonymous
   // read (RLS allows "select using (true)" on users), and avoids pulling in a client
@@ -70,7 +76,42 @@ async function resolveCustomDomainSlug(host: string): Promise<string | null> {
 }
 
 export async function proxy(request: NextRequest) {
-  const dealerSlug = await resolveCustomDomainSlug(request.headers.get("host") ?? "");
+  const host = request.headers.get("host") ?? "";
+  const partnerHost = isPartnerHostname(host);
+  const pathname = request.nextUrl.pathname;
+
+  if (partnerHost) {
+    const publicToInternal: Record<string, string> = {
+      "/": "/business/join",
+      "/login": "/business/login",
+      "/signup": "/business/join/signup",
+      "/dashboard": "/business",
+    };
+    const internalPath = publicToInternal[pathname];
+    if (internalPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = internalPath;
+      return NextResponse.rewrite(url);
+    }
+
+    const consumerPrefixes = ["/swipe", "/likes", "/matches", "/profile"];
+    if (consumerPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+      return NextResponse.redirect(new URL(pathname, "https://www.switchapp.co.il"));
+    }
+  } else if (host.includes("switchapp.co.il") && pathname.startsWith("/business")) {
+    const partnerPath = pathname === "/business/join"
+      ? "/"
+      : pathname === "/business/join/signup"
+        ? "/signup"
+        : pathname === "/business/login"
+          ? "/login"
+          : pathname === "/business"
+            ? "/dashboard"
+            : pathname;
+    return NextResponse.redirect(new URL(partnerPath, PARTNER_SITE_URL));
+  }
+
+  const dealerSlug = await resolveCustomDomainSlug(host);
 
   let response = NextResponse.next({ request });
 

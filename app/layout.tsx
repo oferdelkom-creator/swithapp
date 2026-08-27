@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
@@ -9,6 +10,7 @@ import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { PARTNER_SITE_NAME, PARTNER_SITE_URL, isPartnerHostname } from "@/lib/partnerSite";
 
 // Inter has no Hebrew glyphs, so Hebrew text falls through to the system-font
 // fallbacks in globals.css automatically - only Latin/Cyrillic (en/ru) render in Inter.
@@ -16,6 +18,19 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" }
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
+  const host = (await headers()).get("host") ?? "";
+  if (isPartnerHostname(host)) {
+    const title = "SwitchAuto AI | ספקים ושותפים בענף הרכב";
+    const description = "מערכת עסקית למגרשי רכב, סוכנויות, יבואנים ושותפים — ניהול מלאי, לידים וטרייד־אין.";
+    return {
+      metadataBase: new URL(PARTNER_SITE_URL),
+      title,
+      description,
+      applicationName: PARTNER_SITE_NAME,
+      openGraph: { title, description, siteName: PARTNER_SITE_NAME, url: PARTNER_SITE_URL, type: "website" },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  }
   return {
     metadataBase: new URL(SITE_URL),
     title: t("meta.title"),
@@ -38,6 +53,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale } = await getT();
+  const host = (await headers()).get("host") ?? "";
+  const partnerSite = isPartnerHostname(host);
   const supabase = await createClient();
   const {
     data: { user },
@@ -55,10 +72,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdmin = profile?.is_admin ?? false;
   const isBusiness = profile?.role === "dealer" || profile?.role === "importer";
 
-  const likesCount = user
+  const likesCount = user && !partnerSite
     ? ((await supabase.rpc("count_incoming_likes", { my_id: user.id })).data as number | null)
     : null;
-  const unreadMatches = user
+  const unreadMatches = user && !partnerSite
     ? ((await supabase.rpc("count_unread_matches", { my_id: user.id })).data as number | null)
     : null;
 
@@ -72,12 +89,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             isBusiness={isBusiness}
             likesCount={likesCount}
             unreadMatches={unreadMatches}
+            partnerSite={partnerSite}
           />
           {/* BottomNav's own bar is mobile-only (md:hidden); the bottom padding that
               makes room for it should disappear at the same breakpoint, otherwise
               desktop pages carry dead space where a fixed bar no longer is. */}
-          <main className={`flex-1 ${user ? "pb-20 md:pb-0" : ""}`}>{children}</main>
-          {user && (
+          <main className={`flex-1 ${user && !partnerSite ? "pb-20 md:pb-0" : ""}`}>{children}</main>
+          {user && !partnerSite && (
             <BottomNav
               isAdmin={isAdmin}
               isBusiness={isBusiness}
@@ -85,7 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               unreadMatches={unreadMatches}
             />
           )}
-          {user && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
+          {user && !partnerSite && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
           {user && <PresenceHeartbeat userId={user.id} />}
         </LocaleProvider>
       </body>

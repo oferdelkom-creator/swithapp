@@ -39,7 +39,6 @@ export default async function HomePage() {
           <p className="mx-auto mt-5 max-w-lg text-lg leading-8 text-muted lg:mx-0">{t("home.tagline")}</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/swipe" className="btn-primary px-6 py-3 text-base shadow-lg shadow-blue-700/20">{t("home.ctaSwipe")}</Link>
-            <Link href="/business/join" className="btn-secondary px-6 py-3 text-base">{t("home.dealerCtaLink")}</Link>
           </div>
           <p className="mt-6 text-sm font-medium text-muted">{t("home.listingsCount", { count: count ?? 0 })}</p>
         </div>

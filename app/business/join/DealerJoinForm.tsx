@@ -298,7 +298,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
 
         <p className="text-center text-sm text-neutral-500">
           {t("businessJoin.alreadyHaveAccount")}{" "}
-          <Link href="/login?next=/business" className="text-brand-blue">
+          <Link href="/business/login?next=/business" className="text-brand-blue">
             {t("login.signIn")}
           </Link>
         </p>
