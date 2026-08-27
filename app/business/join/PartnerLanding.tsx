@@ -3,87 +3,110 @@
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 
-const BENEFIT_KEYS = [
-  "businessJoin.benefit1",
-  "businessJoin.benefit2",
-  "businessJoin.benefit3",
-  "businessJoin.benefit4",
-  "businessJoin.benefit5",
+const BENEFIT_KEYS = ["businessJoin.benefit1", "businessJoin.benefit2", "businessJoin.benefit3", "businessJoin.benefit4", "businessJoin.benefit5"] as const;
+
+const BUSINESS_TYPES = [
+  ["businessJoin.typeDealer", "businessJoin.typeDealerDescription", "D"],
+  ["businessJoin.typeOfficialImporter", "businessJoin.typeOfficialImporterDescription", "O"],
+  ["businessJoin.typeParallelImporter", "businessJoin.typeParallelImporterDescription", "P"],
+] as const;
+
+const PRODUCT_AREAS = [
+  ["partnerLogin.inventory", "01"],
+  ["partnerLogin.leads", "02"],
+  ["partnerLogin.showroom", "03"],
 ] as const;
 
 export default function PartnerLanding({ remainingTrialSlots }: { remainingTrialSlots: number }) {
   const { t } = useLocale();
+  const trialOpen = remainingTrialSlots > 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12 sm:py-20">
-      <section className="mx-auto max-w-3xl text-center">
-        <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-pink">{t("businessJoin.eyebrow")}</p>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-neutral-600">{t("businessJoin.heroSubtitle")}</p>
-        <div className={`mx-auto mt-5 max-w-xl rounded-2xl px-5 py-4 ${remainingTrialSlots > 0 ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-600"}`}>
-          <p className="font-semibold">{remainingTrialSlots > 0 ? t("businessJoin.freeTrialTitle") : t("businessJoin.freeTrialEndedTitle")}</p>
-          <p className="mt-1 text-sm">
-            {remainingTrialSlots > 0
-              ? t("businessJoin.freeTrialDescription", { remaining: remainingTrialSlots })
-              : t("businessJoin.freeTrialEndedDescription")}
-          </p>
-        </div>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="/business/join/signup" className="btn-primary px-7 py-3 text-base">
-            {t("businessJoin.submit")}
-          </a>
-          <a href="#pricing" className="btn-secondary px-7 py-3 text-base">
-            {t("businessJoin.pricingTitle")}
-          </a>
-        </div>
-        <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
-          <a href="/demo/dealer" className="text-brand-blue underline underline-offset-4">{t("businessJoin.viewDealerDemo")}</a>
-          <span className="text-neutral-300">•</span>
-          <a href="/demo/importer" className="text-brand-blue underline underline-offset-4">{t("businessJoin.viewImporterDemo")}</a>
-        </div>
-      </section>
-
-      <section className="mt-16 grid gap-5 rounded-3xl bg-neutral-50 p-6 sm:grid-cols-2 sm:p-9">
-        <div>
-          <h2 className="text-2xl font-semibold">{t("businessJoin.whatYouGetTitle")}</h2>
-          <p className="mt-2 text-sm text-neutral-500">{t("businessJoin.systemDescription")}</p>
-        </div>
-        <ul className="space-y-3 text-sm text-neutral-700">
-          {BENEFIT_KEYS.map((key) => (
-            <li key={key} className="flex gap-3">
-              <span className="font-bold text-emerald-600">✓</span>
-              <span>{t(key)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section id="pricing" className="mt-16 scroll-mt-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold">{t("businessJoin.pricingTitle")}</h2>
-          <p className="mt-2 text-sm text-neutral-500">{t("businessJoin.pricingSubtitle")}</p>
-          <p className="mt-1 text-sm font-medium text-emerald-700">{t("businessJoin.minimumInventory")}</p>
-        </div>
-        <div className="mt-7 grid gap-4 sm:grid-cols-3">
-          {DEALER_TIERS.map((tier) => (
-            <div key={tier.requestValue} className="card p-6">
-              <p className="font-semibold">
-                {tier.cap
-                  ? t("businessJoin.tierRange", { min: tier.minCars, max: tier.cap })
-                  : t("businessJoin.tierFrom", { count: tier.minCars })}
-              </p>
-              <p className="mt-2 text-2xl font-bold text-brand-blue">
-                {tier.pricePerCar
-                  ? t("businessJoin.perCarMonth", { price: tier.pricePerCar })
-                  : t("businessJoin.tierCustomPrice")}
-              </p>
+    <main className="overflow-hidden bg-white text-slate-950">
+      <section className="relative isolate border-b border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#eef2ff_48%,#fff1f2_100%)]">
+        <div className="absolute inset-0 -z-10 opacity-60 [background-image:radial-gradient(circle_at_20%_15%,rgba(29,78,216,.16),transparent_28%),radial-gradient(circle_at_85%_85%,rgba(255,68,88,.14),transparent_30%)]" />
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {t("businessJoin.eyebrow")}
             </div>
+            <h1 className="max-w-3xl text-4xl font-black leading-[1.08] tracking-tight text-slate-950 sm:text-6xl">{t("businessJoin.heroTitle")}</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">{t("businessJoin.heroSubtitle")}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
+                {t("businessJoin.submit")} <span aria-hidden="true" className="ms-2">←</span>
+              </a>
+              <a href="/login" className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/80 px-7 py-3.5 text-base font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-white">{t("partnerLogin.formTitle")}</a>
+            </div>
+            <div className={`mt-6 max-w-2xl rounded-2xl border px-4 py-3 ${trialOpen ? "border-emerald-200 bg-emerald-50/90 text-emerald-900" : "border-slate-200 bg-white/80 text-slate-700"}`}>
+              <p className="font-semibold">{trialOpen ? t("businessJoin.freeTrialTitle") : t("businessJoin.freeTrialEndedTitle")}</p>
+              <p className="mt-1 text-sm leading-6">{trialOpen ? t("businessJoin.freeTrialDescription", { remaining: remainingTrialSlots }) : t("businessJoin.freeTrialEndedDescription")}</p>
+            </div>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-xl" aria-label={t("businessJoin.whatYouGetTitle")}>
+            <div className="absolute -inset-8 -z-10 rounded-full bg-blue-400/20 blur-3xl" />
+            <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-slate-950 p-3 shadow-2xl shadow-slate-950/25">
+              <div className="rounded-[1.4rem] bg-white p-5 sm:p-7">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                  <div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">SwitchAuto AI</p><p className="mt-1 text-xl font-bold text-slate-950">{t("nav.business")}</p></div>
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 font-black text-white">S</div>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {PRODUCT_AREAS.map(([key, number]) => <div key={key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-black text-blue-700">{number}</span><p className="mt-5 text-sm font-bold text-slate-900">{t(key)}</p></div>)}
+                </div>
+                <div className="mt-4 rounded-2xl bg-[linear-gradient(120deg,#0f172a,#1e3a8a)] p-5 text-white">
+                  <div className="flex items-end justify-between gap-4">
+                    <div><p className="text-sm text-blue-100">{t("businessJoin.systemDescription")}</p><div className="mt-4 flex items-end gap-1.5" aria-hidden="true">{[45, 68, 52, 82, 64, 92, 76].map((height, index) => <span key={index} className="w-4 rounded-t bg-white/80" style={{ height }} />)}</div></div>
+                    <span className="shrink-0 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-200">LIVE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="max-w-2xl"><p className="text-sm font-bold uppercase tracking-[.16em] text-blue-700">SwitchAuto AI</p><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.whatYouGetTitle")}</h2><p className="mt-4 text-lg leading-8 text-slate-600">{t("businessJoin.systemDescription")}</p></div>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {BUSINESS_TYPES.map(([title, description, mark], index) => (
+            <article key={title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/5">
+              <div className={`grid h-12 w-12 place-items-center rounded-2xl text-lg font-black ${index === 1 ? "bg-blue-700" : index === 2 ? "bg-rose-500" : "bg-slate-950"} text-white`}>{mark}</div>
+              <h3 className="mt-6 text-xl font-bold">{t(title)}</h3><p className="mt-2 leading-7 text-slate-600">{t(description)}</p>
+            </article>
           ))}
         </div>
-        <div className="mt-8 text-center">
-          <a href="/business/join/signup" className="btn-primary inline-flex px-8 py-3">
-            {t("businessJoin.submit")}
-          </a>
+      </section>
+
+      <section className="bg-slate-950 text-white">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[.8fr_1.2fr]">
+          <div><p className="text-sm font-bold uppercase tracking-[.16em] text-blue-300">SwitchAuto AI</p><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.whatYouGetTitle")}</h2><p className="mt-4 leading-7 text-slate-300">{t("businessJoin.heroSubtitle")}</p><div className="mt-8 flex flex-wrap gap-3"><a href="/demo/dealer" className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-blue-50">{t("businessJoin.viewDealerDemo")}</a><a href="/demo/importer" className="rounded-full border border-white/25 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">{t("businessJoin.viewImporterDemo")}</a></div></div>
+          <ol className="grid gap-3">{BENEFIT_KEYS.map((key, index) => <li key={key} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[.06] p-5"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-500 text-sm font-black">{index + 1}</span><span className="pt-1 leading-7 text-slate-100">{t(key)}</span></li>)}</ol>
+        </div>
+      </section>
+
+      <section id="pricing" className="scroll-mt-20 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+          <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.pricingTitle")}</h2><p className="mt-3 text-slate-600">{t("businessJoin.pricingSubtitle")}</p><p className="mt-2 text-sm font-semibold text-emerald-700">{t("businessJoin.minimumInventory")}</p></div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {DEALER_TIERS.map((tier, index) => (
+              <article key={tier.requestValue} className={`relative rounded-3xl border bg-white p-6 ${index === 1 ? "border-blue-600 shadow-xl shadow-blue-950/10" : "border-slate-200 shadow-sm"}`}>
+                {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
+                <p className="font-bold text-slate-900">{tier.cap ? t("businessJoin.tierRange", { min: tier.minCars, max: tier.cap }) : t("businessJoin.tierFrom", { count: tier.minCars })}</p>
+                <p className="mt-4 text-2xl font-black text-blue-700">{tier.pricePerCar ? t("businessJoin.perCarMonth", { price: tier.pricePerCar }) : t("businessJoin.tierCustomPrice")}</p>
+                <a href="/signup" className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-5 py-16 sm:px-8 sm:py-24">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#1e3a8a,#0f172a_60%,#be123c)] px-6 py-12 text-center text-white shadow-2xl shadow-slate-950/20 sm:px-12 sm:py-16">
+          <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_15%_20%,white,transparent_22%),radial-gradient(circle_at_90%_80%,white,transparent_20%)]" />
+          <div className="relative"><h2 className="text-3xl font-black tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h2><p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">{t("businessJoin.heroSubtitle")}</p><a href="/signup" className="mt-8 inline-flex rounded-full bg-white px-8 py-3.5 font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-blue-50">{t("businessJoin.submit")}</a></div>
         </div>
       </section>
     </main>
