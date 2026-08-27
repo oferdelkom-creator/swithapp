@@ -19,7 +19,7 @@ export default function FinishSignup() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        router.push("/login?next=/business/join");
+        router.push("/business/login?next=/business/join");
         return;
       }
 

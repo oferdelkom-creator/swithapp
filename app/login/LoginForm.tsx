@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
@@ -159,12 +158,6 @@ export default function LoginForm() {
               {t("login.continueWithEmail")}
             </button>
           </div>
-          <p className="text-center text-xs text-white/70">
-            {t("login.dealerCtaText")}{" "}
-            <Link href="/business/join" className="underline">
-              {t("login.dealerCtaLink")}
-            </Link>
-          </p>
         </div>
       </div>
     );

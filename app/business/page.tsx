@@ -25,7 +25,7 @@ export default async function BusinessPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/business");
+  if (!user) redirect("/business/login?next=/business");
 
   const { data: me } = await supabase
     .from("users")
