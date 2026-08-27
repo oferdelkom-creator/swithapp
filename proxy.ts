@@ -37,6 +37,14 @@ function isCarsRouteProtected(pathname: string): boolean {
 // dealer's - listed explicitly so it never takes the extra DB round trip on every
 // request once DNS/Vercel are pointed at it.
 const FIRST_PARTY_HOST_SUFFIXES = [".vercel.app", "localhost"];
+const CONSUMER_HOSTS = new Set([
+  "switchapp.co.il",
+  "www.switchapp.co.il",
+]);
+const ADMIN_HOSTS = new Set([
+  "switchapp.info",
+  "www.switchapp.info",
+]);
 
 async function lookupDealerSlug(column: "dealer_slug" | "custom_domain", value: string, activeDomainOnly = false): Promise<string | null> {
   const activeFilter = activeDomainOnly ? "&custom_domain_active=eq.true" : "";
@@ -65,6 +73,7 @@ async function resolveCustomDomainSlug(host: string): Promise<string | null> {
   if (
     hostname === "switchapp.co.il" ||
     hostname === "www.switchapp.co.il" ||
+    ADMIN_HOSTS.has(hostname) ||
     isPartnerHostname(hostname) ||
     FIRST_PARTY_HOST_SUFFIXES.some((suffix) => hostname.includes(suffix))
   ) return null;
@@ -98,6 +107,21 @@ export async function proxy(request: NextRequest) {
     if (consumerPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
       return NextResponse.redirect(new URL(pathname, "https://www.switchapp.co.il"));
     }
+  } else if (ADMIN_HOSTS.has(normalizeHostname(host))) {
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.redirect(url);
+    }
+
+    const consumerPrefixes = ["/swipe", "/likes", "/matches", "/profile"];
+    if (consumerPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+      return NextResponse.redirect(new URL(pathname, "https://www.switchapp.co.il"));
+    }
+  } else if (CONSUMER_HOSTS.has(normalizeHostname(host)) && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/swipe";
+    return NextResponse.redirect(url);
   } else if (host.includes("switchapp.co.il") && pathname.startsWith("/business")) {
     const partnerPath = pathname === "/business/join"
       ? "/"
