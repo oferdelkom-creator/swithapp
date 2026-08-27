@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { finishDealerSignup } from "@/lib/dealerSignup";
+import { trackMarketingEvent } from "@/lib/marketingAnalytics";
 
 export default function FinishSignup() {
   const { t } = useLocale();
@@ -33,6 +34,7 @@ export default function FinishSignup() {
 
       await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
       await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      trackMarketingEvent("partner_signup_complete", { business_type: role, tier: cap ?? "custom" });
       router.push("/business");
       router.refresh();
     }

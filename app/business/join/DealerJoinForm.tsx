@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { finishDealerSignup } from "@/lib/dealerSignup";
 import { isValidDealerSlug, normalizeCustomDomain, normalizeDealerSlug } from "@/lib/dealerDomains";
+import { captureMarketingAttribution, trackMarketingEvent } from "@/lib/marketingAnalytics";
 
 const BENEFIT_KEYS = [
   "businessJoin.benefit1",
@@ -48,6 +49,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  useEffect(() => captureMarketingAttribution(), []);
 
   function localizedSignupError(message: string) {
     const normalized = message.toLowerCase();
@@ -130,6 +133,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         customDomain: cleanedDomain,
       });
       await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      trackMarketingEvent("partner_signup_complete", { business_type: businessType, tier: tier ?? "custom" });
     } catch (signupError) {
       const message = signupError instanceof Error ? signupError.message : String(signupError);
       setError(message.includes("duplicate") ? t("businessJoin.addressTaken") : localizedSignupError(message));

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -7,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import LocaleProvider from "@/components/LocaleProvider";
 import MatchNotifier from "@/components/MatchNotifier";
 import PresenceHeartbeat from "@/components/PresenceHeartbeat";
+import MarketingPixels from "@/components/MarketingPixels";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -105,6 +107,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           )}
           {user && !partnerSite && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
           {user && <PresenceHeartbeat userId={user.id} />}
+          <Analytics />
+          <MarketingPixels />
         </LocaleProvider>
       </body>
     </html>
