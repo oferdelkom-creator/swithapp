@@ -1,7 +1,7 @@
 export const PARTNER_SITE_NAME = "SwitchAuto AI";
-export const PARTNER_SITE_URL = "https://switchautoai.com";
+export const PARTNER_SITE_URL = "https://business.switchapp.co.il";
 
-const PARTNER_HOSTS = new Set(["switchautoai.com", "www.switchautoai.com"]);
+const PARTNER_HOSTS = new Set(["business.switchapp.co.il"]);
 
 export function normalizeHostname(host: string): string {
   return host.toLowerCase().split(":")[0].replace(/\.$/, "");

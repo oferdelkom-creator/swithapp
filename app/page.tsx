@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
+import { PARTNER_SITE_URL } from "@/lib/partnerSite";
 
 export function generateMetadata(): Metadata {
   return {
@@ -39,7 +40,11 @@ export default async function HomePage() {
           <p className="mx-auto mt-5 max-w-lg text-lg leading-8 text-muted lg:mx-0">{t("home.tagline")}</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/swipe" className="btn-primary px-6 py-3 text-base shadow-lg shadow-blue-700/20">{t("home.ctaSwipe")}</Link>
+            <a href={PARTNER_SITE_URL} className="btn-secondary px-6 py-3 text-base">
+              {t("home.dealerCtaLink")}
+            </a>
           </div>
+          <p className="mt-3 text-sm text-muted">{t("home.dealerCtaText")}</p>
           <p className="mt-6 text-sm font-medium text-muted">{t("home.listingsCount", { count: count ?? 0 })}</p>
         </div>
 

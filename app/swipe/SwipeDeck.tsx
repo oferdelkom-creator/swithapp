@@ -121,7 +121,7 @@ export default function SwipeDeck({
   // every matching car - desktop always gets the grid (no swipe gesture to offer
   // there in the first place), but a mobile visitor who wants to scan and find a
   // specific car quickly shouldn't be forced through the deck one card at a time.
-  const [mobileView, setMobileView] = useState<"swipe" | "list">("swipe");
+  const [mobileView, setMobileView] = useState<"swipe" | "list">("list");
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const [includeDealers, setIncludeDealers] = useState(false);
   const [lastAction, setLastAction] = useState<{ candidate: Candidate; direction: SwipeDirection } | null>(null);
