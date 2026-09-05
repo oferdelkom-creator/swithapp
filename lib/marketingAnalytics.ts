@@ -28,7 +28,10 @@ export function captureMarketingAttribution() {
     const value = params.get(key);
     return value ? [[key, value]] : [];
   }));
-  if (Object.keys(attribution).length > 0) sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
+  // Restricted storage must never interrupt registration or navigation.
+  try {
+    if (Object.keys(attribution).length > 0) sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
+  } catch {}
 }
 
 function getAttribution(): EventProperties {
@@ -42,13 +45,15 @@ function getAttribution(): EventProperties {
 
 export function trackMarketingEvent(name: MarketingEvent, properties: EventProperties = {}) {
   const payload = { ...getAttribution(), ...properties };
-  track(name, payload);
-  window.gtag?.("event", name, payload);
-  window.fbq?.("trackCustom", name, payload);
+  if (typeof window === "undefined") return;
+  // One unavailable analytics provider must not break signup or the others.
+  try { track(name, payload); } catch {}
+  try { window.gtag?.("event", name, payload); } catch {}
+  try { window.fbq?.("trackCustom", name, payload); } catch {}
 
   if (name === "partner_signup_complete") {
-    window.fbq?.("track", "CompleteRegistration", { content_name: "SwitchAuto AI partner" });
+    try { window.fbq?.("track", "CompleteRegistration", { content_name: "SwitchAuto AI partner" }); } catch {}
     const conversionTarget = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL;
-    if (conversionTarget) window.gtag?.("event", "conversion", { send_to: conversionTarget });
+    try { if (conversionTarget) window.gtag?.("event", "conversion", { send_to: conversionTarget }); } catch {}
   }
 }
