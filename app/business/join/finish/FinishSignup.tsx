@@ -33,7 +33,7 @@ export default function FinishSignup() {
       const customDomain = searchParams.get("custom_domain") || null;
 
       await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
-      await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      await fetch("/api/notifications/new-customer", { method: "POST", signal: AbortSignal.timeout(8000) }).catch(() => undefined);
       trackMarketingEvent("partner_signup_complete", { business_type: role, tier: cap ?? "custom" });
       router.push("/business");
       router.refresh();

@@ -72,7 +72,9 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       setError(t("businessJoin.selectTierError"));
       return;
     }
-    const cleanedSlug = normalizeDealerSlug(dealerSlug);
+    // A Hebrew business name should not require inventing an English address.
+    const cleanedSlug = normalizeDealerSlug(dealerSlug) || `dealer-${crypto.randomUUID().slice(0, 8)}`;
+    setDealerSlug(cleanedSlug);
     if (!isValidDealerSlug(cleanedSlug)) {
       setError(t("businessJoin.slugError"));
       return;
@@ -83,6 +85,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       return;
     }
     setLoading(true);
+    try {
     const supabase = createClient();
 
     const availabilityChecks = [
@@ -132,7 +135,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         dealerSlug: cleanedSlug,
         customDomain: cleanedDomain,
       });
-      await fetch("/api/notifications/new-customer", { method: "POST" }).catch(() => undefined);
+      await fetch("/api/notifications/new-customer", { method: "POST", signal: AbortSignal.timeout(8000) }).catch(() => undefined);
       trackMarketingEvent("partner_signup_complete", { business_type: businessType, tier: tier ?? "custom" });
     } catch (signupError) {
       const message = signupError instanceof Error ? signupError.message : String(signupError);
@@ -142,6 +145,11 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     }
     router.push("/business");
     router.refresh();
+    } catch {
+      setError("לא הצלחנו להתחבר כרגע. בדקו את החיבור ונסו שוב. אם כבר אישרתם אימייל, נסו להתחבר לחשבון.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (awaitingConfirmation) {
@@ -247,7 +255,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         <div>
           <label className="block text-sm font-medium mb-1">{t("businessJoin.storeAddress")}</label>
           <div className="flex" dir="ltr">
-            <input required value={dealerSlug} onChange={(e) => setDealerSlug(normalizeDealerSlug(e.target.value))} placeholder="my-dealership" className="field w-full rounded-r-none" />
+            <input value={dealerSlug} onChange={(e) => setDealerSlug(normalizeDealerSlug(e.target.value))} placeholder="my-dealership (optional)" className="field w-full rounded-r-none" />
             <span className="inline-flex items-center rounded-r-xl border border-l-0 border-neutral-300 bg-neutral-50 px-3 text-xs text-neutral-600">.switchapp.co.il</span>
           </div>
           <p className="mt-1 text-xs text-neutral-500">{t("businessJoin.storeAddressHint")}</p>
