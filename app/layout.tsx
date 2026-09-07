@@ -9,6 +9,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import MatchNotifier from "@/components/MatchNotifier";
 import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import MarketingPixels from "@/components/MarketingPixels";
+import BrandLinks from "@/components/BrandLinks";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -96,7 +97,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* BottomNav's own bar is mobile-only (md:hidden); the bottom padding that
               makes room for it should disappear at the same breakpoint, otherwise
               desktop pages carry dead space where a fixed bar no longer is. */}
-          <main className={`flex-1 ${user && !partnerSite ? "pb-20 md:pb-0" : ""}`}>{children}</main>
+          <main className="flex-1">{children}</main>
+          <div className={user && !partnerSite ? "pb-20 md:pb-0" : ""}><BrandLinks locale={locale} /></div>
           {user && !partnerSite && (
             <BottomNav
               isAdmin={isAdmin}
