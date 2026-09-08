@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
@@ -9,9 +10,9 @@ import { captureMarketingAttribution, trackMarketingEvent } from "@/lib/marketin
 const BENEFIT_KEYS = ["businessJoin.benefit1", "businessJoin.benefit2", "businessJoin.benefit3", "businessJoin.benefit4", "businessJoin.benefit5"] as const;
 
 const BUSINESS_TYPES = [
-  ["businessJoin.typeDealer", "businessJoin.typeDealerDescription", "D"],
-  ["businessJoin.typeOfficialImporter", "businessJoin.typeOfficialImporterDescription", "O"],
-  ["businessJoin.typeParallelImporter", "businessJoin.typeParallelImporterDescription", "P"],
+  ["businessJoin.typeDealer", "businessJoin.typeDealerDescription", "D", "dealer"],
+  ["businessJoin.typeOfficialImporter", "businessJoin.typeOfficialImporterDescription", "O", "official_importer"],
+  ["businessJoin.typeParallelImporter", "businessJoin.typeParallelImporterDescription", "P", "parallel_importer"],
 ] as const;
 
 const PRODUCT_AREAS = [
@@ -44,9 +45,9 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
             <h1 className="max-w-3xl text-4xl font-black leading-[1.08] tracking-tight text-slate-950 sm:text-6xl">{t("businessJoin.heroTitle")}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">{t("businessJoin.heroSubtitle")}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="/signup" onClick={trackSignupClick} className="inline-flex items-center justify-center rounded-full bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
+              <Link href="/business/join/signup" onClick={trackSignupClick} className="inline-flex items-center justify-center rounded-full bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
                 {t("businessJoin.submit")} <span aria-hidden="true" className="ms-2">←</span>
-              </a>
+              </Link>
               <a href="/login" className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/80 px-7 py-3.5 text-base font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-white">{t("partnerLogin.formTitle")}</a>
             </div>
             <div className={`mt-6 max-w-2xl rounded-2xl border px-4 py-3 ${trialOpen ? "border-emerald-200 bg-emerald-50/90 text-emerald-900" : "border-slate-200 bg-white/80 text-slate-700"}`}>
@@ -77,11 +78,19 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
       <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="max-w-2xl"><p className="text-sm font-bold uppercase tracking-[.16em] text-blue-700">SwitchAuto AI</p><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.whatYouGetTitle")}</h2><p className="mt-4 text-lg leading-8 text-slate-600">{t("businessJoin.systemDescription")}</p></div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {BUSINESS_TYPES.map(([title, description, mark], index) => (
-            <article key={title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/5">
+          {BUSINESS_TYPES.map(([title, description, mark, type], index) => (
+            <Link
+              key={title}
+              href={`/business/join/signup?type=${type}`}
+              onClick={() => trackMarketingEvent("partner_signup_start", { source: "business_type_card", business_type: type })}
+              className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+            >
               <div className={`grid h-12 w-12 place-items-center rounded-2xl text-lg font-black ${index === 1 ? "bg-blue-700" : index === 2 ? "bg-rose-500" : "bg-slate-950"} text-white`}>{mark}</div>
               <h3 className="mt-6 text-xl font-bold">{t(title)}</h3><p className="mt-2 leading-7 text-slate-600">{t(description)}</p>
-            </article>
+              <span className="mt-5 inline-flex items-center font-bold text-blue-700">
+                {t("businessJoin.submit")} <span aria-hidden="true" className="ms-2 transition group-hover:-translate-x-1">←</span>
+              </span>
+            </Link>
           ))}
         </div>
       </section>
@@ -102,7 +111,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
                 {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
                 <p className="font-bold text-slate-900">{tier.cap ? t("businessJoin.tierRange", { min: tier.minCars, max: tier.cap }) : t("businessJoin.tierFrom", { count: tier.minCars })}</p>
                 <p className="mt-4 text-2xl font-black text-blue-700">{tier.pricePerCar ? t("businessJoin.perCarMonth", { price: tier.pricePerCar }) : t("businessJoin.tierCustomPrice")}</p>
-                <a href="/signup" onClick={trackSignupClick} className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</a>
+                <Link href="/business/join/signup" onClick={trackSignupClick} className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</Link>
               </article>
             ))}
           </div>
@@ -112,7 +121,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
       <section className="bg-white px-5 py-16 sm:px-8 sm:py-24">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#1e3a8a,#0f172a_60%,#be123c)] px-6 py-12 text-center text-white shadow-2xl shadow-slate-950/20 sm:px-12 sm:py-16">
           <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_15%_20%,white,transparent_22%),radial-gradient(circle_at_90%_80%,white,transparent_20%)]" />
-          <div className="relative"><h2 className="text-3xl font-black tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h2><p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">{t("businessJoin.heroSubtitle")}</p><a href="/signup" onClick={trackSignupClick} className="mt-8 inline-flex rounded-full bg-white px-8 py-3.5 font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-blue-50">{t("businessJoin.submit")}</a></div>
+          <div className="relative"><h2 className="text-3xl font-black tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h2><p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">{t("businessJoin.heroSubtitle")}</p><Link href="/business/join/signup" onClick={trackSignupClick} className="mt-8 inline-flex rounded-full bg-white px-8 py-3.5 font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-blue-50">{t("businessJoin.submit")}</Link></div>
         </div>
       </section>
     </main>
