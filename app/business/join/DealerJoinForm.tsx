@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
@@ -37,7 +37,12 @@ const BUSINESS_TYPES: {
 export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrialSlots: number }) {
   const { t } = useLocale();
   const router = useRouter();
-  const [businessType, setBusinessType] = useState<BusinessType>("dealer");
+  const searchParams = useSearchParams();
+  const requestedBusinessType = searchParams.get("type");
+  const initialBusinessType: BusinessType = BUSINESS_TYPES.some((type) => type.value === requestedBusinessType)
+    ? (requestedBusinessType as BusinessType)
+    : "dealer";
+  const [businessType, setBusinessType] = useState<BusinessType>(initialBusinessType);
   const [tier, setTier] = useState<number | null | undefined>(undefined);
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
