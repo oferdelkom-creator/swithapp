@@ -1,10 +1,10 @@
 import type { Locale } from "@/lib/i18n/translations";
 
 const labels = {
-  he: ["מכירות ותמיכה", "פתרונות לעסקים", "מגרש הדגמה", "הדגמה עם יוסף", "עקבו בפייסבוק"],
-  en: ["Sales & support", "Business solutions", "Demo showroom", "Demo with Yosef", "Follow on Facebook"],
-  ru: ["Продажи и поддержка", "Для бизнеса", "Демо-автосалон", "Демонстрация с Йосефом", "Мы в Facebook"],
-  ar: ["المبيعات والدعم", "حلول للأعمال", "معرض تجريبي", "عرض مع يوسف", "تابعونا على فيسبوك"],
+  he: ["מכירות ותמיכה", "פתרונות לעסקים", "עקבו בפייסבוק"],
+  en: ["Sales & support", "Business solutions", "Follow on Facebook"],
+  ru: ["Продажи и поддержка", "Для бизнеса", "Мы в Facebook"],
+  ar: ["المبيعات والدعم", "حلول للأعمال", "تابعونا على فيسبوك"],
 };
 
 export default function BrandLinks({ locale }: { locale: Locale }) {
@@ -12,9 +12,7 @@ export default function BrandLinks({ locale }: { locale: Locale }) {
   const links = [
     ["https://wa.me/972533005562", text[0]],
     ["https://business.switchapp.co.il", text[1]],
-    ["https://www.switchapp.co.il/d/yossi-malka", text[2]],
-    ["https://www.switchapp.co.il/agent/yossi-malka", text[3]],
-    ["https://www.facebook.com/profile.php?id=61593678334156", text[4]],
+    ["https://www.facebook.com/profile.php?id=61593678334156", text[2]],
   ];
   return (
     <footer className="border-t border-neutral-200 bg-neutral-950 px-4 py-6 text-white">
