@@ -5,9 +5,21 @@ import { toWhatsAppLink } from "@/lib/phone";
 import DealerPageTabs from "./DealerPageTabs";
 import type { Metadata } from "next";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import AdirDealerDraft from "./AdirDealerDraft";
+
+const ADIR_DRAFT_SLUG = "adir-cars";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === ADIR_DRAFT_SLUG) {
+    const url = `${SITE_URL}/d/${ADIR_DRAFT_SLUG}`;
+    return {
+      title: `עולם של רכבים | ${SITE_NAME}`,
+      description: "עמוד הרכבים של אדיר ב־SwitchAuto AI — מכירה והחלפת רכבים.",
+      alternates: { canonical: url },
+      openGraph: { title: "עולם של רכבים", description: "המלאי של אדיר ב־SwitchAuto AI", url, type: "website" },
+    };
+  }
   const supabase = await createClient();
   const { data: dealer } = await supabase
     .from("users")
@@ -54,6 +66,7 @@ interface DealerPublicStats {
 
 export default async function DealerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (slug === ADIR_DRAFT_SLUG) return <AdirDealerDraft />;
   const supabase = await createClient();
   const { t } = await getT();
   const {
