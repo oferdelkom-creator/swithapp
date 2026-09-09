@@ -66,8 +66,45 @@ interface DealerPublicStats {
 
 export default async function DealerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (slug === ADIR_DRAFT_SLUG) return <AdirDealerDraft />;
   const supabase = await createClient();
+  if (slug === ADIR_DRAFT_SLUG) {
+    const { data: adir } = await supabase
+      .from("users")
+      .select("id")
+      .eq("dealer_slug", ADIR_DRAFT_SLUG)
+      .maybeSingle<{ id: string }>();
+
+    if (!adir) notFound();
+
+    const { data: cars } = await supabase
+      .from("cars")
+      .select("id, plate_number, make, model, year, description, fuel_type, color, hand, price, photo_urls")
+      .eq("user_id", adir.id)
+      .is("sold_at", null)
+      .or("for_sale.eq.true,for_swap.eq.true")
+      .order("created_at", { ascending: true });
+
+    const vehicles = (cars ?? []).map((car) => {
+      const [trim = "", ownership = ""] = (car.description ?? "").split(" · ");
+      const fuel = car.fuel_type === "Electric" ? "חשמלי" : car.fuel_type === "Diesel" ? "דיזל" : car.fuel_type === "Hybrid" ? "היברידי" : "בנזין";
+      return {
+        id: car.id,
+        plate: car.plate_number ?? "",
+        make: car.make,
+        model: car.model,
+        year: car.year ?? new Date().getFullYear(),
+        trim,
+        fuel,
+        color: car.color ?? "",
+        hand: car.hand ?? 0,
+        ownership,
+        price: Number(car.price ?? 0),
+        photos: car.photo_urls ?? [],
+      };
+    });
+
+    return <AdirDealerDraft vehicles={vehicles} />;
+  }
   const { t } = await getT();
   const {
     data: { user },
