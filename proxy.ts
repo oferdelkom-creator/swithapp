@@ -11,9 +11,12 @@ const PROTECTED_PREFIXES = ["/admin", "/matches", "/likes"];
 
 function isBusinessRouteProtected(pathname: string): boolean {
   // The partner page and its signup form are sales pages, so a prospect must be
-  // able to reach them before creating an account. The actual business dashboard
-  // remains private.
-  return pathname.startsWith("/business") && !pathname.startsWith("/business/join");
+  // able to reach them before creating an account. The first-login password page
+  // must also stay reachable while Supabase is restoring the one-time-link session
+  // from the URL. The actual business dashboard remains private.
+  return pathname.startsWith("/business")
+    && !pathname.startsWith("/business/join")
+    && !pathname.startsWith("/business/set-password");
 }
 
 // /cars needs finer-grained handling than a flat prefix: "/cars" itself (manage your
