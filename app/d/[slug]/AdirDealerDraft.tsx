@@ -6,7 +6,8 @@ import { toWhatsAppLink } from "@/lib/phone";
 const ADIR_PHONE = "+972504747404";
 const ADIR_EMAIL = "adir55599@gmail.com";
 
-type Vehicle = {
+export type AdirVehicle = {
+  id: string;
   plate: string;
   make: string;
   model: string;
@@ -20,15 +21,7 @@ type Vehicle = {
   photos: string[];
 };
 
-const VEHICLES: Vehicle[] = [
-  { plate: "570-89-002", make: "MG", model: "MG4", year: 2023, trim: "COMFORT", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 63900, photos: ["/dealers/adir/57089002-2.jpeg", "/dealers/adir/57089002-1.jpeg"] },
-  { plate: "364-34-903", make: "BYD", model: "ATTO 3", year: 2023, trim: "DESIGN", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 78900, photos: ["/dealers/adir/36434903-1.jpeg", "/dealers/adir/36434903-2.jpeg", "/dealers/adir/36434903-3.jpeg"] },
-  { plate: "641-29-602", make: "Skoda", model: "SCALA", year: 2022, trim: "AMBITION", fuel: "בנזין", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 57900, photos: ["/dealers/adir/64129602-1.jpeg", "/dealers/adir/64129602-2.jpeg"] },
-  { plate: "170-49-303", make: "Kia", model: "SORENTO", year: 2022, trim: "EX PLUS", fuel: "בנזין", color: "שנהב לבן", hand: 2, ownership: "החכרה בעבר", price: 99900, photos: ["/dealers/adir/17049303-1.jpeg", "/dealers/adir/17049303-2.jpeg"] },
-  { plate: "174-34-303", make: "Kia", model: "SPORTAGE", year: 2022, trim: "URBAN", fuel: "בנזין", color: "אפור כהה", hand: 2, ownership: "החכרה בעבר", price: 97900, photos: ["/dealers/adir/17434303-1.jpeg", "/dealers/adir/17434303-2.jpeg"] },
-];
-
-function whatsappFor(vehicle?: Vehicle, intent?: "buy" | "trade") {
+function whatsappFor(vehicle?: AdirVehicle, intent?: "buy" | "trade") {
   const message = vehicle
     ? intent === "trade"
       ? `שלום אדיר, הגעתי דרך SwitchAuto AI ואני רוצה להציע רכב בהחלפה עבור ${vehicle.make} ${vehicle.model}, מספר רכב ${vehicle.plate}`
@@ -37,7 +30,7 @@ function whatsappFor(vehicle?: Vehicle, intent?: "buy" | "trade") {
   return `${toWhatsAppLink(ADIR_PHONE)}?text=${encodeURIComponent(message)}`;
 }
 
-export default function AdirDealerDraft() {
+export default function AdirDealerDraft({ vehicles }: { vehicles: AdirVehicle[] }) {
   const [view, setView] = useState<"swap" | "catalog">("swap");
 
   return (
@@ -67,10 +60,10 @@ export default function AdirDealerDraft() {
       <section className="mx-auto max-w-6xl px-5 py-7 md:py-10">
         <div className="mb-6 flex rounded-2xl border border-white/10 bg-white/[0.05] p-1.5" role="tablist" aria-label="אופן הצגת המלאי">
           <button type="button" role="tab" aria-selected={view === "swap"} onClick={() => setView("swap")} className={`min-h-12 flex-1 rounded-xl px-4 text-sm font-bold transition ${view === "swap" ? "bg-cyan-400 text-[#07111f]" : "text-slate-300"}`}>החלפה מהירה</button>
-          <button type="button" role="tab" aria-selected={view === "catalog"} onClick={() => setView("catalog")} className={`min-h-12 flex-1 rounded-xl px-4 text-sm font-bold transition ${view === "catalog" ? "bg-cyan-400 text-[#07111f]" : "text-slate-300"}`}>כל המלאי ({VEHICLES.length})</button>
+          <button type="button" role="tab" aria-selected={view === "catalog"} onClick={() => setView("catalog")} className={`min-h-12 flex-1 rounded-xl px-4 text-sm font-bold transition ${view === "catalog" ? "bg-cyan-400 text-[#07111f]" : "text-slate-300"}`}>כל המלאי ({vehicles.length})</button>
         </div>
 
-        {view === "swap" ? <SwapDeck /> : <Catalog />}
+        {view === "swap" ? <SwapDeck vehicles={vehicles} /> : <Catalog vehicles={vehicles} />}
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#07111f]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur md:hidden">
@@ -80,9 +73,11 @@ export default function AdirDealerDraft() {
   );
 }
 
-function SwapDeck() {
+function SwapDeck({ vehicles }: { vehicles: AdirVehicle[] }) {
   const [vehicleIndex, setVehicleIndex] = useState(0);
-  const vehicle = VEHICLES[vehicleIndex];
+  const vehicle = vehicles[vehicleIndex];
+
+  if (!vehicle) return <p className="text-center text-slate-400">אין כרגע רכבים זמינים.</p>;
 
   return (
     <div className="mx-auto max-w-md">
@@ -91,7 +86,7 @@ function SwapDeck() {
           <p className="text-sm font-semibold text-cyan-300">בחרו מה מתאים לכם</p>
           <h2 className="mt-1 text-2xl font-black">לקנייה או להחלפה</h2>
         </div>
-        <span className="text-sm text-slate-400">{vehicleIndex + 1} / {VEHICLES.length}</span>
+        <span className="text-sm text-slate-400">{vehicleIndex + 1} / {vehicles.length}</span>
       </div>
 
       <article className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] shadow-2xl shadow-black/25">
@@ -100,7 +95,7 @@ function SwapDeck() {
       </article>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <button type="button" onClick={() => setVehicleIndex((vehicleIndex + 1) % VEHICLES.length)} className="min-h-14 rounded-2xl border border-white/15 bg-white/10 px-2 font-bold text-slate-200">דלגו</button>
+        <button type="button" onClick={() => setVehicleIndex((vehicleIndex + 1) % vehicles.length)} className="min-h-14 rounded-2xl border border-white/15 bg-white/10 px-2 font-bold text-slate-200">דלגו</button>
         <a href={whatsappFor(vehicle, "trade")} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-center rounded-2xl bg-amber-500 px-2 text-center font-black text-[#07111f]">הציעו החלפה</a>
         <a href={whatsappFor(vehicle, "buy")} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-center rounded-2xl bg-[#25D366] px-2 text-center font-black text-white">מעוניין לקנות</a>
       </div>
@@ -109,16 +104,16 @@ function SwapDeck() {
   );
 }
 
-function Catalog() {
+function Catalog({ vehicles }: { vehicles: AdirVehicle[] }) {
   return (
     <div>
       <div className="mb-6">
         <p className="text-sm font-semibold text-cyan-300">המלאי של אדיר</p>
-        <h2 className="mt-1 text-2xl font-black md:text-3xl">5 רכבים זמינים</h2>
+        <h2 className="mt-1 text-2xl font-black md:text-3xl">{vehicles.length} רכבים זמינים</h2>
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {VEHICLES.map((vehicle) => (
-          <article key={vehicle.plate} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-xl shadow-black/15">
+        {vehicles.map((vehicle) => (
+          <article key={vehicle.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-xl shadow-black/15">
             <VehicleGallery vehicle={vehicle} />
             <VehicleDetails vehicle={vehicle} />
             <div className="grid grid-cols-2 gap-2 px-4 pb-4">
@@ -132,7 +127,7 @@ function Catalog() {
   );
 }
 
-function VehicleGallery({ vehicle }: { vehicle: Vehicle }) {
+function VehicleGallery({ vehicle }: { vehicle: AdirVehicle }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const previous = () => setPhotoIndex((photoIndex - 1 + vehicle.photos.length) % vehicle.photos.length);
   const next = () => setPhotoIndex((photoIndex + 1) % vehicle.photos.length);
@@ -154,7 +149,7 @@ function VehicleGallery({ vehicle }: { vehicle: Vehicle }) {
   );
 }
 
-function VehicleDetails({ vehicle }: { vehicle: Vehicle }) {
+function VehicleDetails({ vehicle }: { vehicle: AdirVehicle }) {
   return (
     <div className="p-4">
       <div className="flex items-start justify-between gap-3">
