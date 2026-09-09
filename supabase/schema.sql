@@ -498,6 +498,8 @@ as $$
   from public.cars c
   join public.users u on u.id = c.user_id
   where c.for_sale = true
+    and c.is_seed = false
+    and u.is_seed = false
     and (my_id is null or c.user_id <> my_id)
     and not exists (
       select 1 from public.swipes s
@@ -528,6 +530,7 @@ as $$
     and (p_region is null or c.region = p_region)
     and (p_max_hand is null or c.hand <= p_max_hand)
   order by
+    (u.role in ('dealer', 'importer')) desc,
     (c.boosted_until > now()) desc nulls last,
     (c.make in (
       select c2.make from public.swipes s2
