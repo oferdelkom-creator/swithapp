@@ -120,6 +120,21 @@ export default async function BusinessPage() {
         )}
       </div>
 
+      <Link
+        href="/business/campaigns"
+        className="block overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-l from-cyan-50 to-blue-50 p-5 transition hover:border-cyan-400"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-lg font-bold text-brand-blue-dark">שיווק וקמפיינים</p>
+            <p className="mt-1 text-sm leading-6 text-neutral-600">
+              הכינו מודעות מהמלאי, הגדירו תקציב וקהל ושמרו טיוטות לפייסבוק ולאינסטגרם.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-cyan-500 px-3 py-1.5 text-xs font-bold text-slate-950">חדש</span>
+        </div>
+      </Link>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/cars" className="btn-primary block w-full text-center">
           {t("business.addNewCar")}

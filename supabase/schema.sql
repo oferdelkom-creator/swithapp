@@ -154,6 +154,30 @@ create table public.cars (
   updated_at timestamptz not null default now()
 );
 
+-- Dealer marketing workspace. Campaigns start as owned drafts; publishing to Meta
+-- is added separately after the dealer connects an approved Meta business account.
+create table public.dealer_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users (id) on delete cascade,
+  car_id uuid references public.cars (id) on delete set null,
+  platform text not null check (platform in ('meta', 'facebook', 'instagram')),
+  objective text not null default 'leads' check (objective in ('leads', 'messages', 'traffic')),
+  status text not null default 'draft' check (status in ('draft', 'ready', 'active', 'paused', 'completed', 'failed')),
+  headline text not null,
+  primary_text text not null,
+  daily_budget numeric(10, 2) check (daily_budget is null or daily_budget >= 0),
+  target_region text,
+  destination_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index dealer_campaigns_user_created_idx
+  on public.dealer_campaigns (user_id, created_at desc);
+create index dealer_campaigns_car_idx
+  on public.dealer_campaigns (car_id)
+  where car_id is not null;
+
 create table public.swipes (
   id uuid primary key default gen_random_uuid(),
   from_user_id uuid not null references public.users (id),
@@ -802,6 +826,7 @@ alter table public.matches enable row level security;
 alter table public.messages enable row level security;
 alter table public.blocks enable row level security;
 alter table public.dealer_feature_requests enable row level security;
+alter table public.dealer_campaigns enable row level security;
 
 create policy "Users can view all profiles" on public.users
   for select using (true);
@@ -828,6 +853,28 @@ create policy "Users can update their own contact row" on public.user_contacts
 
 create policy "Anyone can view listed cars" on public.cars
   for select using (true);
+
+grant select, insert, update, delete on public.dealer_campaigns to authenticated;
+
+create policy "Dealers can view own campaigns" on public.dealer_campaigns
+  for select to authenticated
+  using ((select auth.uid()) = user_id);
+create policy "Dealers can create own campaigns" on public.dealer_campaigns
+  for insert to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.users u
+      where u.id = (select auth.uid()) and u.role in ('dealer', 'importer')
+    )
+  );
+create policy "Dealers can update own campaigns" on public.dealer_campaigns
+  for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+create policy "Dealers can delete own campaigns" on public.dealer_campaigns
+  for delete to authenticated
+  using ((select auth.uid()) = user_id);
 -- Private accounts are capped at 2 active (unsold) listings (added 2026-08-15,
 -- migration cap_private_listings_and_gate_dealer_visibility); dealers/importers are
 -- unbounded, since a large inventory is the whole point of a business account.
