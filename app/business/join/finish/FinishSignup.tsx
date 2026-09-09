@@ -31,11 +31,12 @@ export default function FinishSignup() {
       const role = searchParams.get("role") === "importer" ? "importer" : "dealer";
       const dealerSlug = searchParams.get("dealer_slug") ?? "";
       const customDomain = searchParams.get("custom_domain") || null;
+      const shouldSetPassword = searchParams.get("set_password") === "1";
 
       await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
       await fetch("/api/notifications/new-customer", { method: "POST", signal: AbortSignal.timeout(8000) }).catch(() => undefined);
       trackMarketingEvent("partner_signup_complete", { business_type: role, tier: cap ?? "custom" });
-      router.push("/business");
+      router.push(shouldSetPassword ? "/business/set-password" : "/business");
       router.refresh();
     }
     run().catch((err) => setError(err instanceof Error ? err.message : String(err)));
