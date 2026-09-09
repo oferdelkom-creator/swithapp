@@ -16,15 +16,16 @@ type Vehicle = {
   color: string;
   hand: number;
   ownership: string;
+  price: number;
   photos: string[];
 };
 
 const VEHICLES: Vehicle[] = [
-  { plate: "570-89-002", make: "MG", model: "MG4", year: 2023, trim: "COMFORT", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", photos: ["/dealers/adir/57089002-2.jpeg", "/dealers/adir/57089002-1.jpeg"] },
-  { plate: "364-34-903", make: "BYD", model: "ATTO 3", year: 2023, trim: "DESIGN", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", photos: ["/dealers/adir/36434903-1.jpeg", "/dealers/adir/36434903-2.jpeg", "/dealers/adir/36434903-3.jpeg"] },
-  { plate: "641-29-602", make: "Skoda", model: "SCALA", year: 2022, trim: "AMBITION", fuel: "בנזין", color: "שנהב לבן", hand: 1, ownership: "החכרה", photos: ["/dealers/adir/64129602-1.jpeg", "/dealers/adir/64129602-2.jpeg"] },
-  { plate: "170-49-303", make: "Kia", model: "SELTOS", year: 2022, trim: "EX PLUS", fuel: "בנזין", color: "שנהב לבן", hand: 2, ownership: "החכרה בעבר", photos: ["/dealers/adir/17049303-1.jpeg", "/dealers/adir/17049303-2.jpeg"] },
-  { plate: "174-34-303", make: "Kia", model: "SPORTAGE", year: 2022, trim: "URBAN", fuel: "בנזין", color: "אפור כהה", hand: 2, ownership: "החכרה בעבר", photos: ["/dealers/adir/17434303-1.jpeg", "/dealers/adir/17434303-2.jpeg"] },
+  { plate: "570-89-002", make: "MG", model: "MG4", year: 2023, trim: "COMFORT", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 63900, photos: ["/dealers/adir/57089002-2.jpeg", "/dealers/adir/57089002-1.jpeg"] },
+  { plate: "364-34-903", make: "BYD", model: "ATTO 3", year: 2023, trim: "DESIGN", fuel: "חשמלי", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 78900, photos: ["/dealers/adir/36434903-1.jpeg", "/dealers/adir/36434903-2.jpeg", "/dealers/adir/36434903-3.jpeg"] },
+  { plate: "641-29-602", make: "Skoda", model: "SCALA", year: 2022, trim: "AMBITION", fuel: "בנזין", color: "שנהב לבן", hand: 1, ownership: "החכרה", price: 57900, photos: ["/dealers/adir/64129602-1.jpeg", "/dealers/adir/64129602-2.jpeg"] },
+  { plate: "170-49-303", make: "Kia", model: "SORENTO", year: 2022, trim: "EX PLUS", fuel: "בנזין", color: "שנהב לבן", hand: 2, ownership: "החכרה בעבר", price: 99900, photos: ["/dealers/adir/17049303-1.jpeg", "/dealers/adir/17049303-2.jpeg"] },
+  { plate: "174-34-303", make: "Kia", model: "SPORTAGE", year: 2022, trim: "URBAN", fuel: "בנזין", color: "אפור כהה", hand: 2, ownership: "החכרה בעבר", price: 97900, photos: ["/dealers/adir/17434303-1.jpeg", "/dealers/adir/17434303-2.jpeg"] },
 ];
 
 function whatsappFor(vehicle?: Vehicle, intent?: "buy" | "trade") {
@@ -162,7 +163,7 @@ function VehicleDetails({ vehicle }: { vehicle: Vehicle }) {
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-300">{vehicle.year} · {vehicle.trim} · {vehicle.fuel}</p>
       <p className="text-sm leading-6 text-slate-400">יד {vehicle.hand} · {vehicle.ownership} · צבע: {vehicle.color}</p>
-      <p className="mt-1 text-sm font-semibold text-white">מחיר: צרו קשר</p>
+      <p className="mt-1 text-lg font-black text-white"><bdi dir="ltr">₪{vehicle.price.toLocaleString("he-IL")}</bdi></p>
     </div>
   );
 }
