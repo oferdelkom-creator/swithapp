@@ -127,7 +127,6 @@ export default function SwipeDeck({
   const [lastAction, setLastAction] = useState<{ candidate: Candidate; direction: SwipeDirection } | null>(null);
   const [tradeCandidate, setTradeCandidate] = useState<Candidate | null>(null);
   const [authPrompt, setAuthPrompt] = useState<{ candidate: Candidate; showTradeDetails: boolean } | null>(null);
-  const [swapAuthOpen, setSwapAuthOpen] = useState(false);
   // Browsing sale-mode cars needs no account (cars_for_sale() takes my_id: null) - a
   // signed-out visitor only needs to authenticate the moment they act on real intent
   // (Trade/Buy), via the inline QuickSignupModal below. Starts as the userId prop
@@ -165,6 +164,27 @@ export default function SwipeDeck({
         },
       };
     }
+    if (!effectiveUserId) {
+      return {
+        // Before registration, reuse the already-public marketplace feed so a
+        // visitor can understand the swap experience. Authentication and the
+        // visitor's own vehicle/location are requested only when they act.
+        name: "cars_for_sale",
+        args: {
+          my_id: null,
+          p_make: f.make || null,
+          p_model: f.model || null,
+          p_min_price: f.minPrice ? Number(f.minPrice) : null,
+          p_max_price: f.maxPrice ? Number(f.maxPrice) : null,
+          p_min_year: f.minYear ? Number(f.minYear) : null,
+          p_max_year: f.maxYear ? Number(f.maxYear) : null,
+          p_category: vt || null,
+          p_max_mileage: f.maxMileage ? Number(f.maxMileage) : null,
+          p_fuel_type: f.electricOnly ? "Electric" : null,
+          p_region: null,
+        },
+      };
+    }
     return {
       name: "nearby_swap_cars",
       args: {
@@ -186,14 +206,7 @@ export default function SwipeDeck({
   }
 
   async function loadDeck(overrideFilters?: Filters, overrideVehicleType?: VehicleType | "") {
-    if (mode === "swap" && !effectiveUserId) {
-      // Swap mode needs a real account to know the visitor's own role/location -
-      // gated behind the sign-in prompt below rather than nearby_swap_cars() itself.
-      setDeck([]);
-      setLoading(false);
-      return;
-    }
-    if (mode === "swap" && (lat === null || lon === null)) {
+    if (mode === "swap" && effectiveUserId && (lat === null || lon === null)) {
       setDeck([]);
       setLoading(false);
       return;
@@ -224,7 +237,7 @@ export default function SwipeDeck({
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   useEffect(() => {
     if (!showFilters) return;
-    if (mode === "swap" && (!effectiveUserId || lat === null || lon === null)) {
+    if (mode === "swap" && effectiveUserId && (lat === null || lon === null)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing a stale count when the panel can't query is intentional
       setPreviewCount(null);
       return;
@@ -610,7 +623,7 @@ export default function SwipeDeck({
             />
             {t("swipe.electricOnly")}
           </label>
-          {mode === "swap" && (
+          {mode === "swap" && effectiveUserId && (
             <label className="col-span-2 flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -633,14 +646,7 @@ export default function SwipeDeck({
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
-      {mode === "swap" && !effectiveUserId ? (
-        <div className="card p-6 text-center">
-          <p className="text-sm text-neutral-600 mb-4">{t("swipe.swapSignInPrompt")}</p>
-          <button onClick={() => setSwapAuthOpen(true)} className="btn-primary">
-            {t("swipe.swapSignInCta")}
-          </button>
-        </div>
-      ) : mode === "swap" && (lat === null || lon === null) ? (
+      {mode === "swap" && effectiveUserId && (lat === null || lon === null) ? (
         <div className="card p-6 text-center">
           <p className="text-sm text-neutral-600 mb-4">{t("swipe.shareLocationPrompt")}</p>
           <button onClick={requestLocation} className="btn-primary">
@@ -767,20 +773,6 @@ export default function SwipeDeck({
             setEffectiveUserId(newUserId);
             setAuthPrompt(null);
             swipe(candidate, newUserId, direction, icebreakerText);
-          }}
-        />
-      )}
-
-      {swapAuthOpen && (
-        <QuickSignupModal
-          candidateMake=""
-          candidateModel=""
-          candidatePrice={null}
-          showTradeDetails={false}
-          onCancel={() => setSwapAuthOpen(false)}
-          onAuthenticated={(newUserId) => {
-            setEffectiveUserId(newUserId);
-            setSwapAuthOpen(false);
           }}
         />
       )}
