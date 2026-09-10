@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
+import PricingDetails from "./PricingDetails";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { finishDealerSignup } from "@/lib/dealerSignup";
 import { isValidDealerSlug, normalizeCustomDomain, normalizeDealerSlug } from "@/lib/dealerDomains";
@@ -148,7 +149,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       setLoading(false);
       return;
     }
-    router.push("/business");
+    router.push("/business/billing");
     router.refresh();
     } catch {
       setError("לא הצלחנו להתחבר כרגע. בדקו את החיבור ונסו שוב. אם כבר אישרתם אימייל, נסו להתחבר לחשבון.");
@@ -242,6 +243,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
           })}
         </div>
       </div>
+
+      <PricingDetails />
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">
         <h2 className="font-semibold">{t("businessJoin.formTitle")}</h2>

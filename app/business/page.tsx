@@ -1,3 +1,4 @@
+import InventoryBillingSummary from "./InventoryBillingSummary";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -180,6 +181,8 @@ export default async function BusinessPage() {
           />
         )}
       </div>
+
+      <InventoryBillingSummary userId={user.id} />
 
       <PublicPageLink
         userId={user.id}

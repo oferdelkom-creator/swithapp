@@ -152,7 +152,8 @@ export default function CampaignStudio({ userId, businessName, cars, initialCamp
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="תקציב יומי משוער">
+            <p className="text-sm text-neutral-600">תקציב הפרסום לבחירתכם. דמי ניהול של 20% נוספים להוצאה בפועל. כל המחירים כוללים מע״מ.</p>
+            <Field label="תקציב מדיה יומי משוער (ללא דמי ניהול)">
               <div className="relative"><span className="absolute inset-y-0 right-3 flex items-center text-neutral-500">₪</span><input required min="20" step="10" type="number" value={dailyBudget} onChange={(event) => setDailyBudget(event.target.value)} className="field w-full pr-8" /></div>
             </Field>
             <Field label="אזור פרסום"><input value={targetRegion} onChange={(event) => setTargetRegion(event.target.value)} className="field w-full" /></Field>

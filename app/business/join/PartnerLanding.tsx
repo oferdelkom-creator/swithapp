@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import PricingDetails from "./PricingDetails";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { captureMarketingAttribution, trackMarketingEvent } from "@/lib/marketingAnalytics";
 
@@ -105,7 +106,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
       <section id="pricing" className="scroll-mt-20 bg-slate-50">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.pricingTitle")}</h2><p className="mt-3 text-slate-600">{t("businessJoin.pricingSubtitle")}</p><p className="mt-2 text-sm font-semibold text-emerald-700">{t("businessJoin.minimumInventory")}</p></div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {DEALER_TIERS.map((tier, index) => (
               <article key={tier.requestValue} className={`relative rounded-3xl border bg-white p-6 ${index === 1 ? "border-blue-600 shadow-xl shadow-blue-950/10" : "border-slate-200 shadow-sm"}`}>
                 {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
@@ -117,6 +118,8 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
           </div>
         </div>
       </section>
+
+      <PricingDetails />
 
       <section className="bg-white px-5 py-16 sm:px-8 sm:py-24">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#1e3a8a,#0f172a_60%,#be123c)] px-6 py-12 text-center text-white shadow-2xl shadow-slate-950/20 sm:px-12 sm:py-16">
