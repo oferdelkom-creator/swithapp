@@ -3,11 +3,12 @@ export interface DealerTier {
   cap: number | null;
   requestValue: number;
   pricePerCar: number | null;
+  monthlyPrice?: number;
 }
 
 // All prices include VAT. Monthly inventory is the calendar-month peak.
 export const DEALER_TIERS: DealerTier[] = [
-  { minCars: 1, cap: 10, requestValue: 10, pricePerCar: 100 },
+  { minCars: 1, cap: 10, requestValue: 10, pricePerCar: null, monthlyPrice: 1000 },
   { minCars: 40, cap: null, requestValue: 40, pricePerCar: 50 },
 ];
 
@@ -23,7 +24,7 @@ export function monthlyInventoryPrice(plan: "small" | "lot", peak: number) {
   if (!Number.isSafeInteger(peak) || peak < 0) throw new Error("Invalid inventory count");
   if (plan === "small") {
     if (peak > 10) throw new Error("Small dealer plan supports up to 10 active vehicles");
-    return peak * 100;
+    return 1000;
   }
   return Math.max(40, peak) * 50;
 }

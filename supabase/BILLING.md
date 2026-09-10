@@ -1,6 +1,6 @@
 # SwitchApp billing (2026-09-10)
 
-Prices include VAT: setup ILS 3,000 once; small dealer up to 10 active vehicles at ILS 100 each/month; lot ILS 50 each/month with a 40-vehicle minimum. A small plan does not silently upgrade: adding an 11th active vehicle is rejected after plan activation.
+Prices include VAT: setup ILS 3,000 once; small dealer up to 10 active vehicles at a fixed ILS 1,000/month even with fewer vehicles; lot ILS 50 each/month with a 40-vehicle minimum. A small plan does not silently upgrade: adding an 11th active vehicle is rejected after plan activation.
 
 Inventory events start on the migration date. No earlier peaks are reconstructed. A vehicle is active when unsold and offered for sale or swap; seeded demo vehicles are excluded. Counters are updated atomically and historical peaks survive deletion/sale. Month boundaries use Asia/Jerusalem. Billing begins at verified setup activation; lot minimum applies to partial months. Existing users are not enrolled or charged retroactively.
 

@@ -111,7 +111,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
               <article key={tier.requestValue} className={`relative rounded-3xl border bg-white p-6 ${index === 1 ? "border-blue-600 shadow-xl shadow-blue-950/10" : "border-slate-200 shadow-sm"}`}>
                 {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
                 <p className="font-bold text-slate-900">{tier.cap ? t("businessJoin.tierRange", { min: tier.minCars, max: tier.cap }) : t("businessJoin.tierFrom", { count: tier.minCars })}</p>
-                <p className="mt-4 text-2xl font-black text-blue-700">{tier.pricePerCar ? t("businessJoin.perCarMonth", { price: tier.pricePerCar }) : t("businessJoin.tierCustomPrice")}</p>
+                <p className="mt-4 text-2xl font-black text-blue-700">{tier.monthlyPrice ? t("businessJoin.fixedMonth", { price: tier.monthlyPrice }) : tier.pricePerCar ? t("businessJoin.perCarMonth", { price: tier.pricePerCar }) : t("businessJoin.tierCustomPrice")}</p>
                 <Link href="/business/join/signup" onClick={trackSignupClick} className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</Link>
               </article>
             ))}

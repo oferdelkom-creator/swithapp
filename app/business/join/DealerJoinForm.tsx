@@ -234,7 +234,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
                     : t("businessJoin.tierFrom", { count: tierOption.minCars })}
                 </p>
                 <p className="text-sm text-neutral-500 mt-1">
-                  {tierOption.pricePerCar
+                  {tierOption.monthlyPrice ? t("businessJoin.fixedMonth", { price: tierOption.monthlyPrice }) : tierOption.pricePerCar
                     ? t("businessJoin.perCarMonth", { price: tierOption.pricePerCar })
                     : t("businessJoin.tierCustomPrice")}
                 </p>
