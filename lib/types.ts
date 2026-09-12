@@ -1,4 +1,7 @@
-export type UserRole = "private" | "dealer" | "importer";\nexport type MarketCode = "IL" | "FR";\nexport type CurrencyCode = "ILS" | "EUR";\nexport type BusinessKind = "private_seller" | "small_dealer" | "dealership" | "official_importer" | "parallel_importer" | "leasing_company" | "rental_company";
+export type UserRole = "private" | "dealer" | "importer";
+export type MarketCode = "IL" | "FR";
+export type CurrencyCode = "ILS" | "EUR";
+export type BusinessKind = "private_seller" | "small_dealer" | "dealership" | "official_importer" | "parallel_importer" | "leasing_company" | "rental_company";
 export type BillingPlan = "subscription" | "per_listing";
 export type FuelType = "Petrol" | "Diesel" | "Hybrid" | "Electric" | "Gas";
 export type CarRegion =
@@ -30,7 +33,9 @@ export interface AppUser {
   avatar_url: string | null;
   lat: number | null;
   lon: number | null;
-  role: UserRole;\n  market_code?: MarketCode;\n  business_kind?: BusinessKind | null;
+  role: UserRole;
+  market_code?: MarketCode;
+  business_kind?: BusinessKind | null;
   business_name: string | null;
   billing_plan: BillingPlan | null;
   subscription_valid_until: string | null;
@@ -71,7 +76,9 @@ export interface Car {
   plate_number: string | null;
   description: string | null;
   photo_urls: string[];
-  price: number | null;\n  market_code?: MarketCode;\n  currency_code?: CurrencyCode;
+  price: number | null;
+  market_code?: MarketCode;
+  currency_code?: CurrencyCode;
   hand: number | null;
   fuel_type: FuelType | null;
   region: CarRegion | null;
