@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,15 +6,26 @@ export const metadata: Metadata = {
 };
 
 export default function FranceLandingPage() {
-  return <div lang="fr" dir="ltr" className="min-h-screen bg-gradient-to-b from-blue-950 via-blue-900 to-slate-950 text-white">
-    <section className="mx-auto grid min-h-[72vh] max-w-6xl items-center gap-12 px-6 py-20 md:grid-cols-2">
-      <div>
-        <p className="mb-5 text-sm font-bold uppercase tracking-[0.22em] text-blue-200">SwitchApp France · Pré-lancement</p>
-        <h1 className="text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">Achetez. Vendez.<br /><span className="text-orange-400">Échangez autrement.</span></h1>
-        <p className="mt-7 max-w-xl text-lg leading-8 text-blue-100">Découvrez des véhicules par glissement, créez des matchs avec des propriétaires et échangez directement. Une version adaptée au marché français est en préparation.</p>
-        <div className="mt-9 flex flex-wrap gap-3"><span className="rounded-full bg-orange-500 px-6 py-3 font-bold">Ouverture prochaine</span><Link className="rounded-full border border-white/30 px-6 py-3 font-bold hover:bg-white/10" href="/">Voir la plateforme actuelle</Link></div>
+  return <div id="switchapp-france" lang="fr" dir="ltr" className="min-h-screen bg-gradient-to-b from-blue-950 via-blue-900 to-slate-950 text-white">
+    <style>{`
+      body:has(#switchapp-france) > header,
+      body:has(#switchapp-france) > main + div { display: none !important; }
+      body:has(#switchapp-france) > main { padding: 0 !important; }
+    `}</style>
+    <nav className="border-b border-white/10 bg-blue-950/95">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <strong className="text-xl tracking-tight">SwitchApp <span className="text-orange-400">France</span></strong>
+        <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-bold">FR</span>
       </div>
-      <div className="rounded-[2rem] border border-white/15 bg-white/10 p-7 shadow-2xl backdrop-blur">
+    </nav>
+    <section className="mx-auto grid min-h-[72vh] max-w-6xl items-center gap-12 px-6 py-16 md:grid-cols-2 md:py-20">
+      <div>
+        <p className="mb-5 text-sm font-bold uppercase tracking-[0.18em] text-blue-200">Pré-lancement en France</p>
+        <h1 className="text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">Achetez.<br />Vendez.<br /><span className="text-orange-400">Échangez autrement.</span></h1>
+        <p className="mt-7 max-w-xl text-lg leading-8 text-blue-100">Découvrez des véhicules par glissement, créez des matchs avec des propriétaires et échangez directement. Une version entièrement adaptée au marché français est en préparation.</p>
+        <div className="mt-9"><span className="inline-flex rounded-full bg-orange-500 px-6 py-3 font-bold">Ouverture prochaine</span></div>
+      </div>
+      <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur md:p-7">
         <p className="text-sm font-bold text-blue-200">POUR LES PARTICULIERS ET LES PROFESSIONNELS</p>
         <div className="mt-6 space-y-4">
           {[
@@ -27,6 +37,7 @@ export default function FranceLandingPage() {
         </div>
       </div>
     </section>
-    <section className="border-t border-white/10 bg-white/5"><div className="mx-auto max-w-6xl px-6 py-16"><p className="text-sm font-bold uppercase tracking-[0.2em] text-orange-300">Déploiement France</p><h2 className="mt-3 max-w-3xl text-3xl font-black md:text-5xl">Nous préparons les données véhicule, les règles locales, les paiements en euros et les premiers partenaires automobiles.</h2><p className="mt-6 text-blue-100">Cette page ne collecte aucun paiement et ne promet pas encore de date de lancement.</p></div></section>
+    <section className="border-t border-white/10 bg-white/5"><div className="mx-auto max-w-6xl px-6 py-14 md:py-16"><p className="text-sm font-bold uppercase tracking-[0.18em] text-orange-300">Déploiement France</p><h2 className="mt-3 max-w-4xl text-3xl font-black leading-tight md:text-5xl">Données automobiles françaises, règles locales, paiements en euros et premiers partenaires.</h2><p className="mt-6 text-blue-100">La préparation est en cours. Aucun paiement n’est collecté sur cette page.</p></div></section>
+    <footer className="border-t border-white/10 bg-slate-950"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-8"><strong>SwitchApp France</strong><span className="text-sm text-slate-400">Plateforme automobile européenne · Pré-lancement</span></div></footer>
   </div>;
 }
