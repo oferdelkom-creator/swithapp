@@ -1,4 +1,7 @@
 export type UserRole = "private" | "dealer" | "importer";
+export type MarketCode = "IL" | "FR";
+export type CurrencyCode = "ILS" | "EUR";
+export type BusinessKind = "private_seller" | "small_dealer" | "dealership" | "official_importer" | "parallel_importer" | "leasing_company" | "rental_company";
 export type BillingPlan = "subscription" | "per_listing";
 export type FuelType = "Petrol" | "Diesel" | "Hybrid" | "Electric" | "Gas";
 export type CarRegion =
@@ -31,6 +34,8 @@ export interface AppUser {
   lat: number | null;
   lon: number | null;
   role: UserRole;
+  market_code?: MarketCode;
+  business_kind?: BusinessKind | null;
   business_name: string | null;
   billing_plan: BillingPlan | null;
   subscription_valid_until: string | null;
@@ -72,6 +77,8 @@ export interface Car {
   description: string | null;
   photo_urls: string[];
   price: number | null;
+  market_code?: MarketCode;
+  currency_code?: CurrencyCode;
   hand: number | null;
   fuel_type: FuelType | null;
   region: CarRegion | null;
