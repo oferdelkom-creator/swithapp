@@ -42,7 +42,7 @@ async function sendBotMessage(botToken: string, chatId: number, text: string, ap
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!botToken || !webhookSecret) return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
 
   const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token") ?? "";
