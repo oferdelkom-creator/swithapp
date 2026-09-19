@@ -4,14 +4,14 @@ const TELEGRAM_PRODUCTION_PUBLIC_KEY = "e7bf03a2fa4602af4580703d88dda5bb59f32ed8
 const ED25519_SPKI_PREFIX = "302a300506032b6570032100";
 
 function verifyTelegramSignature(params: URLSearchParams, signature: string | null, botId: string | undefined) {
-  if (!signature || !botId || !/^\\d+$/.test(botId)) return false;
+  if (!signature || !botId || !/^\d+$/.test(botId)) return false;
   try {
     const values = [...params.entries()]
       .filter(([key]) => key !== "hash" && key !== "signature")
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, value]) => `${key}=${value}`)
-      .join("\\n");
-    const dataCheckString = `${botId}:WebAppData\\n${values}`;
+      .join("\n");
+    const dataCheckString = `${botId}:WebAppData\n${values}`;
     const publicKey = createPublicKey({
       key: Buffer.from(`${ED25519_SPKI_PREFIX}${TELEGRAM_PRODUCTION_PUBLIC_KEY}`, "hex"),
       format: "der",
@@ -61,9 +61,30 @@ export function validateTelegramInitData(
 
   const secretKey = createHmac("sha256", "WebAppData").update(botToken).digest();
   const expectedHash = createHmac("sha256", secretKey).update(dataCheckString).digest();
+  const dataCheckStringWithSignature = [...new URLSearchParams(initData).entries()]
+    .filter(([key]) => key !== "hash")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
+  const expectedHashWithSignature = createHmac("sha256", secretKey).update(dataCheckStringWithSignature).digest();
   const receivedHash = Buffer.from(suppliedHash, "hex");
-  const validBotHash = receivedHash.length === expectedHash.length && timingSafeEqual(receivedHash, expectedHash);
-  if (!validBotHash && !verifyTelegramSignature(new URLSearchParams(initData), suppliedSignature, botId)) return null;
+  const validBotHash = receivedHash.length === expectedHash.length && (
+    timingSafeEqual(receivedHash, expectedHash) || timingSafeEqual(receivedHash, expectedHashWithSignature)
+  );
+  const validPublicSignature = verifyTelegramSignature(new URLSearchParams(initData), suppliedSignature, botId);
+  if (!validBotHash && !validPublicSignature) {
+    console.warn(JSON.stringify({
+      route: "telegram_init_data_validation",
+      botId,
+      tokenBotId: botToken.split(":", 1)[0],
+      suppliedHash,
+      expectedHash: expectedHash.toString("hex"),
+      expectedHashWithSignature: expectedHashWithSignature.toString("hex"),
+      hasSignature: Boolean(suppliedSignature),
+      initDataLength: initData.length,
+    }));
+    return null;
+  }
 
   const authDateSeconds = Number(params.get("auth_date"));
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -85,3 +106,4 @@ export function validateTelegramInitData(
     return null;
   }
 }
+
