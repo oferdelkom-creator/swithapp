@@ -136,6 +136,9 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const [primaryMileage, setPrimaryMileage] = useState("");
   const [primaryHand, setPrimaryHand] = useState("1");
   const [primaryPhotoUrl, setPrimaryPhotoUrl] = useState("");
+  const [primaryPhotoUrls, setPrimaryPhotoUrls] = useState<string[]>([]);
+  const [uploadingPrimaryPhotos, setUploadingPrimaryPhotos] = useState(false);
+  const [primaryPhotoError, setPrimaryPhotoError] = useState<string | null>(null);
   const [city, setCity] = useState(marketOptions.cities[0]);
   const [budget, setBudget] = useState(marketOptions.budgets[2]);
   const [defaultSalePrice, setDefaultSalePrice] = useState("");
@@ -158,7 +161,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     const stored = window.localStorage.getItem(storageKey);
     if (!stored) return;
     try {
-      const parsed = JSON.parse(stored) as { city?: string; budget?: string; defaultSalePrice?: string; radiusKm?: number; savedIds?: string[]; primaryPlate?: string; primaryMake?: string; primaryModel?: string; primaryYear?: string; primaryMileage?: string; primaryHand?: string; primaryPhotoUrl?: string };
+      const parsed = JSON.parse(stored) as { city?: string; budget?: string; defaultSalePrice?: string; radiusKm?: number; savedIds?: string[]; primaryPlate?: string; primaryMake?: string; primaryModel?: string; primaryYear?: string; primaryMileage?: string; primaryHand?: string; primaryPhotoUrl?: string; primaryPhotoUrls?: string[] };
       const restore = window.setTimeout(() => {
         if (parsed.city) setCity(parsed.city);
         if (parsed.budget) setBudget(parsed.budget);
@@ -170,6 +173,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
         if (parsed.primaryMileage) setPrimaryMileage(parsed.primaryMileage);
         if (parsed.primaryHand) setPrimaryHand(parsed.primaryHand);
         if (parsed.primaryPhotoUrl) setPrimaryPhotoUrl(parsed.primaryPhotoUrl);
+        if (parsed.primaryPhotoUrls?.length) setPrimaryPhotoUrls(parsed.primaryPhotoUrls.slice(0, 6));
         if (parsed.radiusKm && SEARCH_RADII.includes(parsed.radiusKm)) setRadiusKm(parsed.radiusKm);
         if (parsed.savedIds?.length) {
           setSaved(initialCars.filter((car) => parsed.savedIds?.includes(car.car_id)));
@@ -193,7 +197,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const persist = (nextSaved: TelegramCar[]) => {
     window.localStorage.setItem(
       storageKey,
-      JSON.stringify({ city, budget, defaultSalePrice, radiusKm, primaryPlate, primaryMake, primaryModel, primaryYear, primaryMileage, primaryHand, primaryPhotoUrl, savedIds: nextSaved.map((car) => car.car_id) })
+      JSON.stringify({ city, budget, defaultSalePrice, radiusKm, primaryPlate, primaryMake, primaryModel, primaryYear, primaryMileage, primaryHand, primaryPhotoUrl, primaryPhotoUrls, savedIds: nextSaved.map((car) => car.car_id) })
     );
   };
 
@@ -228,11 +232,15 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
             year: Number(primaryYear),
             mileage: Number(primaryMileage),
             hand: Number(primaryHand),
-            photoUrl: primaryPhotoUrl || undefined,
+            photoUrl: primaryPhotoUrls[0] || primaryPhotoUrl || undefined,
+            photoUrls: primaryPhotoUrls.length ? primaryPhotoUrls : undefined,
           },
         }),
       });
-      if (!response.ok) throw new Error("registration_failed");
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null) as { code?: string } | null;
+        throw new Error(failure?.code || `registration_failed_${response.status}`);
+      }
       const result = (await response.json()) as { founderNumber: number | null; hasBuyerAccess: boolean };
       setFounderNumber(result.founderNumber);
       setHasBuyerAccess(result.hasBuyerAccess);
@@ -243,8 +251,12 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
         }
         setStage("deck");
       }
-    } catch {
-      setRegistrationError(isIsrael ? "לא הצלחנו לשמור. נסו שוב." : "Не удалось сохранить место. Попробуйте ещё раз.");
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "registration_failed";
+      const supportCode = code.replace(/[^a-z0-9_-]/gi, "").slice(0, 40);
+      setRegistrationError(isIsrael
+        ? `לא הצלחנו לשמור. קוד תקלה: ${supportCode}`
+        : `Не удалось сохранить. Код ошибки: ${supportCode}`);
     } finally {
       setRegistering(false);
     }
@@ -383,6 +395,42 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     } finally {
       setCheckingPrimaryPlate(false);
     }
+  };
+
+  const uploadPrimaryPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    if (!telegramInitData) {
+      setPrimaryPhotoError(isIsrael ? "העלאת תמונות זמינה בתוך Telegram." : "Загрузка фото доступна внутри Telegram.");
+      return;
+    }
+    const remaining = Math.max(0, 6 - primaryPhotoUrls.length);
+    const selected = Array.from(files).slice(0, remaining);
+    if (!selected.length) return;
+    setUploadingPrimaryPhotos(true);
+    setPrimaryPhotoError(null);
+    try {
+      const formData = new FormData();
+      formData.set("initData", telegramInitData);
+      formData.set("marketCountry", initialMarket);
+      selected.forEach((file) => formData.append("photos", file));
+      const response = await fetch("/api/telegram/photos", { method: "POST", body: formData });
+      const result = await response.json().catch(() => null) as { urls?: string[]; error?: string } | null;
+      if (!response.ok || !result?.urls?.length) throw new Error(result?.error ?? "upload_failed");
+      const nextUrls = [...primaryPhotoUrls, ...result.urls].slice(0, 6);
+      setPrimaryPhotoUrls(nextUrls);
+      setPrimaryPhotoUrl(nextUrls[0] ?? "");
+      window.localStorage.setItem(storageKey, JSON.stringify({ city, budget, defaultSalePrice, radiusKm, primaryPlate, primaryMake, primaryModel, primaryYear, primaryMileage, primaryHand, primaryPhotoUrl: nextUrls[0] ?? "", primaryPhotoUrls: nextUrls, savedIds: saved.map((car) => car.car_id) }));
+    } catch {
+      setPrimaryPhotoError(isIsrael ? "לא הצלחנו להעלות את התמונות. נסו שוב." : "Не удалось загрузить фото. Попробуйте снова.");
+    } finally {
+      setUploadingPrimaryPhotos(false);
+    }
+  };
+
+  const removePrimaryPhoto = (url: string) => {
+    const nextUrls = primaryPhotoUrls.filter((item) => item !== url);
+    setPrimaryPhotoUrls(nextUrls);
+    setPrimaryPhotoUrl(nextUrls[0] ?? "");
   };
 
   const openOfficialVehicleCheck = async () => {
@@ -571,7 +619,38 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 </div>
                 {isIsrael ? <button type="button" onClick={() => void lookupPrimaryVehicle()} disabled={checkingPrimaryPlate || !/^\d{7,8}$/.test(primaryPlate.replace(/[-\s]/g, ""))} className="mt-3 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-2.5 text-xs font-bold text-emerald-100 disabled:opacity-40">{checkingPrimaryPlate ? "מאתרים את הרכב…" : "מילוי פרטי הרכב לפי מספר הרישוי"}</button> : null}
                 {primaryLookupMessage ? <p className="mt-2 text-xs font-semibold text-emerald-300">{primaryLookupMessage}</p> : null}
-                <label className="mt-3 block text-xs text-white/60">{isIsrael ? "קישור לתמונה" : "Ссылка на фото"}<input type="url" value={primaryPhotoUrl} onChange={(event) => setPrimaryPhotoUrl(event.target.value)} placeholder="https://…" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold text-white/75">{isIsrael ? "תמונות הרכב" : "Фотографии автомобиля"}</span>
+                    <span className="text-[11px] text-white/40">{primaryPhotoUrls.length}/6</span>
+                  </div>
+                  {primaryPhotoUrls.length ? (
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {primaryPhotoUrls.map((url, photoIndex) => (
+                        <div key={url} className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={isIsrael ? `תמונת רכב ${photoIndex + 1}` : `Фото автомобиля ${photoIndex + 1}`} className="h-full w-full object-cover" />
+                          {photoIndex === 0 ? <span className="absolute bottom-1 start-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold">{isIsrael ? "ראשית" : "Главная"}</span> : null}
+                          <button type="button" onClick={() => removePrimaryPhoto(url)} aria-label={isIsrael ? "הסרת תמונה" : "Удалить фото"} className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/75 text-sm text-white">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {primaryPhotoUrls.length < 6 ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <label className="cursor-pointer rounded-xl border border-[#ff4f70]/30 bg-[#ff4f70]/10 px-3 py-3 text-center text-xs font-bold text-pink-100">
+                        {uploadingPrimaryPhotos ? (isIsrael ? "מעלה…" : "Загрузка…") : (isIsrael ? "📷 צילום עכשיו" : "📷 Сделать фото")}
+                        <input type="file" accept="image/*" capture="environment" className="hidden" disabled={uploadingPrimaryPhotos} onChange={(event) => { void uploadPrimaryPhotos(event.target.files); event.target.value = ""; }} />
+                      </label>
+                      <label className="cursor-pointer rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-center text-xs font-bold text-white/80">
+                        {uploadingPrimaryPhotos ? (isIsrael ? "מעלה…" : "Загрузка…") : (isIsrael ? "🖼️ בחירה מהטלפון" : "🖼️ Выбрать из галереи")}
+                        <input type="file" accept="image/*" multiple className="hidden" disabled={uploadingPrimaryPhotos} onChange={(event) => { void uploadPrimaryPhotos(event.target.files); event.target.value = ""; }} />
+                      </label>
+                    </div>
+                  ) : null}
+                  <p className="mt-2 text-[11px] leading-4 text-white/40">{isIsrael ? "עד 6 תמונות. התמונה הראשונה תהיה התמונה הראשית." : "До 6 фото. Первое фото будет главным."}</p>
+                  {primaryPhotoError ? <p className="mt-2 text-xs text-red-300">{primaryPhotoError}</p> : null}
+                </div>
               </div>
 
               <label className="mt-6 text-sm font-bold" htmlFor="default-sale-price">{isIsrael ? "מחיר המכירה של הרכב שלכם" : "Цена продажи вашего автомобиля"}</label>
@@ -777,3 +856,4 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     </>
   );
 }
+
