@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import { validateTelegramInitData } from "@/lib/telegram/validateInitData";
+import { sendNewTelegramDealerNotification } from "@/lib/email/newTelegramDealerNotification";
 
 type Availability = "in_stock" | "in_transit" | "on_order" | "reserved" | "sold";
 
@@ -105,12 +106,18 @@ export async function POST(request: Request) {
     const city = text(raw.city, 80);
     const phone = text(raw.phone, 32);
     if (!businessName || !city || phone.length < 7) return NextResponse.json({ error: "Invalid account" }, { status: 400 });
+    const { data: existing } = await supabase.from("telegram_dealer_accounts").select("telegram_user_id").eq("telegram_user_id", verified.user.id).maybeSingle();
+    const legalName = text(raw.legal_name, 160) || null;
+    const taxId = text(raw.tax_id, 20) || null;
     const { data, error } = await supabase.from("telegram_dealer_accounts").upsert({
       telegram_user_id: verified.user.id, market_country: "RU", role, business_name: businessName,
-      legal_name: text(raw.legal_name, 160) || null, tax_id: text(raw.tax_id, 20) || null,
+      legal_name: legalName, tax_id: taxId,
       city, phone, inventory_mode: raw.inventory_mode === "csv" ? "csv" : "manual", updated_at: new Date().toISOString(),
     }, { onConflict: "telegram_user_id" }).select("*").single();
     if (error) return NextResponse.json({ error: "Account save failed" }, { status: 500 });
+    if (!existing) {
+      await sendNewTelegramDealerNotification({ telegramUserId: verified.user.id, role, businessName, legalName, taxId, city, phone });
+    }
     return NextResponse.json({ account: data });
   }
 
