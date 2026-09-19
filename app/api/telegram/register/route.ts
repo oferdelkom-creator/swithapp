@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const verified = validateTelegramInitData(body.initData ?? "", botToken);
+  const verified = validateTelegramInitData(body.initData ?? "", botToken, 60 * 60, process.env.TELEGRAM_BOT_ID ?? "8875971815");
   if (!verified) return NextResponse.json({ error: "Invalid Telegram session" }, { status: 401 });
   const market = body.marketCountry === "IL" ? "IL" : body.marketCountry === "RU" ? "RU" : null;
   if (!market) {
