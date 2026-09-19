@@ -9,7 +9,7 @@ interface TelegramUpdate {
   message?: {
     text?: string;
     chat: { id: number };
-    from?: { id: number; first_name: string };
+    from?: { id: number; first_name: string; language_code?: string };
     successful_payment?: {
       currency: string;
       total_amount: number;
@@ -25,7 +25,7 @@ function secretsMatch(received: string, expected: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-async function sendBotMessage(botToken: string, chatId: number, text: string, appUrl?: string) {
+async function sendBotMessage(botToken: string, chatId: number, text: string, appUrl?: string, buttonText = "Открыть SwitchApp") {
   await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -33,7 +33,7 @@ async function sendBotMessage(botToken: string, chatId: number, text: string, ap
       chat_id: chatId,
       text,
       reply_markup: appUrl
-        ? { inline_keyboard: [[{ text: "Открыть SwitchApp", web_app: { url: appUrl } }]] }
+        ? { inline_keyboard: [[{ text: buttonText, web_app: { url: appUrl } }]] }
         : undefined,
     }),
   });
@@ -54,12 +54,18 @@ export async function POST(request: Request) {
 
   if (message.text?.startsWith("/start")) {
     const firstName = message.from?.first_name ?? "друг";
-    const appUrl = process.env.TELEGRAM_MINI_APP_URL ?? `${SITE_URL}/telegram`;
+    const isHebrew = message.from?.language_code === "he";
+    const market = isHebrew ? "IL" : "RU";
+    const baseAppUrl = process.env.TELEGRAM_MINI_APP_URL ?? `${SITE_URL}/telegram`;
+    const appUrl = `${baseAppUrl}${baseAppUrl.includes("?") ? "&" : "?"}market=${market}`;
     await sendBotMessage(
       botToken,
       message.chat.id,
-      `Привет, ${firstName}! 🚗\n\nSwitchApp подбирает автомобили свайпами. Первые 1000 участников получают Founder-доступ бесплатно.`,
-      appUrl
+      isHebrew
+        ? `שלום ${firstName}! 🚗\n\nSwitchApp עוזרת למצוא רכב בהחלקות. 1,000 המצטרפים הראשונים מקבלים גישת Founder בחינם.`
+        : `Привет, ${firstName}! 🚗\n\nSwitchApp подбирает автомобили свайпами. Первые 1000 участников получают Founder-доступ бесплатно.`,
+      appUrl,
+      isHebrew ? "פתיחת SwitchApp" : "Открыть SwitchApp"
     );
   }
 
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
       if (
         payload.productId &&
         isTelegramProductId(payload.productId) &&
-        payload.marketCountry === "RU" &&
+        (payload.marketCountry === "RU" || payload.marketCountry === "IL") &&
         Number.isSafeInteger(payload.telegramUserId) &&
         message.from?.id === payload.telegramUserId
       ) {
