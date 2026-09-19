@@ -53,6 +53,15 @@ interface TelegramLocation {
   horizontal_accuracy?: number | null;
 }
 
+interface PlateLookupResult {
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  color: string | null;
+  fuel_type: string | null;
+  provider: string;
+}
+
 declare global {
   interface Window {
     Telegram?: { WebApp: TelegramWebApp };
@@ -120,6 +129,13 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const [listingMessage, setListingMessage] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [primaryPlate, setPrimaryPlate] = useState("");
+  const [primaryMake, setPrimaryMake] = useState("");
+  const [primaryModel, setPrimaryModel] = useState("");
+  const [primaryYear, setPrimaryYear] = useState(String(new Date().getFullYear()));
+  const [primaryMileage, setPrimaryMileage] = useState("");
+  const [primaryHand, setPrimaryHand] = useState("1");
+  const [primaryPhotoUrl, setPrimaryPhotoUrl] = useState("");
   const [city, setCity] = useState(marketOptions.cities[0]);
   const [budget, setBudget] = useState(marketOptions.budgets[2]);
   const [defaultSalePrice, setDefaultSalePrice] = useState("");
@@ -132,17 +148,27 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [vehicleVin, setVehicleVin] = useState("");
   const [vehicleCheckError, setVehicleCheckError] = useState<string | null>(null);
+  const [plateLookupResult, setPlateLookupResult] = useState<PlateLookupResult | null>(null);
+  const [checkingPlate, setCheckingPlate] = useState(false);
+  const [checkingPrimaryPlate, setCheckingPrimaryPlate] = useState(false);
   const startX = useRef<number | null>(null);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
     if (!stored) return;
     try {
-      const parsed = JSON.parse(stored) as { city?: string; budget?: string; defaultSalePrice?: string; radiusKm?: number; savedIds?: string[] };
+      const parsed = JSON.parse(stored) as { city?: string; budget?: string; defaultSalePrice?: string; radiusKm?: number; savedIds?: string[]; primaryPlate?: string; primaryMake?: string; primaryModel?: string; primaryYear?: string; primaryMileage?: string; primaryHand?: string; primaryPhotoUrl?: string };
       const restore = window.setTimeout(() => {
         if (parsed.city) setCity(parsed.city);
         if (parsed.budget) setBudget(parsed.budget);
         if (parsed.defaultSalePrice) setDefaultSalePrice(parsed.defaultSalePrice);
+        if (parsed.primaryPlate) setPrimaryPlate(parsed.primaryPlate);
+        if (parsed.primaryMake) setPrimaryMake(parsed.primaryMake);
+        if (parsed.primaryModel) setPrimaryModel(parsed.primaryModel);
+        if (parsed.primaryYear) setPrimaryYear(parsed.primaryYear);
+        if (parsed.primaryMileage) setPrimaryMileage(parsed.primaryMileage);
+        if (parsed.primaryHand) setPrimaryHand(parsed.primaryHand);
+        if (parsed.primaryPhotoUrl) setPrimaryPhotoUrl(parsed.primaryPhotoUrl);
         if (parsed.radiusKm && SEARCH_RADII.includes(parsed.radiusKm)) setRadiusKm(parsed.radiusKm);
         if (parsed.savedIds?.length) {
           setSaved(initialCars.filter((car) => parsed.savedIds?.includes(car.car_id)));
@@ -166,7 +192,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const persist = (nextSaved: TelegramCar[]) => {
     window.localStorage.setItem(
       storageKey,
-      JSON.stringify({ city, budget, defaultSalePrice, radiusKm, savedIds: nextSaved.map((car) => car.car_id) })
+      JSON.stringify({ city, budget, defaultSalePrice, radiusKm, primaryPlate, primaryMake, primaryModel, primaryYear, primaryMileage, primaryHand, primaryPhotoUrl, savedIds: nextSaved.map((car) => car.car_id) })
     );
   };
 
@@ -194,6 +220,15 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
           locationAccuracyM: location?.horizontal_accuracy ?? null,
           radiusKm,
           savedCarIds: nextSaved.map((car) => car.car_id),
+          vehicle: {
+            plate: primaryPlate,
+            make: primaryMake,
+            model: primaryModel,
+            year: Number(primaryYear),
+            mileage: Number(primaryMileage),
+            hand: Number(primaryHand),
+            photoUrl: primaryPhotoUrl || undefined,
+          },
         }),
       });
       if (!response.ok) throw new Error("registration_failed");
@@ -328,7 +363,26 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     });
   };
 
-  const openOfficialVehicleCheck = () => {
+  const lookupPrimaryVehicle = async () => {
+    const plate = primaryPlate.replace(/[-\s]/g, "");
+    if (!isIsrael || !/^\d{7,8}$/.test(plate)) return;
+    setCheckingPrimaryPlate(true);
+    setRegistrationError(null);
+    try {
+      const response = await fetch(`/api/plate-lookup?country=IL&type=car&plate=${encodeURIComponent(plate)}`);
+      const result = (await response.json()) as PlateLookupResult & { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "lookup_failed");
+      if (result.make) setPrimaryMake(result.make);
+      if (result.model) setPrimaryModel(result.model);
+      if (result.year) setPrimaryYear(String(result.year));
+    } catch {
+      setRegistrationError("לא הצלחנו למצוא את הרכב במאגר. אפשר למלא את הפרטים ידנית.");
+    } finally {
+      setCheckingPrimaryPlate(false);
+    }
+  };
+
+  const openOfficialVehicleCheck = async () => {
     const vin = vehicleVin.trim().toUpperCase();
     const plate = vehiclePlate.trim().toUpperCase().replace(/[-\s]/g, "");
     if (isIsrael) {
@@ -337,7 +391,18 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
         return;
       }
       setVehicleCheckError(null);
-      window.open("https://www.gov.il/he/departments/dynamiccollectors/private-and-commercial-vehicles", "_blank", "noopener,noreferrer");
+      setPlateLookupResult(null);
+      setCheckingPlate(true);
+      try {
+        const response = await fetch(`/api/plate-lookup?country=IL&type=car&plate=${encodeURIComponent(plate)}`);
+        const result = (await response.json()) as PlateLookupResult & { error?: string };
+        if (!response.ok) throw new Error(result.error ?? "lookup_failed");
+        setPlateLookupResult(result);
+      } catch {
+        setVehicleCheckError("לא נמצא רכב או שמאגר משרד התחבורה אינו זמין כרגע.");
+      } finally {
+        setCheckingPlate(false);
+      }
       return;
     }
     if (vin && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
@@ -490,6 +555,21 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 ))}
               </div>
 
+              <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-sm font-black">{isIsrael ? "הרכב שלכם" : "Ваш автомобиль"}</div>
+                <p className="mt-1 text-xs leading-5 text-white/45">{isIsrael ? "הרכב יפורסם כברירת מחדל גם למכירה וגם להחלפה." : "Автомобиль по умолчанию публикуется и для продажи, и для обмена."}</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <label className="text-xs text-white/60">{isIsrael ? "מספר רישוי" : "Госномер"}<input value={primaryPlate} onChange={(event) => setPrimaryPlate(event.target.value)} placeholder={isIsrael ? "12-345-67" : "А123ВС77"} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "יצרן" : "Марка"}<input value={primaryMake} onChange={(event) => setPrimaryMake(event.target.value)} placeholder="Toyota" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "דגם" : "Модель"}<input value={primaryModel} onChange={(event) => setPrimaryModel(event.target.value)} placeholder="Corolla" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "שנה" : "Год"}<input type="number" inputMode="numeric" value={primaryYear} onChange={(event) => setPrimaryYear(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "קילומטראז׳" : "Пробег, км"}<input type="number" inputMode="numeric" value={primaryMileage} onChange={(event) => setPrimaryMileage(event.target.value)} placeholder="75000" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "יד" : "Владельцев"}<input type="number" inputMode="numeric" min="0" max="20" value={primaryHand} onChange={(event) => setPrimaryHand(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                </div>
+                {isIsrael ? <button type="button" onClick={() => void lookupPrimaryVehicle()} disabled={checkingPrimaryPlate || !/^\d{7,8}$/.test(primaryPlate.replace(/[-\s]/g, ""))} className="mt-3 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-2.5 text-xs font-bold text-emerald-100 disabled:opacity-40">{checkingPrimaryPlate ? "מאתרים את הרכב…" : "מילוי פרטי הרכב לפי מספר הרישוי"}</button> : null}
+                <label className="mt-3 block text-xs text-white/60">{isIsrael ? "קישור לתמונה" : "Ссылка на фото"}<input type="url" value={primaryPhotoUrl} onChange={(event) => setPrimaryPhotoUrl(event.target.value)} placeholder="https://…" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+              </div>
+
               <label className="mt-6 text-sm font-bold" htmlFor="default-sale-price">{isIsrael ? "מחיר המכירה של הרכב שלכם" : "Цена продажи вашего автомобиля"}</label>
               <div className="relative mt-3">
                 <input
@@ -512,7 +592,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <button
                 type="button"
                 onClick={() => void syncTelegramProfile(saved, true)}
-                disabled={registering || !Number.isFinite(ownCarPrice) || ownCarPrice < 10000}
+                disabled={registering || !primaryPlate.trim() || !primaryMake.trim() || !primaryModel.trim() || Number(primaryYear) < 1950 || !primaryMileage || !Number.isFinite(ownCarPrice) || ownCarPrice < 10000}
                 className="mt-auto rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-60"
               >
                 {registering ? (isIsrael ? "שומרים…" : "Сохраняем место…") : isIsrael ? "הצגת רכבים" : "Показать автомобили"}
@@ -674,10 +754,17 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <p className="mt-3 text-sm leading-6 text-white/55">{isIsrael ? "הזינו מספר רישוי. הבדיקה הרשמית תיפתח באתר המידע הממשלתי." : "Введите госномер и VIN. Официальная проверка откроется на сайте Госавтоинспекции России."}</p>
               <label className="mt-7 text-sm font-bold" htmlFor="ru-plate">{isIsrael ? "מספר רישוי" : "Госномер"}</label>
               <input id="ru-plate" value={vehiclePlate} onChange={(event) => setVehiclePlate(event.target.value)} placeholder={isIsrael ? "12-345-67" : "А123ВС77"} autoCapitalize="characters" className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[#ff4f70]/60" />
-              <label className="mt-5 text-sm font-bold" htmlFor="ru-vin">VIN</label>
-              <input id="ru-vin" value={vehicleVin} onChange={(event) => setVehicleVin(event.target.value)} placeholder="17 символов" autoCapitalize="characters" className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-mono text-white outline-none focus:border-[#ff4f70]/60" />
-              <button type="button" onClick={openOfficialVehicleCheck} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18]">{isIsrael ? "פתיחת הבדיקה הרשמית" : "Открыть официальную проверку"}</button>
+              {!isIsrael ? <><label className="mt-5 text-sm font-bold" htmlFor="ru-vin">VIN</label>
+              <input id="ru-vin" value={vehicleVin} onChange={(event) => setVehicleVin(event.target.value)} placeholder="17 символов" autoCapitalize="characters" className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-mono text-white outline-none focus:border-[#ff4f70]/60" /></> : null}
+              <button type="button" onClick={() => void openOfficialVehicleCheck()} disabled={checkingPlate} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-60">{checkingPlate ? "בודקים במאגר הרשמי…" : isIsrael ? "בדיקה לפי מספר רישוי" : "Открыть официальную проверку"}</button>
               {vehicleCheckError ? <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">{vehicleCheckError}</p> : null}
+              {plateLookupResult ? (
+                <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-50">
+                  <div className="font-black">{plateLookupResult.make} {plateLookupResult.model}</div>
+                  <div>{[plateLookupResult.year, plateLookupResult.color, plateLookupResult.fuel_type].filter(Boolean).join(" · ")}</div>
+                  <div className="mt-2 text-xs text-emerald-100/60">מקור: {plateLookupResult.provider}</div>
+                </div>
+              ) : null}
               <p className="mt-5 text-xs leading-5 text-white/35">Мы не сохраняем VIN или номер автомобиля на этом этапе. Для автоматического отчёта по госномеру потребуется договор с лицензированным поставщиком данных.</p>
             </section>
           )}

@@ -14,6 +14,15 @@ interface RegisterBody {
   locationAccuracyM?: number | null;
   radiusKm?: number;
   savedCarIds?: string[];
+  vehicle?: {
+    plate?: string;
+    make?: string;
+    model?: string;
+    year?: number;
+    mileage?: number;
+    hand?: number;
+    photoUrl?: string;
+  };
 }
 
 const MARKET_OPTIONS = {
@@ -67,6 +76,31 @@ export async function POST(request: Request) {
   }
 
   const savedCarIds = Array.from(new Set((body.savedCarIds ?? []).filter((value) => /^[-a-zA-Z0-9]{1,80}$/.test(value)))).slice(0, 100);
+  const vehicle = body.vehicle;
+  const cleanVehicleText = (value: unknown, max: number) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
+  const vehicleMake = cleanVehicleText(vehicle?.make, 60);
+  const vehicleModel = cleanVehicleText(vehicle?.model, 80);
+  const vehiclePlate = cleanVehicleText(vehicle?.plate, 20).replace(/[\s-]/g, "").toUpperCase();
+  const vehicleYear = Number(vehicle?.year);
+  const vehicleMileage = Number(vehicle?.mileage);
+  const vehicleHand = Number(vehicle?.hand);
+  if (!vehicleMake || !vehicleModel || !vehiclePlate || !Number.isInteger(vehicleYear) || vehicleYear < 1950 || vehicleYear > new Date().getFullYear() + 1 || !Number.isFinite(vehicleMileage) || vehicleMileage < 0 || vehicleMileage > 5000000 || !Number.isInteger(vehicleHand) || vehicleHand < 0 || vehicleHand > 20) {
+    return NextResponse.json({ error: "Invalid vehicle profile" }, { status: 400 });
+  }
+  const validPlate = market === "IL"
+    ? /^\d{7,8}$/.test(vehiclePlate)
+    : /^[АВЕКМНОРСТУХABEKMHOPCTYX]\d{3}[АВЕКМНОРСТУХABEKMHOPCTYX]{2}\d{2,3}$/.test(vehiclePlate);
+  if (!validPlate) return NextResponse.json({ error: "Invalid vehicle plate" }, { status: 400 });
+  let vehiclePhotoUrl: string | null = null;
+  if (vehicle?.photoUrl) {
+    try {
+      const parsed = new URL(vehicle.photoUrl);
+      if (parsed.protocol !== "https:") throw new Error("invalid_protocol");
+      vehiclePhotoUrl = parsed.toString().slice(0, 1000);
+    } catch {
+      return NextResponse.json({ error: "Invalid vehicle photo" }, { status: 400 });
+    }
+  }
   const supabase = createClient(SUPABASE_URL, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -107,6 +141,26 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: "Registration failed" }, { status: 500 });
 
   const user = data as { founder_number: number | null; premium_until: string | null };
+  const { error: vehicleError } = await supabase.from("market_vehicle_inventory").upsert({
+    market_country: market,
+    source_name: "telegram_primary",
+    source_listing_id: `telegram-primary-${verified.user.id}`,
+    seller_telegram_user_id: verified.user.id,
+    seller_name: verified.user.first_name,
+    make: vehicleMake,
+    model: vehicleModel,
+    year: vehicleYear,
+    price: Math.round(body.defaultSalePrice),
+    currency: market === "IL" ? "ILS" : "RUB",
+    latitude: hasLocation ? Number(body.latitude!.toFixed(3)) : null,
+    longitude: hasLocation ? Number(body.longitude!.toFixed(3)) : null,
+    photo_urls: vehiclePhotoUrl ? [vehiclePhotoUrl] : [],
+    status: "active",
+    source_payload: { city: body.city, plate: vehiclePlate, mileage: Math.round(vehicleMileage), hand: vehicleHand, for_sale: true, for_swap: true },
+    synced_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "market_country,source_name,source_listing_id" });
+  if (vehicleError) return NextResponse.json({ error: "Vehicle profile failed" }, { status: 500 });
   return NextResponse.json({
     founderNumber: user.founder_number,
     founder: Boolean(user.founder_number),
