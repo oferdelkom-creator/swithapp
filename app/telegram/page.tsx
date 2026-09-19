@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import TelegramPilot, { type TelegramCar } from "./TelegramPilot";
 
-export const metadata: Metadata = {
-  title: "SwitchApp в Telegram",
-  description: "Подбор автомобиля свайпами внутри Telegram.",
-};
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ market?: string }> }): Promise<Metadata> {
+  const params = await searchParams;
+  const isIsrael = params.market?.toUpperCase() === "IL";
+  return {
+    title: isIsrael ? "SwitchApp ישראל בטלגרם" : "SwitchApp в Telegram",
+    description: isIsrael ? "מציאת הרכב הבא בהחלקה בתוך Telegram." : "Подбор автомобиля свайпами внутри Telegram.",
+  };
+}
 
 const RU_FALLBACK_CARS: TelegramCar[] = [
   {
