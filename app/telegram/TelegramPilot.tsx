@@ -151,6 +151,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const [plateLookupResult, setPlateLookupResult] = useState<PlateLookupResult | null>(null);
   const [checkingPlate, setCheckingPlate] = useState(false);
   const [checkingPrimaryPlate, setCheckingPrimaryPlate] = useState(false);
+  const [primaryLookupMessage, setPrimaryLookupMessage] = useState<string | null>(null);
   const startX = useRef<number | null>(null);
 
   useEffect(() => {
@@ -368,6 +369,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     if (!isIsrael || !/^\d{7,8}$/.test(plate)) return;
     setCheckingPrimaryPlate(true);
     setRegistrationError(null);
+    setPrimaryLookupMessage(null);
     try {
       const response = await fetch(`/api/plate-lookup?country=IL&type=car&plate=${encodeURIComponent(plate)}`);
       const result = (await response.json()) as PlateLookupResult & { error?: string };
@@ -375,6 +377,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
       if (result.make) setPrimaryMake(result.make);
       if (result.model) setPrimaryModel(result.model);
       if (result.year) setPrimaryYear(String(result.year));
+      setPrimaryLookupMessage(`✓ הפרטים התקבלו מ־${result.provider}`);
     } catch {
       setRegistrationError("לא הצלחנו למצוא את הרכב במאגר. אפשר למלא את הפרטים ידנית.");
     } finally {
@@ -559,7 +562,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 <div className="text-sm font-black">{isIsrael ? "הרכב שלכם" : "Ваш автомобиль"}</div>
                 <p className="mt-1 text-xs leading-5 text-white/45">{isIsrael ? "הרכב יפורסם כברירת מחדל גם למכירה וגם להחלפה." : "Автомобиль по умолчанию публикуется и для продажи, и для обмена."}</p>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <label className="text-xs text-white/60">{isIsrael ? "מספר רישוי" : "Госномер"}<input value={primaryPlate} onChange={(event) => setPrimaryPlate(event.target.value)} placeholder={isIsrael ? "12-345-67" : "А123ВС77"} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
+                  <label className="text-xs text-white/60">{isIsrael ? "מספר רישוי" : "Госномер"}<input value={primaryPlate} onChange={(event) => { setPrimaryPlate(event.target.value); setPrimaryLookupMessage(null); }} onBlur={() => { if (isIsrael && /^\d{7,8}$/.test(primaryPlate.replace(/[-\s]/g, ""))) void lookupPrimaryVehicle(); }} placeholder={isIsrael ? "12-345-67" : "А123ВС77"} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
                   <label className="text-xs text-white/60">{isIsrael ? "יצרן" : "Марка"}<input value={primaryMake} onChange={(event) => setPrimaryMake(event.target.value)} placeholder="Toyota" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
                   <label className="text-xs text-white/60">{isIsrael ? "דגם" : "Модель"}<input value={primaryModel} onChange={(event) => setPrimaryModel(event.target.value)} placeholder="Corolla" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
                   <label className="text-xs text-white/60">{isIsrael ? "שנה" : "Год"}<input type="number" inputMode="numeric" value={primaryYear} onChange={(event) => setPrimaryYear(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
@@ -567,6 +570,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                   <label className="text-xs text-white/60">{isIsrael ? "יד" : "Владельцев"}<input type="number" inputMode="numeric" min="0" max="20" value={primaryHand} onChange={(event) => setPrimaryHand(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
                 </div>
                 {isIsrael ? <button type="button" onClick={() => void lookupPrimaryVehicle()} disabled={checkingPrimaryPlate || !/^\d{7,8}$/.test(primaryPlate.replace(/[-\s]/g, ""))} className="mt-3 w-full rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-2.5 text-xs font-bold text-emerald-100 disabled:opacity-40">{checkingPrimaryPlate ? "מאתרים את הרכב…" : "מילוי פרטי הרכב לפי מספר הרישוי"}</button> : null}
+                {primaryLookupMessage ? <p className="mt-2 text-xs font-semibold text-emerald-300">{primaryLookupMessage}</p> : null}
                 <label className="mt-3 block text-xs text-white/60">{isIsrael ? "קישור לתמונה" : "Ссылка на фото"}<input type="url" value={primaryPhotoUrl} onChange={(event) => setPrimaryPhotoUrl(event.target.value)} placeholder="https://…" className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none" /></label>
               </div>
 
