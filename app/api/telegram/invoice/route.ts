@@ -6,7 +6,7 @@ import { validateTelegramInitData } from "@/lib/telegram/validateInitData";
 
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!botToken || !secretKey) return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
 
   let body: { initData?: string; productId?: string; marketCountry?: string };
