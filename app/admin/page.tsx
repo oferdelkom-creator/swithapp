@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 import { getT } from "@/lib/i18n/server";
 import { formatDate, formatDateTime } from "@/lib/i18n/format";
 import type { AppUser, Car, DealerFeatureRequest, Message } from "@/lib/types";
@@ -22,6 +24,36 @@ type FeatureRequestRow = DealerFeatureRequest & {
   users: { name: string; business_name: string | null } | null;
 };
 
+type TelegramDealerAccount = {
+  telegram_user_id: number;
+  role: "dealer" | "importer";
+  business_name: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  city: string;
+  phone: string;
+  inventory_mode: "manual" | "csv" | "xml" | "api";
+  verified: boolean;
+  trial_ends_at: string;
+  created_at: string;
+};
+
+async function getTelegramDealerOverview() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+  if (!key) return { accounts: [] as TelegramDealerAccount[], vehicles: [] as { seller_telegram_user_id: number }[], leads: [] as { dealer_telegram_user_id: number }[] };
+  const service = createServiceClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const [{ data: accounts }, { data: vehicles }, { data: leads }] = await Promise.all([
+    service.from("telegram_dealer_accounts").select("telegram_user_id,role,business_name,legal_name,tax_id,city,phone,inventory_mode,verified,trial_ends_at,created_at").order("created_at", { ascending: false }).limit(500),
+    service.from("market_vehicle_inventory").select("seller_telegram_user_id").eq("source_name", "telegram_dealer").eq("market_country", "RU"),
+    service.from("telegram_dealer_leads").select("dealer_telegram_user_id"),
+  ]);
+  return {
+    accounts: (accounts ?? []) as TelegramDealerAccount[],
+    vehicles: (vehicles ?? []) as { seller_telegram_user_id: number }[],
+    leads: (leads ?? []) as { dealer_telegram_user_id: number }[],
+  };
+}
+
 export default async function AdminPage() {
   const supabase = await createClient();
   const { t, locale } = await getT();
@@ -38,7 +70,7 @@ export default async function AdminPage() {
 
   if (!me?.is_admin) redirect("/");
 
-  const [{ data: users }, { data: cars }, { data: reports }, { count: seedUserCount }, { data: featureRequests }] = await Promise.all([
+  const [{ data: users }, { data: cars }, { data: reports }, { count: seedUserCount }, { data: featureRequests }, telegramDealers] = await Promise.all([
     supabase
       .from("users")
       .select("*")
@@ -63,7 +95,16 @@ export default async function AdminPage() {
       .select("*, users(name, business_name)")
       .order("created_at", { ascending: false })
       .returns<FeatureRequestRow[]>(),
+    getTelegramDealerOverview(),
   ]);
+
+  const vehicleCounts = new Map<number, number>();
+  const leadCounts = new Map<number, number>();
+  telegramDealers.vehicles.forEach(({ seller_telegram_user_id }) => vehicleCounts.set(seller_telegram_user_id, (vehicleCounts.get(seller_telegram_user_id) ?? 0) + 1));
+  telegramDealers.leads.forEach(({ dealer_telegram_user_id }) => leadCounts.set(dealer_telegram_user_id, (leadCounts.get(dealer_telegram_user_id) ?? 0) + 1));
+  const now = Date.now();
+  const newDealerCount = telegramDealers.accounts.filter((account) => now - new Date(account.created_at).getTime() <= 24 * 60 * 60 * 1000).length;
+  const activeTrialCount = telegramDealers.accounts.filter((account) => new Date(account.trial_ends_at).getTime() > now).length;
 
   const twoMinutesAgo = new Date();
   twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
@@ -84,6 +125,50 @@ export default async function AdminPage() {
           <RemoveSeedDataButton />
         </section>
       )}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">סוחרים ויבואנים — Telegram רוסיה</h2>
+            <p className="mt-1 text-sm text-neutral-500">הרשמות, מלאי, לידים ותקופת הניסיון במקום אחד.</p>
+          </div>
+          {newDealerCount > 0 && <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">{newDealerCount} הרשמות חדשות ב־24 שעות</span>}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["חשבונות", telegramDealers.accounts.length],
+            ["בתקופת ניסיון", activeTrialCount],
+            ["כלי רכב", telegramDealers.vehicles.length],
+            ["לידים", telegramDealers.leads.length],
+          ].map(([label, value]) => (
+            <div key={label} className="card px-5 py-4"><p className="text-sm text-neutral-500">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+          <table className="w-full min-w-[980px] text-sm border-collapse">
+            <thead><tr className="border-b border-neutral-200 bg-neutral-50 text-right text-neutral-500">
+              <th className="px-4 py-3">עסק</th><th className="px-4 py-3">תפקיד</th><th className="px-4 py-3">עיר</th><th className="px-4 py-3">טלפון</th><th className="px-4 py-3">מלאי</th><th className="px-4 py-3">לידים</th><th className="px-4 py-3">ניסיון</th><th className="px-4 py-3">אימות</th><th className="px-4 py-3">נרשם</th>
+            </tr></thead>
+            <tbody>
+              {telegramDealers.accounts.length ? telegramDealers.accounts.map((account) => {
+                const daysLeft = Math.max(0, Math.ceil((new Date(account.trial_ends_at).getTime() - now) / (24 * 60 * 60 * 1000)));
+                return <tr key={account.telegram_user_id} className="border-b border-neutral-100 last:border-0">
+                  <td className="px-4 py-3"><span className="font-medium">{account.business_name}</span><span className="block text-xs text-neutral-400">{account.legal_name ?? `Telegram ${account.telegram_user_id}`}{account.tax_id ? ` · ИНН ${account.tax_id}` : ""}</span></td>
+                  <td className="px-4 py-3">{account.role === "importer" ? "יבואן" : "סוחר"}</td>
+                  <td className="px-4 py-3">{account.city}</td><td className="px-4 py-3" dir="ltr">{account.phone}</td>
+                  <td className="px-4 py-3">{vehicleCounts.get(account.telegram_user_id) ?? 0}<span className="block text-xs text-neutral-400">{account.inventory_mode.toUpperCase()}</span></td>
+                  <td className="px-4 py-3">{leadCounts.get(account.telegram_user_id) ?? 0}</td>
+                  <td className="px-4 py-3">{daysLeft > 0 ? `${daysLeft} ימים` : "הסתיים"}</td>
+                  <td className="px-4 py-3">{account.verified ? <span className="text-emerald-700">מאומת</span> : <span className="text-amber-700">ממתין</span>}</td>
+                  <td className="px-4 py-3">{formatDate(account.created_at, locale)}</td>
+                </tr>;
+              }) : <tr><td colSpan={9} className="px-4 py-10 text-center text-neutral-500">עדיין אין הרשמות של סוחרים מרוסיה. ההרשמה הראשונה תופיע כאן אוטומטית.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2 className="font-medium mb-4">{t("admin.reports", { count: reports?.length ?? 0 })}</h2>
@@ -245,3 +330,4 @@ export default async function AdminPage() {
     </div>
   );
 }
+
