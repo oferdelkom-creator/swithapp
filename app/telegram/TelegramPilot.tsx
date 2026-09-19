@@ -114,6 +114,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const marketOptions = MARKET_OPTIONS[initialMarket];
   const storageKey = `switchapp-telegram-pilot:${initialMarket}`;
   const [stage, setStage] = useState<Stage>("welcome");
+  const [profileStep, setProfileStep] = useState<1 | 2 | 3>(1);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
   const [telegramInitData, setTelegramInitData] = useState("");
   const [founderNumber, setFounderNumber] = useState<number | null>(null);
@@ -125,6 +126,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
   const [listingYear, setListingYear] = useState(String(new Date().getFullYear()));
   const [listingPrice, setListingPrice] = useState("");
   const [listingPhotoUrl, setListingPhotoUrl] = useState("");
+  const [uploadingListingPhoto, setUploadingListingPhoto] = useState(false);
   const [publishingListing, setPublishingListing] = useState(false);
   const [listingMessage, setListingMessage] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
@@ -427,6 +429,31 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     }
   };
 
+  const uploadListingPhoto = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    if (!telegramInitData) {
+      setListingMessage(isIsrael ? "העלאת תמונה זמינה בתוך Telegram." : "Загрузка фото доступна внутри Telegram.");
+      return;
+    }
+    setUploadingListingPhoto(true);
+    setListingMessage(null);
+    try {
+      const formData = new FormData();
+      formData.set("initData", telegramInitData);
+      formData.set("marketCountry", initialMarket);
+      formData.append("photos", file);
+      const response = await fetch("/api/telegram/photos", { method: "POST", body: formData });
+      const result = await response.json().catch(() => null) as { urls?: string[]; error?: string } | null;
+      if (!response.ok || !result?.urls?.[0]) throw new Error(result?.error ?? "upload_failed");
+      setListingPhotoUrl(result.urls[0]);
+    } catch {
+      setListingMessage(isIsrael ? "לא הצלחנו להעלות את התמונה. נסו שוב." : "Не удалось загрузить фото. Попробуйте снова.");
+    } finally {
+      setUploadingListingPhoto(false);
+    }
+  };
+
   const removePrimaryPhoto = (url: string) => {
     const nextUrls = primaryPhotoUrls.filter((item) => item !== url);
     setPrimaryPhotoUrls(nextUrls);
@@ -520,25 +547,15 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
       />
       <div className="telegram-app min-h-[100dvh] bg-[#070b18] text-white" lang={isIsrael ? "he" : "ru"} dir={isIsrael ? "rtl" : "ltr"}>
         <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col overflow-hidden px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))]">
-          <header className="mb-4 flex items-center justify-between">
+          <header className="mb-4 flex items-center justify-between gap-3">
             <div>
               <div className="text-lg font-black tracking-tight">SWITCH<span className="text-[#ff4f70]">APP</span></div>
               <div className="text-[11px] text-white/50">{isIsrael ? "הרכב הבא מוצא אתכם" : "Автомобили находят вас"}</div>
             </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setStage("access")} className={`rounded-full px-2.5 py-2 text-[10px] font-black ${hasBuyerAccess ? "bg-emerald-400/15 text-emerald-300" : "border border-[#ff4f70]/30 bg-[#ff4f70]/10 text-[#ff91a6]"}`}>
-                {hasBuyerAccess ? "PLUS" : isIsrael ? "פתיחת PLUS" : "ОТКРЫТЬ PLUS"}
-              </button>
-              <button type="button" onClick={() => setStage("vehicle-check")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">{isIsrael ? "בדיקת רכב" : "Проверка авто"}</button>
-              <button type="button" onClick={() => setStage("sell")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">{isIsrael ? "מכירה" : "Продать"}</button>
-              <button type="button" onClick={() => setStage("saved")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">
-                {founderNumber ? `#${founderNumber} · ` : ""}♥ {saved.length}
-              </button>
-            </div>
+            <button type="button" onClick={() => router.push(`/telegram?market=${isIsrael ? "RU" : "IL"}`)} className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-white/75">
+              {isIsrael ? "🇮🇱 עברית · RU" : "🇷🇺 Русский · HE"}
+            </button>
           </header>
-          <button type="button" onClick={() => router.push(`/telegram?market=${isIsrael ? "RU" : "IL"}`)} className="mb-3 w-fit rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-white/65">
-            {isIsrael ? "🇮🇱 ישראל · מעבר לרוסיה" : "🇷🇺 Россия · перейти в Израиль"}
-          </button>
 
           {stage === "welcome" && (
             <section className="flex flex-1 flex-col justify-center py-8">
@@ -546,10 +563,10 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 {isIsrael ? "1,000 הראשונים · PLUS בחינם" : "FOUNDING 1000 · PLUS БЕСПЛАТНО"}
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight">
-                {isIsrael ? "הרכב הבא שלכם — בהחלקה אחת." : "Ваш следующий автомобиль — одним свайпом."}
+                {isIsrael ? "הרכב הבא שלכם נמצא במרחק החלקה." : "Ваш следующий автомобиль — одним свайпом."}
               </h1>
               <p className="mt-4 max-w-sm text-base leading-7 text-white/65">
-                {isIsrael ? `ברוכים הבאים, ${displayName}. ספרו לנו מה אתם מחפשים ו־SwitchApp תבנה לכם גלריית רכבים אישית.` : `Добро пожаловать, ${displayName}. Укажите, что вы ищете, и SwitchApp соберёт персональную ленту автомобилей.`}
+                {isIsrael ? `היי ${displayName}, העלו את הרכב שלכם, הגדירו מה אתם מחפשים וקבלו התאמות למכירה או להחלפה.` : `Добро пожаловать, ${displayName}. Укажите, что вы ищете, и SwitchApp соберёт персональную ленту автомобилей.`}
               </p>
               <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs text-white/55">
                 {(isIsrael ? [["01", "מגדירים"], ["02", "מחליקים"], ["03", "יוצרים קשר"]] : [["01", "Настройте"], ["02", "Свайпайте"], ["03", "Свяжитесь"]]).map(([n, label]) => (
@@ -563,7 +580,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 onClick={() => setStage("preferences")}
                 className="mt-8 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black shadow-[0_18px_50px_rgba(255,79,112,0.28)]"
               >
-                {isIsrael ? "מתחילים בחינם" : "Начать бесплатно"}
+                {isIsrael ? "מתחילים — ללא תשלום" : "Начать бесплатно"}
               </button>
               <p className="mt-3 text-center text-[11px] text-white/35">{isIsrael ? "ההרשמה והגלילה בחינם · ללא כרטיס אשראי" : "Регистрация и свайпы бесплатны · без карты"}</p>
             </section>
@@ -571,11 +588,17 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
 
           {stage === "preferences" && (
             <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-4 pb-2">
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff91a6]">{isIsrael ? "שלב 1 מתוך 2" : "Шаг 1 из 2"}</div>
-              <h1 className="mt-2 text-3xl font-black">{isIsrael ? "מה מתאים לכם?" : "Что вам подходит?"}</h1>
-              <p className="mt-2 text-sm leading-6 text-white/55">{isIsrael ? "כמה פרטים ואפשר להתחיל." : "Два ответа — и можно начинать."}</p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff91a6]">{isIsrael ? `שלב ${profileStep} מתוך 3` : `Шаг ${profileStep} из 3`}</div>
+                <div className="flex gap-1.5" aria-label={isIsrael ? "התקדמות בהרשמה" : "Прогресс регистрации"}>
+                  {[1, 2, 3].map((step) => <span key={step} className={`h-1.5 w-8 rounded-full ${step <= profileStep ? "bg-[#ff4f70]" : "bg-white/10"}`} />)}
+                </div>
+              </div>
+              <h1 className="mt-3 text-3xl font-black">{profileStep === 1 ? (isIsrael ? "איפה ומה מחפשים?" : "Где и что ищем?") : profileStep === 2 ? (isIsrael ? "ספרו לנו על הרכב שלכם" : "Расскажите о вашем автомобиле") : (isIsrael ? "מחיר אחרון ויוצאים לדרך" : "Цена — и можно начинать")}</h1>
+              <p className="mt-2 text-sm leading-6 text-white/55">{profileStep === 1 ? (isIsrael ? "בחרו אזור ותקציב כדי שנציג רק רכבים רלוונטיים." : "Выберите регион и бюджет, чтобы видеть подходящие автомобили.") : profileStep === 2 ? (isIsrael ? "הרכב יפורסם גם למכירה וגם להחלפה. אפשר לשנות זאת בהמשך." : "Автомобиль будет доступен для продажи и обмена.") : (isIsrael ? "המחיר מאפשר לחשב מיד מי מוסיף וכמה בכל התאמה." : "Цена нужна для мгновенного расчёта доплаты.")}</p>
 
-              <label className="mt-8 text-sm font-bold">{isIsrael ? "העיר שלכם" : "Ваш город"}</label>
+              <div className={profileStep === 1 ? "block" : "hidden"}>
+              <label className="mt-8 block text-sm font-bold">{isIsrael ? "העיר שלכם" : "Ваш город"}</label>
               <button type="button" onClick={requestLocation} disabled={locationStatus === "requesting"} className="mt-3 rounded-2xl border border-[#ff4f70]/35 bg-[#ff4f70]/10 px-4 py-3 text-left text-sm font-bold text-[#ffb0bf] disabled:opacity-60">
                 {locationStatus === "requesting" ? (isIsrael ? "מזהים מיקום…" : "Определяем местоположение…") : locationStatus === "granted" ? `✓ ${isIsrael ? "המיקום זוהה" : "Геолокация включена"} · ${city}` : isIsrael ? "⌖ זיהוי אוטומטי" : "⌖ Определить автоматически"}
               </button>
@@ -592,7 +615,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {SEARCH_RADII.map((item) => (
                   <button key={item} type="button" onClick={() => { setRadiusKm(item); setIndex(0); }} className={`rounded-xl px-2 py-2.5 text-xs font-semibold ${radiusKm === item ? "bg-white text-[#070b18]" : "border border-white/10 bg-white/5 text-white/70"}`}>
-                    {item} км
+                    {item} {isIsrael ? "ק״מ" : "км"}
                   </button>
                 ))}
               </div>
@@ -605,8 +628,9 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                   </button>
                 ))}
               </div>
+              </div>
 
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className={`${profileStep === 2 ? "block" : "hidden"} mt-7 rounded-3xl border border-white/10 bg-white/[0.04] p-4`}>
                 <div className="text-sm font-black">{isIsrael ? "הרכב שלכם" : "Ваш автомобиль"}</div>
                 <p className="mt-1 text-xs leading-5 text-white/45">{isIsrael ? "הרכב יפורסם כברירת מחדל גם למכירה וגם להחלפה." : "Автомобиль по умолчанию публикуется и для продажи, и для обмена."}</p>
                 <div className="mt-4 grid grid-cols-2 gap-3">
@@ -653,7 +677,10 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 </div>
               </div>
 
-              <label className="mt-6 text-sm font-bold" htmlFor="default-sale-price">{isIsrael ? "מחיר המכירה של הרכב שלכם" : "Цена продажи вашего автомобиля"}</label>
+              <div className={profileStep === 3 ? "block" : "hidden"}>
+              <div className="mt-7 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="mb-4 text-4xl">₪</div>
+              <label className="text-sm font-bold" htmlFor="default-sale-price">{isIsrael ? "מה מחיר המכירה של הרכב שלכם?" : "Цена продажи вашего автомобиля"}</label>
               <div className="relative mt-3">
                 <input
                   id="default-sale-price"
@@ -670,25 +697,32 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 />
                 <span className="absolute right-4 top-3 text-white/45">{isIsrael ? "₪" : "₽"}</span>
               </div>
-              <p className="mt-2 text-xs text-white/40">{isIsrael ? "המחיר ישמש כברירת מחדל לחישוב ההפרש בעסקה." : "Эта цена будет использоваться по умолчанию для расчёта доплаты."}</p>
+              <p className="mt-2 text-xs leading-5 text-white/45">{isIsrael ? "נציג בכל התאמה את מחיר הרכב שלכם, מחיר הרכב שמצאתם ואת ההפרש לתשלום." : "Эта цена будет использоваться для расчёта доплаты."}</p>
+              </div>
+              <div className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] p-4 text-xs leading-5 text-emerald-100/80">
+                {isIsrael ? "✓ ההרשמה והגלילה ללא תשלום  ·  ✓ הרכב הראשון מתפרסם בחינם  ·  ✓ ללא כרטיס אשראי" : "✓ Регистрация и свайпы бесплатны  ·  ✓ Первое объявление бесплатно"}
+              </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => void syncTelegramProfile(saved, true)}
-                disabled={registering || !primaryPlate.trim() || !primaryMake.trim() || !primaryModel.trim() || Number(primaryYear) < 1950 || !primaryMileage || !Number.isFinite(ownCarPrice) || ownCarPrice < 10000}
-                className="mt-auto rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-60"
-              >
-                {registering ? (isIsrael ? "שומרים…" : "Сохраняем место…") : isIsrael ? "הצגת רכבים" : "Показать автомобили"}
-              </button>
+              <div className="mt-auto flex gap-3 pt-7">
+                {profileStep > 1 ? <button type="button" onClick={() => setProfileStep((profileStep - 1) as 1 | 2)} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-bold text-white/75">{isIsrael ? "חזרה" : "Назад"}</button> : null}
+                {profileStep < 3 ? (
+                  <button type="button" onClick={() => { setRegistrationError(null); setProfileStep((profileStep + 1) as 2 | 3); }} disabled={profileStep === 2 && (!primaryPlate.trim() || !primaryMake.trim() || !primaryModel.trim() || Number(primaryYear) < 1950 || !primaryMileage)} className="flex-1 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-40">{isIsrael ? "המשך" : "Продолжить"}</button>
+                ) : (
+                  <button type="button" onClick={() => void syncTelegramProfile(saved, true)} disabled={registering || !Number.isFinite(ownCarPrice) || ownCarPrice < 10000} className="flex-1 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black text-white shadow-[0_18px_50px_rgba(255,79,112,0.28)] disabled:opacity-60">
+                    {registering ? (isIsrael ? "שומרים…" : "Сохраняем…") : isIsrael ? "מצאו לי רכבים" : "Показать автомобили"}
+                  </button>
+                )}
+              </div>
               {registrationError ? <p className="mt-3 text-center text-xs text-red-300">{registrationError}</p> : null}
             </section>
           )}
 
           {stage === "deck" && (
-            <section className="flex min-h-0 flex-1 flex-col">
+            <section className="flex min-h-0 flex-1 flex-col pb-2">
               <div className="mb-4">
-                <div className="flex items-center justify-between text-xs text-white/45">
-                  <span>{city} · {budget}</span>
+                <div className="flex items-center justify-between gap-3 text-xs text-white/55">
+                  <span className="truncate">{city} · {budget}</span>
                   <span>{Math.min(index + 1, deckCars.length)}/{deckCars.length}</span>
                 </div>
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#ff4f70] transition-all" style={{ width: `${progress}%` }} /></div>
@@ -712,21 +746,24 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                       else setDragX(0);
                     }}
                   >
-                    <div className="relative h-[63%] min-h-64 bg-gradient-to-br from-slate-700 to-slate-900">
+                    <div className="relative h-full min-h-80 bg-gradient-to-br from-slate-700 to-slate-900">
                       {/* eslint-disable-next-line @next/next/no-img-element -- listing hosts are user-controlled; the existing marketplace uses the same safe URL list. */}
                       <img src={current.photo_urls?.[0] || "/campaign/dealer-choice.webp"} alt={`${current.make} ${current.model}`} className="h-full w-full object-cover" draggable={false} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#121827] via-transparent to-black/10" />
-                      <div className={`absolute left-5 top-6 -rotate-12 rounded-lg border-4 border-emerald-400 px-3 py-1 text-2xl font-black text-emerald-400 transition-opacity ${dragX > 30 ? "opacity-100" : "opacity-0"}`}>БЕРУ</div>
-                      <div className={`absolute right-5 top-6 rotate-12 rounded-lg border-4 border-white/70 px-3 py-1 text-2xl font-black text-white/80 transition-opacity ${dragX < -30 ? "opacity-100" : "opacity-0"}`}>ДАЛЬШЕ</div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0b1020] via-[#0b1020]/25 to-black/15" />
+                      <div className={`absolute left-5 top-6 -rotate-12 rounded-lg border-4 border-emerald-400 px-3 py-1 text-xl font-black text-emerald-300 transition-opacity ${dragX > 30 ? "opacity-100" : "opacity-0"}`}>{isIsrael ? "מתאים לי" : "БЕРУ"}</div>
+                      <div className={`absolute right-5 top-6 rotate-12 rounded-lg border-4 border-white/80 px-3 py-1 text-xl font-black text-white transition-opacity ${dragX < -30 ? "opacity-100" : "opacity-0"}`}>{isIsrael ? "לא מתאים" : "ДАЛЬШЕ"}</div>
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 p-5">
+                    <div className="absolute inset-x-0 bottom-0 p-5 text-shadow-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div><h2 className="text-2xl font-black">{current.make} {current.model}</h2><p className="mt-1 text-sm text-white/50">{current.year || (isIsrael ? "שנה לא צוינה" : "Год не указан")} · {current.seller_name}</p></div>
-                        <div className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold">{isIsrael ? "מאומת" : "ПРОВЕРЕНО"}</div>
+                        <div><h2 className="text-2xl font-black leading-tight">{current.make} {current.model}</h2><p className="mt-1.5 text-sm text-white/70">{current.year || (isIsrael ? "שנה לא צוינה" : "Год не указан")} · {current.seller_name}</p></div>
+                        <div className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-300/15 px-3 py-1.5 text-[11px] font-bold text-emerald-200">✓ {isIsrael ? "מודעה מאומתת" : "ПРОВЕРЕНО"}</div>
                       </div>
-                      <div className="mt-4 text-xl font-black text-[#ff91a6]">{displayPrice(current, isIsrael)}</div>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl border border-white/10 bg-black/35 p-3"><div className="text-white/55">{isIsrael ? "מחיר מבוקש" : "Цена"}</div><div className="mt-1 text-base font-black text-white">{displayPrice(current, isIsrael)}</div></div>
+                        <div className="rounded-xl border border-white/10 bg-black/35 p-3"><div className="text-white/55">{isIsrael ? "הרכב שלכם" : "Ваш автомобиль"}</div><div className="mt-1 text-base font-black text-white">{formatPrice(ownCarPrice, isIsrael)} {isIsrael ? "₪" : "₽"}</div></div>
+                      </div>
                       {hasBuyerAccess && priceDifference != null ? (
-                        <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm" aria-live="polite">
+                        <div className="mt-2 rounded-xl border border-amber-300/20 bg-black/45 px-3 py-2.5 text-sm" aria-live="polite">
                           {priceDifference === 0 ? (
                             <span className="font-bold text-emerald-300">{isIsrael ? "החלפה ללא תוספת" : "Обмен без доплаты"}</span>
                           ) : priceDifference > 0 ? (
@@ -735,7 +772,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                             <><span className="text-white/55">{isIsrael ? "מוסיפים לכם " : "Вам доплачивают "}</span><span className="font-black text-emerald-300">{formatPrice(Math.abs(priceDifference), isIsrael)} {isIsrael ? "₪" : "₽"}</span></>
                           )}
                         </div>
-                      ) : hasBuyerAccess ? <div className="mt-3 text-xs text-white/40">Нет цены — расчёт доплаты недоступен.</div> : (
+                      ) : hasBuyerAccess ? <div className="mt-3 text-xs text-white/50">{isIsrael ? "אין מחיר זמין לחישוב ההפרש." : "Нет цены — расчёт доплаты недоступен."}</div> : (
                         <button type="button" onClick={() => setStage("access")} className="mt-3 w-full rounded-xl border border-[#ff4f70]/25 bg-[#ff4f70]/10 px-3 py-2 text-left text-xs font-bold text-[#ffb0bf]">
                           {isIsrael ? "★ התאמה חכמה וחישוב ההפרש — ב־Plus" : "★ Совместимость и расчёт доплаты — в Plus"}
                         </button>
@@ -744,15 +781,15 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                   </article>
                 </div>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center text-center">
-                  <div className="text-5xl">✓</div><h2 className="mt-4 text-2xl font-black">Вы просмотрели всё</h2><p className="mt-2 text-sm text-white/55">Мы сообщим, когда появятся новые варианты.</p>
+                  <div className="flex flex-1 flex-col items-center justify-center text-center">
+                  <div className="text-5xl">✓</div><h2 className="mt-4 text-2xl font-black">{isIsrael ? "עברתם על כל הרכבים" : "Вы просмотрели всё"}</h2><p className="mt-2 text-sm text-white/55">{isIsrael ? "נעדכן אתכם כשיתווספו התאמות חדשות." : "Мы сообщим, когда появятся новые варианты."}</p>
                 </div>
               )}
 
-              <div className="mt-5 flex items-center justify-center gap-5">
-                <button type="button" onClick={() => choose(false)} disabled={!current} aria-label="Пропустить" className="grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-white/5 text-2xl disabled:opacity-30">×</button>
-                <button type="button" onClick={() => setStage("saved")} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/5 text-lg">☰</button>
-                <button type="button" onClick={() => choose(true)} disabled={!current} aria-label="Сохранить" className="grid h-14 w-14 place-items-center rounded-full bg-[#ff4f70] text-2xl shadow-[0_12px_35px_rgba(255,79,112,0.32)] disabled:opacity-30">♥</button>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => choose(false)} disabled={!current} aria-label={isIsrael ? "לא מתאים" : "Пропустить"} className="rounded-2xl border border-white/10 bg-white/5 px-2 py-3 text-xs font-bold text-white/70 disabled:opacity-30">× {isIsrael ? "לא מתאים" : "Пропустить"}</button>
+                <button type="button" onClick={() => setStage("vehicle-check")} className="rounded-2xl border border-white/10 bg-white/5 px-2 py-3 text-xs font-bold text-white/70">☰ {isIsrael ? "פרטי הרכב" : "Подробнее"}</button>
+                <button type="button" onClick={() => choose(true)} disabled={!current} aria-label={isIsrael ? "מתאים לי" : "Сохранить"} className="rounded-2xl bg-[#ff4f70] px-2 py-3 text-xs font-black text-white shadow-[0_12px_35px_rgba(255,79,112,0.28)] disabled:opacity-30">♥ {isIsrael ? "מתאים לי" : "Сохранить"}</button>
               </div>
             </section>
           )}
@@ -769,31 +806,31 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               </p>
               <div className="mt-7 rounded-3xl border border-[#ff4f70]/30 bg-[#ff4f70]/10 p-5">
                 <div className="flex items-end justify-between gap-3">
-                  <div><div className="text-lg font-black">Buyer Plus</div><div className="mt-1 text-xs text-white/50">30 дней доступа</div></div>
+                  <div><div className="text-lg font-black">SwitchApp Plus</div><div className="mt-1 text-xs text-white/50">{isIsrael ? "30 ימי גישה" : "30 дней доступа"}</div></div>
                   <div className="text-3xl font-black">300 <span className="text-base text-[#ff91a6]">★</span></div>
                 </div>
                 <ul className="mt-5 space-y-2 text-sm text-white/70">
-                  <li>✓ Оценка совместимости с автомобилем</li>
-                  <li>✓ Расчёт доплаты — кто и кому платит</li>
-                  <li>✓ Ранние уведомления о лучших вариантах</li>
-                  <li>✓ Расширенные фильтры и история свайпов</li>
+                  <li>✓ {isIsrael ? "ציון התאמה בין הרכבים" : "Оценка совместимости с автомобилем"}</li>
+                  <li>✓ {isIsrael ? "חישוב הפרש — מי מוסיף וכמה" : "Расчёт доплаты — кто и кому платит"}</li>
+                  <li>✓ {isIsrael ? "התראות מוקדמות על התאמות חדשות" : "Ранние уведомления о лучших вариантах"}</li>
+                  <li>✓ {isIsrael ? "מסננים מתקדמים והיסטוריית החלקות" : "Расширенные фильтры и история свайпов"}</li>
                 </ul>
               </div>
               {hasBuyerAccess ? (
-                <button type="button" onClick={() => setStage("deck")} className="mt-6 rounded-2xl bg-emerald-400 px-5 py-4 text-base font-black text-[#07120d]">Plus активен · продолжить</button>
+                <button type="button" onClick={() => setStage("deck")} className="mt-6 rounded-2xl bg-emerald-400 px-5 py-4 text-base font-black text-[#07120d]">{isIsrael ? "Plus פעיל · המשך לרכבים" : "Plus активен · продолжить"}</button>
               ) : (
                 <button type="button" onClick={() => void buyBuyerAccess()} disabled={buying} className="mt-6 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black disabled:opacity-60">
-                  {buying ? "Открываем оплату…" : "Открыть Plus за 300 Stars"}
+                  {buying ? (isIsrael ? "פותחים את התשלום…" : "Открываем оплату…") : (isIsrael ? "פתיחת Plus ב־300 כוכבים" : "Открыть Plus за 300 Stars")}
                 </button>
               )}
-              <p className="mt-3 text-center text-[11px] text-white/35">30 дней · разовый платёж · без автопродления</p>
+              <p className="mt-3 text-center text-[11px] text-white/35">{isIsrael ? "30 ימים · תשלום חד־פעמי · ללא חידוש אוטומטי" : "30 дней · разовый платёж · без автопродления"}</p>
               {paymentError ? <p className="mt-3 rounded-xl border border-red-300/20 bg-red-300/10 p-3 text-center text-xs text-red-200">{paymentError}</p> : null}
             </section>
           )}
 
           {stage === "saved" && (
             <section className="flex flex-1 flex-col">
-              <button type="button" onClick={() => setStage(index ? "deck" : "welcome")} className="mb-5 w-fit text-sm text-white/55">← Назад</button>
+              <button type="button" onClick={() => setStage(index ? "deck" : "welcome")} className="mb-5 w-fit text-sm text-white/55">{isIsrael ? "→ חזרה" : "← Назад"}</button>
               <h1 className="text-3xl font-black">{isIsrael ? "שמורים" : "Избранное"}</h1>
               <p className="mt-2 text-sm text-white/50">{isIsrael ? "רכבים שסימנתם בהחלקה ימינה." : "Автомобили, которые вы отметили свайпом вправо."}</p>
               <div className="mt-6 space-y-3">
@@ -811,7 +848,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
 
           {stage === "sell" && (
             <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
-              <button type="button" onClick={() => setStage(index ? "deck" : "welcome")} className="mb-5 w-fit text-sm text-white/55">← Назад</button>
+              <button type="button" onClick={() => setStage(index ? "deck" : "welcome")} className="mb-5 w-fit text-sm text-white/55">{isIsrael ? "→ חזרה" : "← Назад"}</button>
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff91a6]">{isIsrael ? "מכירת רכב" : "Продать автомобиль"}</div>
               <h1 className="mt-2 text-3xl font-black">{isIsrael ? "פרסום הרכב הראשון בחינם" : "Первое объявление бесплатно"}</h1>
               <p className="mt-2 text-sm leading-6 text-white/55">{isIsrael ? "כל רכב נוסף — 150 כוכבי Telegram. תשלום חד־פעמי, ללא מנוי." : "Каждый следующий автомобиль — 150 Telegram Stars. Оплата разовая, без подписки."}</p>
@@ -821,7 +858,14 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                 <label className="text-xs font-bold text-white/65">{isIsrael ? "שנה" : "Год"}<input type="number" inputMode="numeric" value={listingYear} onChange={(event) => setListingYear(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
                 <label className="text-xs font-bold text-white/65">{isIsrael ? "מחיר, ₪" : "Цена, ₽"}<input type="number" inputMode="numeric" min="10000" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder={isIsrael ? "85000" : "1800000"} className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
               </div>
-              <label className="mt-4 text-xs font-bold text-white/65">{isIsrael ? "קישור לתמונה (לא חובה)" : "Ссылка на фото (необязательно)"}<input type="url" value={listingPhotoUrl} onChange={(event) => setListingPhotoUrl(event.target.value)} placeholder="https://…" className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-xs font-bold text-white/75">{isIsrael ? "תמונת הרכב" : "Фотография автомобиля"}</div>
+                {listingPhotoUrl ? <div className="mt-3 flex items-center gap-3"><img src={listingPhotoUrl} alt={isIsrael ? "תמונת הרכב לפרסום" : "Фото автомобиля"} className="h-20 w-24 rounded-xl object-cover" /><button type="button" onClick={() => setListingPhotoUrl("")} className="text-xs font-bold text-red-200">{isIsrael ? "הסרת תמונה" : "Удалить фото"}</button></div> : null}
+                {!listingPhotoUrl ? <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="cursor-pointer rounded-xl bg-[#ff4f70]/15 px-3 py-3 text-center text-xs font-bold text-pink-100">{uploadingListingPhoto ? (isIsrael ? "מעלה…" : "Загрузка…") : (isIsrael ? "📷 צילום עכשיו" : "📷 Сделать фото")}<input type="file" accept="image/*" capture="environment" className="hidden" disabled={uploadingListingPhoto} onChange={(event) => { void uploadListingPhoto(event.target.files); event.target.value = ""; }} /></label>
+                  <label className="cursor-pointer rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center text-xs font-bold text-white/80">{uploadingListingPhoto ? (isIsrael ? "מעלה…" : "Загрузка…") : (isIsrael ? "🖼️ מהגלריה" : "🖼️ Из галереи")}<input type="file" accept="image/*" className="hidden" disabled={uploadingListingPhoto} onChange={(event) => { void uploadListingPhoto(event.target.files); event.target.value = ""; }} /></label>
+                </div> : null}
+              </div>
               <button type="button" onClick={() => void publishListing()} disabled={publishingListing || !listingMake.trim() || !listingModel.trim() || Number(listingPrice) < 10000} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-50">
                 {publishingListing ? (isIsrael ? "יוצרים מודעה…" : "Создаём объявление…") : isIsrael ? "פרסום הרכב" : "Опубликовать автомобиль"}
               </button>
@@ -831,7 +875,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
 
           {stage === "vehicle-check" && (
             <section className="flex flex-1 flex-col">
-              <button type="button" onClick={() => setStage("welcome")} className="mb-5 w-fit text-sm text-white/55">← Назад</button>
+              <button type="button" onClick={() => setStage("deck")} className="mb-5 w-fit text-sm text-white/55">{isIsrael ? "→ חזרה לרכבים" : "← Назад"}</button>
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff91a6]">{isIsrael ? "בדיקה לפני קנייה" : "Проверка перед покупкой"}</div>
               <h1 className="mt-2 text-3xl font-black">{isIsrael ? "בדיקת רכב" : "Проверьте автомобиль"}</h1>
               <p className="mt-3 text-sm leading-6 text-white/55">{isIsrael ? "הזינו מספר רישוי. הבדיקה הרשמית תיפתח באתר המידע הממשלתי." : "Введите госномер и VIN. Официальная проверка откроется на сайте Госавтоинспекции России."}</p>
@@ -839,7 +883,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <input id="ru-plate" value={vehiclePlate} onChange={(event) => setVehiclePlate(event.target.value)} placeholder={isIsrael ? "12-345-67" : "А123ВС77"} autoCapitalize="characters" className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[#ff4f70]/60" />
               {!isIsrael ? <><label className="mt-5 text-sm font-bold" htmlFor="ru-vin">VIN</label>
               <input id="ru-vin" value={vehicleVin} onChange={(event) => setVehicleVin(event.target.value)} placeholder="17 символов" autoCapitalize="characters" className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-mono text-white outline-none focus:border-[#ff4f70]/60" /></> : null}
-              <button type="button" onClick={() => void openOfficialVehicleCheck()} disabled={checkingPlate} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-60">{checkingPlate ? "בודקים במאגר הרשמי…" : isIsrael ? "בדיקה לפי מספר רישוי" : "Открыть официальную проверку"}</button>
+              <button type="button" onClick={() => void openOfficialVehicleCheck()} disabled={checkingPlate} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-60">{checkingPlate ? (isIsrael ? "בודקים במאגר הרשמי…" : "Проверяем…") : isIsrael ? "בדיקה לפי מספר רישוי" : "Открыть официальную проверку"}</button>
               {vehicleCheckError ? <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">{vehicleCheckError}</p> : null}
               {plateLookupResult ? (
                 <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-50">
@@ -848,9 +892,25 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
                   <div className="mt-2 text-xs text-emerald-100/60">מקור: {plateLookupResult.provider}</div>
                 </div>
               ) : null}
-              <p className="mt-5 text-xs leading-5 text-white/35">Мы не сохраняем VIN или номер автомобиля на этом этапе. Для автоматического отчёта по госномеру потребуется договор с лицензированным поставщиком данных.</p>
+              <p className="mt-5 text-xs leading-5 text-white/35">{isIsrael ? "הבדיקה מבוססת על מקור המידע הזמין בישראל. מומלץ להשלים בדיקה מקצועית לפני רכישה." : "Мы не сохраняем VIN или номер автомобиля на этом этапе. Для автоматического отчёта по госномеру потребуется договор с лицензированным поставщиком данных."}</p>
             </section>
           )}
+
+          {stage !== "welcome" && stage !== "preferences" ? (
+            <nav className="mt-4 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-[#0d1324]/95 p-1.5" aria-label={isIsrael ? "ניווט ראשי" : "Главная навигация"}>
+              {([
+                ["deck", "⌁", isIsrael ? "התאמות" : "Подбор"],
+                ["saved", "♥", isIsrael ? `שמורים ${saved.length}` : `Избранное ${saved.length}`],
+                ["sell", "+", isIsrael ? "מכירה" : "Продать"],
+                ["vehicle-check", "✓", isIsrael ? "בדיקה" : "Проверка"],
+                ["access", "★", "Plus"],
+              ] as const).map(([target, icon, label]) => (
+                <button key={target} type="button" onClick={() => setStage(target)} className={`rounded-xl px-1 py-2 text-[10px] font-bold ${stage === target ? "bg-white text-[#070b18]" : "text-white/55"}`}>
+                  <span className="mb-1 block text-base leading-none">{icon}</span>{label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
         </div>
       </div>
     </>
