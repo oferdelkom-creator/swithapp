@@ -16,9 +16,16 @@ interface RegisterBody {
   savedCarIds?: string[];
 }
 
-const ALLOWED_CITIES = new Set(["Москва", "Санкт-Петербург", "Казань", "Екатеринбург", "Новосибирск"]);
-const ALLOWED_BUDGETS = new Set(["до 1 млн ₽", "1–2 млн ₽", "2–4 млн ₽", "от 4 млн ₽"]);
-const PILOT_MARKET = "RU";
+const MARKET_OPTIONS = {
+  RU: {
+    cities: new Set(["Москва", "Санкт-Петербург", "Казань", "Екатеринбург", "Новосибирск"]),
+    budgets: new Set(["до 1 млн ₽", "1–2 млн ₽", "2–4 млн ₽", "от 4 млн ₽"]),
+  },
+  IL: {
+    cities: new Set(["תל אביב", "ירושלים", "חיפה", "באר שבע", "ראשון לציון"]),
+    budgets: new Set(["עד 60,000 ₪", "60–100 אלף ₪", "100–160 אלף ₪", "מעל 160 אלף ₪"]),
+  },
+} as const;
 const ALLOWED_RADII = new Set([25, 50, 100, 250]);
 
 export async function POST(request: Request) {
@@ -37,10 +44,12 @@ export async function POST(request: Request) {
 
   const verified = validateTelegramInitData(body.initData ?? "", botToken);
   if (!verified) return NextResponse.json({ error: "Invalid Telegram session" }, { status: 401 });
-  if (body.marketCountry !== PILOT_MARKET) {
+  const market = body.marketCountry === "IL" ? "IL" : body.marketCountry === "RU" ? "RU" : null;
+  if (!market) {
     return NextResponse.json({ error: "Invalid market" }, { status: 400 });
   }
-  if (!body.city || !ALLOWED_CITIES.has(body.city) || !body.budget || !ALLOWED_BUDGETS.has(body.budget)) {
+  const marketOptions = MARKET_OPTIONS[market];
+  if (!body.city || !marketOptions.cities.has(body.city as never) || !body.budget || !marketOptions.budgets.has(body.budget as never)) {
     return NextResponse.json({ error: "Invalid preferences" }, { status: 400 });
   }
   if (!body.radiusKm || !ALLOWED_RADII.has(body.radiusKm)) {
@@ -66,13 +75,13 @@ export async function POST(request: Request) {
     .from("telegram_pilot_users")
     .select("founder_number,premium_until")
     .eq("telegram_user_id", verified.user.id)
-    .eq("market_country", PILOT_MARKET)
+    .eq("market_country", market)
     .maybeSingle<{ founder_number: number | null; premium_until: string | null }>();
   if (lookupError) return NextResponse.json({ error: "Registration lookup failed" }, { status: 500 });
 
   const record = {
     telegram_user_id: verified.user.id,
-    market_country: PILOT_MARKET,
+    market_country: market,
     username: verified.user.username ?? null,
     first_name: verified.user.first_name,
     last_name: verified.user.last_name ?? null,
@@ -92,7 +101,7 @@ export async function POST(request: Request) {
   };
 
   const mutation = existing
-    ? supabase.from("telegram_pilot_users").update(record).eq("telegram_user_id", verified.user.id).eq("market_country", PILOT_MARKET).select("founder_number,premium_until").single()
+    ? supabase.from("telegram_pilot_users").update(record).eq("telegram_user_id", verified.user.id).eq("market_country", market).select("founder_number,premium_until").single()
     : supabase.from("telegram_pilot_users").insert(record).select("founder_number,premium_until").single();
   const { data, error } = await mutation;
   if (error) return NextResponse.json({ error: "Registration failed" }, { status: 500 });

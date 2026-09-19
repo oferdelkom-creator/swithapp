@@ -4,22 +4,22 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
 import { isTelegramProductId, TELEGRAM_PRODUCTS } from "@/lib/telegram/products";
 import { validateTelegramInitData } from "@/lib/telegram/validateInitData";
 
-const PILOT_MARKET = "RU";
-
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!botToken || !secretKey) return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
 
-  let body: { initData?: string; productId?: string };
+  let body: { initData?: string; productId?: string; marketCountry?: string };
   try {
-    body = (await request.json()) as { initData?: string; productId?: string };
+    body = (await request.json()) as { initData?: string; productId?: string; marketCountry?: string };
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const verified = validateTelegramInitData(body.initData ?? "", botToken);
   if (!verified) return NextResponse.json({ error: "Invalid Telegram session" }, { status: 401 });
+  const market = body.marketCountry === "IL" ? "IL" : body.marketCountry === "RU" ? "RU" : null;
+  if (!market) return NextResponse.json({ error: "Invalid market" }, { status: 400 });
   if (!body.productId || !isTelegramProductId(body.productId)) {
     return NextResponse.json({ error: "Unknown product" }, { status: 400 });
   }
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     .from("telegram_pilot_users")
     .select("founder_number")
     .eq("telegram_user_id", verified.user.id)
-    .eq("market_country", PILOT_MARKET)
+    .eq("market_country", market)
     .maybeSingle<{ founder_number: number | null }>();
 
   if (!pilotUser) return NextResponse.json({ error: "Complete pilot registration first" }, { status: 404 });
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       title: product.title,
       description: product.description,
-      payload: JSON.stringify({ productId: body.productId, telegramUserId: verified.user.id, marketCountry: PILOT_MARKET }),
+      payload: JSON.stringify({ productId: body.productId, telegramUserId: verified.user.id, marketCountry: market }),
       currency: "XTR",
       prices: [{ label: product.title, amount: product.stars }],
     }),

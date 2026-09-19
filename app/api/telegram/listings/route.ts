@@ -5,10 +5,9 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
 import { TELEGRAM_PRODUCTS } from "@/lib/telegram/products";
 import { validateTelegramInitData } from "@/lib/telegram/validateInitData";
 
-const PILOT_MARKET = "RU";
-
 interface ListingBody {
   initData?: string;
+  marketCountry?: string;
   make?: string;
   model?: string;
   year?: number;
@@ -34,6 +33,8 @@ export async function POST(request: Request) {
   }
   const verified = validateTelegramInitData(body.initData ?? "", botToken);
   if (!verified) return NextResponse.json({ error: "Invalid Telegram session" }, { status: 401 });
+  const market = body.marketCountry === "IL" ? "IL" : body.marketCountry === "RU" ? "RU" : null;
+  if (!market) return NextResponse.json({ error: "Invalid market" }, { status: 400 });
 
   const make = cleanText(body.make, 60);
   const model = cleanText(body.model, 80);
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   const { count, error: countError } = await supabase
     .from("market_vehicle_inventory")
     .select("id", { count: "exact", head: true })
-    .eq("market_country", PILOT_MARKET)
+    .eq("market_country", market)
     .eq("seller_telegram_user_id", verified.user.id);
   if (countError) return NextResponse.json({ error: "Listing lookup failed" }, { status: 500 });
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   const { data: listing, error: insertError } = await supabase
     .from("market_vehicle_inventory")
     .insert({
-      market_country: PILOT_MARKET,
+      market_country: market,
       source_name: "telegram_user",
       source_listing_id: sourceListingId,
       seller_telegram_user_id: verified.user.id,
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       model,
       year,
       price: Math.round(price),
-      currency: "RUB",
+      currency: market === "IL" ? "ILS" : "RUB",
       photo_urls: photoUrl ? [photoUrl] : [],
       status: isFree ? "active" : "paused",
       source_payload: { city, telegram_username: verified.user.username ?? null },
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       title: product.title,
       description: product.description,
-      payload: JSON.stringify({ p: "seller_listing", u: verified.user.id, m: PILOT_MARKET, l: listing.id }),
+      payload: JSON.stringify({ p: "seller_listing", u: verified.user.id, m: market, l: listing.id }),
       currency: "XTR",
       prices: [{ label: product.title, amount: product.stars }],
     }),
