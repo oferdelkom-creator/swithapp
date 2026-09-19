@@ -66,7 +66,16 @@ export async function POST(request: Request) {
   const payment = message.successful_payment;
   if (payment && payment.currency === "XTR" && secretKey) {
     try {
-      const payload = JSON.parse(payment.invoice_payload) as { productId?: string; telegramUserId?: number; marketCountry?: string };
+      const rawPayload = JSON.parse(payment.invoice_payload) as {
+        productId?: string; telegramUserId?: number; marketCountry?: string; listingId?: string;
+        p?: string; u?: number; m?: string; l?: string;
+      };
+      const payload = {
+        productId: rawPayload.productId ?? rawPayload.p,
+        telegramUserId: rawPayload.telegramUserId ?? rawPayload.u,
+        marketCountry: rawPayload.marketCountry ?? rawPayload.m,
+        listingId: rawPayload.listingId ?? rawPayload.l,
+      };
       if (
         payload.productId &&
         isTelegramProductId(payload.productId) &&
@@ -82,7 +91,17 @@ export async function POST(request: Request) {
           p_stars: payment.total_amount,
           p_market_country: payload.marketCountry,
         });
-        if (recorded) await sendBotMessage(botToken, message.chat.id, "Оплата получена. Доступ активирован ✅");
+        if (recorded && payload.productId === "seller_listing" && payload.listingId) {
+          await supabase
+            .from("market_vehicle_inventory")
+            .update({ status: "active", listing_payment_charge_id: payment.telegram_payment_charge_id, updated_at: new Date().toISOString() })
+            .eq("id", payload.listingId)
+            .eq("seller_telegram_user_id", payload.telegramUserId)
+            .eq("status", "paused");
+          await sendBotMessage(botToken, message.chat.id, "Оплата получена. Автомобиль опубликован ✅");
+        } else if (recorded) {
+          await sendBotMessage(botToken, message.chat.id, "Оплата получена. Доступ активирован ✅");
+        }
       }
     } catch {
       // Telegram retries non-2xx webhooks. A malformed, already-paid payload is

@@ -64,10 +64,10 @@ export async function POST(request: Request) {
 
   const { data: existing, error: lookupError } = await supabase
     .from("telegram_pilot_users")
-    .select("founder_number")
+    .select("founder_number,premium_until")
     .eq("telegram_user_id", verified.user.id)
     .eq("market_country", PILOT_MARKET)
-    .maybeSingle<{ founder_number: number | null }>();
+    .maybeSingle<{ founder_number: number | null; premium_until: string | null }>();
   if (lookupError) return NextResponse.json({ error: "Registration lookup failed" }, { status: 500 });
 
   const record = {
@@ -92,13 +92,16 @@ export async function POST(request: Request) {
   };
 
   const mutation = existing
-    ? supabase.from("telegram_pilot_users").update(record).eq("telegram_user_id", verified.user.id).eq("market_country", PILOT_MARKET).select("founder_number").single()
-    : supabase.from("telegram_pilot_users").insert(record).select("founder_number").single();
+    ? supabase.from("telegram_pilot_users").update(record).eq("telegram_user_id", verified.user.id).eq("market_country", PILOT_MARKET).select("founder_number,premium_until").single()
+    : supabase.from("telegram_pilot_users").insert(record).select("founder_number,premium_until").single();
   const { data, error } = await mutation;
   if (error) return NextResponse.json({ error: "Registration failed" }, { status: 500 });
 
+  const user = data as { founder_number: number | null; premium_until: string | null };
   return NextResponse.json({
-    founderNumber: (data as { founder_number: number | null }).founder_number,
-    founder: Boolean((data as { founder_number: number | null }).founder_number),
+    founderNumber: user.founder_number,
+    founder: Boolean(user.founder_number),
+    premiumUntil: user.premium_until,
+    hasBuyerAccess: Boolean(user.founder_number) || Boolean(user.premium_until && new Date(user.premium_until) > new Date()),
   });
 }

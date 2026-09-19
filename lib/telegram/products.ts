@@ -9,6 +9,11 @@ export const TELEGRAM_PRODUCTS = {
     description: "Профессиональный кабинет дилера и инструменты для работы с лидами.",
     stars: 1000,
   },
+  seller_listing: {
+    title: "SwitchApp — дополнительное объявление",
+    description: "Публикация одного дополнительного автомобиля до продажи или снятия с публикации.",
+    stars: 150,
+  },
 } as const;
 
 export type TelegramProductId = keyof typeof TELEGRAM_PRODUCTS;

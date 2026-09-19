@@ -39,6 +39,23 @@ export async function POST(request: Request) {
   }
 
   const product = TELEGRAM_PRODUCTS[body.productId];
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    try {
+      await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          url: "https://www.switchapp.co.il/api/telegram/webhook",
+          secret_token: webhookSecret,
+          allowed_updates: ["message"],
+        }),
+        cache: "no-store",
+      });
+    } catch {
+      // Invoice creation still works when Telegram's webhook API is temporarily unavailable.
+    }
+  }
   const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
     method: "POST",
     headers: { "content-type": "application/json" },

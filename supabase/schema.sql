@@ -1238,6 +1238,8 @@ create table if not exists public.market_vehicle_inventory (
   source_listing_id text not null,
   source_url text,
   seller_name text not null,
+  seller_telegram_user_id bigint,
+  listing_payment_charge_id text,
   make text not null,
   model text not null,
   year integer,
@@ -1271,6 +1273,12 @@ create policy "Anyone can view active market inventory"
 create index if not exists market_vehicle_inventory_country_active_idx
   on public.market_vehicle_inventory (market_country, updated_at desc)
   where status = 'active';
+create index if not exists market_inventory_telegram_seller_idx
+  on public.market_vehicle_inventory (market_country, seller_telegram_user_id, created_at desc)
+  where seller_telegram_user_id is not null;
+create unique index if not exists market_inventory_listing_payment_charge_unique
+  on public.market_vehicle_inventory (listing_payment_charge_id)
+  where listing_payment_charge_id is not null;
 
 create or replace function public.market_inventory_for_country(p_market_country text, p_limit integer default 24)
 returns table (

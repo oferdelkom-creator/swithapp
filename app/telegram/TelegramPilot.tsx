@@ -31,6 +31,7 @@ interface TelegramWebApp {
   isVersionAtLeast?(version: string): boolean;
   setHeaderColor?(color: string): void;
   setBackgroundColor?(color: string): void;
+  openInvoice?(url: string, callback?: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
   LocationManager?: {
     isInited: boolean;
     isLocationAvailable: boolean;
@@ -57,7 +58,7 @@ declare global {
   }
 }
 
-type Stage = "welcome" | "preferences" | "deck" | "saved" | "vehicle-check";
+type Stage = "welcome" | "preferences" | "access" | "deck" | "saved" | "sell" | "vehicle-check";
 
 const CITIES = ["Москва", "Санкт-Петербург", "Казань", "Екатеринбург", "Новосибирск"];
 const BUDGETS = ["до 1 млн ₽", "1–2 млн ₽", "2–4 млн ₽", "от 4 млн ₽"];
@@ -101,6 +102,16 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
   const [telegramInitData, setTelegramInitData] = useState("");
   const [founderNumber, setFounderNumber] = useState<number | null>(null);
+  const [hasBuyerAccess, setHasBuyerAccess] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [listingMake, setListingMake] = useState("");
+  const [listingModel, setListingModel] = useState("");
+  const [listingYear, setListingYear] = useState(String(new Date().getFullYear()));
+  const [listingPrice, setListingPrice] = useState("");
+  const [listingPhotoUrl, setListingPhotoUrl] = useState("");
+  const [publishingListing, setPublishingListing] = useState(false);
+  const [listingMessage, setListingMessage] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [city, setCity] = useState("Москва");
@@ -180,8 +191,9 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
         }),
       });
       if (!response.ok) throw new Error("registration_failed");
-      const result = (await response.json()) as { founderNumber: number | null };
+      const result = (await response.json()) as { founderNumber: number | null; hasBuyerAccess: boolean };
       setFounderNumber(result.founderNumber);
+      setHasBuyerAccess(result.hasBuyerAccess);
       if (moveToDeck) {
         const telegramApp = window.Telegram?.WebApp;
         if (telegramApp?.isVersionAtLeast?.("6.1")) {
@@ -193,6 +205,89 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
       setRegistrationError("Не удалось сохранить место. Попробуйте ещё раз.");
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const buyBuyerAccess = async () => {
+    if (!telegramInitData) {
+      setPaymentError("Оплата доступна только внутри Telegram.");
+      return;
+    }
+    setBuying(true);
+    setPaymentError(null);
+    try {
+      const response = await fetch("/api/telegram/invoice", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ initData: telegramInitData, productId: "buyer_plus_30d" }),
+      });
+      const result = (await response.json()) as { invoiceUrl?: string; error?: string };
+      if (!response.ok || !result.invoiceUrl) throw new Error(result.error ?? "invoice_failed");
+      const app = window.Telegram?.WebApp;
+      if (!app?.openInvoice) {
+        window.open(result.invoiceUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      app.openInvoice(result.invoiceUrl, (status) => {
+        if (status === "paid") {
+          window.setTimeout(() => void syncTelegramProfile(saved, true), 1200);
+        } else if (status === "failed") {
+          setPaymentError("Платёж не прошёл. Попробуйте ещё раз.");
+        }
+      });
+    } catch {
+      setPaymentError("Не удалось открыть оплату. Попробуйте ещё раз.");
+    } finally {
+      setBuying(false);
+    }
+  };
+
+  const publishListing = async () => {
+    if (!telegramInitData) {
+      setListingMessage("Публикация доступна только внутри Telegram.");
+      return;
+    }
+    setPublishingListing(true);
+    setListingMessage(null);
+    try {
+      const response = await fetch("/api/telegram/listings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          initData: telegramInitData,
+          make: listingMake,
+          model: listingModel,
+          year: Number(listingYear),
+          price: Number(listingPrice),
+          photoUrl: listingPhotoUrl || undefined,
+          city,
+        }),
+      });
+      const result = (await response.json()) as { published?: boolean; free?: boolean; invoiceUrl?: string; stars?: number };
+      if (!response.ok) throw new Error("listing_failed");
+      if (result.published) {
+        setListingMessage("Автомобиль опубликован бесплатно ✓");
+        setListingMake(""); setListingModel(""); setListingPrice(""); setListingPhotoUrl("");
+        return;
+      }
+      if (!result.invoiceUrl) throw new Error("invoice_missing");
+      const app = window.Telegram?.WebApp;
+      if (!app?.openInvoice) {
+        window.open(result.invoiceUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      app.openInvoice(result.invoiceUrl, (status) => {
+        if (status === "paid") {
+          setListingMessage("Оплата получена. Автомобиль публикуется ✓");
+          setListingMake(""); setListingModel(""); setListingPrice(""); setListingPhotoUrl("");
+        } else if (status === "failed") {
+          setListingMessage("Платёж не прошёл. Черновик не опубликован.");
+        }
+      });
+    } catch {
+      setListingMessage("Не удалось создать объявление. Проверьте данные и попробуйте снова.");
+    } finally {
+      setPublishingListing(false);
     }
   };
 
@@ -293,7 +388,11 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
               <div className="text-[11px] text-white/50">Автомобили находят вас</div>
             </div>
             <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setStage("access")} className={`rounded-full px-2.5 py-2 text-[10px] font-black ${hasBuyerAccess ? "bg-emerald-400/15 text-emerald-300" : "border border-[#ff4f70]/30 bg-[#ff4f70]/10 text-[#ff91a6]"}`}>
+                {hasBuyerAccess ? "PLUS" : "ОТКРЫТЬ PLUS"}
+              </button>
               <button type="button" onClick={() => setStage("vehicle-check")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">Проверка авто</button>
+              <button type="button" onClick={() => setStage("sell")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">Продать</button>
               <button type="button" onClick={() => setStage("saved")} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold">
                 {founderNumber ? `#${founderNumber} · ` : ""}♥ {saved.length}
               </button>
@@ -303,7 +402,7 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
           {stage === "welcome" && (
             <section className="flex flex-1 flex-col justify-center py-8">
               <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-[#ff4f70]/30 bg-[#ff4f70]/10 px-3 py-1.5 text-xs font-semibold text-[#ff91a6]">
-                FOUNDING 1000 · БЕСПЛАТНО
+                FOUNDING 1000 · PLUS БЕСПЛАТНО
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight">
                 Ваш следующий автомобиль — одним свайпом.
@@ -323,9 +422,9 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
                 onClick={() => setStage("preferences")}
                 className="mt-8 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black shadow-[0_18px_50px_rgba(255,79,112,0.28)]"
               >
-                Получить ранний доступ
+                Начать бесплатно
               </button>
-              <p className="mt-3 text-center text-[11px] text-white/35">Без карты · без автоматического списания</p>
+              <p className="mt-3 text-center text-[11px] text-white/35">Регистрация и свайпы бесплатны · без карты</p>
             </section>
           )}
 
@@ -438,7 +537,7 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
                         <div className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold">ПРОВЕРЕНО</div>
                       </div>
                       <div className="mt-4 text-xl font-black text-[#ff91a6]">{displayPrice(current)}</div>
-                      {priceDifference != null ? (
+                      {hasBuyerAccess && priceDifference != null ? (
                         <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm" aria-live="polite">
                           {priceDifference === 0 ? (
                             <span className="font-bold text-emerald-300">Обмен без доплаты</span>
@@ -448,7 +547,11 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
                             <><span className="text-white/55">Вам доплачивают </span><span className="font-black text-emerald-300">{formatPrice(Math.abs(priceDifference))} ₽</span></>
                           )}
                         </div>
-                      ) : <div className="mt-3 text-xs text-white/40">Нет цены — расчёт доплаты недоступен.</div>}
+                      ) : hasBuyerAccess ? <div className="mt-3 text-xs text-white/40">Нет цены — расчёт доплаты недоступен.</div> : (
+                        <button type="button" onClick={() => setStage("access")} className="mt-3 w-full rounded-xl border border-[#ff4f70]/25 bg-[#ff4f70]/10 px-3 py-2 text-left text-xs font-bold text-[#ffb0bf]">
+                          ★ Совместимость и расчёт доплаты — в Plus
+                        </button>
+                      )}
                     </div>
                   </article>
                 </div>
@@ -463,6 +566,40 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
                 <button type="button" onClick={() => setStage("saved")} className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/5 text-lg">☰</button>
                 <button type="button" onClick={() => choose(true)} disabled={!current} aria-label="Сохранить" className="grid h-14 w-14 place-items-center rounded-full bg-[#ff4f70] text-2xl shadow-[0_12px_35px_rgba(255,79,112,0.32)] disabled:opacity-30">♥</button>
               </div>
+            </section>
+          )}
+
+          {stage === "access" && (
+            <section className="flex flex-1 flex-col justify-center py-8">
+              <button type="button" onClick={() => setStage("deck")} className="mb-5 w-fit text-sm text-white/55">← Назад к автомобилям</button>
+              <div className="inline-flex w-fit rounded-full border border-[#ff4f70]/30 bg-[#ff4f70]/10 px-3 py-1.5 text-xs font-bold text-[#ff91a6]">
+                СВАЙПЫ И РЕГИСТРАЦИЯ — БЕСПЛАТНО
+              </div>
+              <h1 className="mt-5 text-3xl font-black leading-tight">Платите только за точное совпадение</h1>
+              <p className="mt-3 text-sm leading-6 text-white/60">
+                Ищите, свайпайте и сохраняйте автомобили бесплатно. Plus использует данные автомобиля и ваших предпочтений, чтобы показать лучшие варианты сделки.
+              </p>
+              <div className="mt-7 rounded-3xl border border-[#ff4f70]/30 bg-[#ff4f70]/10 p-5">
+                <div className="flex items-end justify-between gap-3">
+                  <div><div className="text-lg font-black">Buyer Plus</div><div className="mt-1 text-xs text-white/50">30 дней доступа</div></div>
+                  <div className="text-3xl font-black">300 <span className="text-base text-[#ff91a6]">★</span></div>
+                </div>
+                <ul className="mt-5 space-y-2 text-sm text-white/70">
+                  <li>✓ Оценка совместимости с автомобилем</li>
+                  <li>✓ Расчёт доплаты — кто и кому платит</li>
+                  <li>✓ Ранние уведомления о лучших вариантах</li>
+                  <li>✓ Расширенные фильтры и история свайпов</li>
+                </ul>
+              </div>
+              {hasBuyerAccess ? (
+                <button type="button" onClick={() => setStage("deck")} className="mt-6 rounded-2xl bg-emerald-400 px-5 py-4 text-base font-black text-[#07120d]">Plus активен · продолжить</button>
+              ) : (
+                <button type="button" onClick={() => void buyBuyerAccess()} disabled={buying} className="mt-6 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black disabled:opacity-60">
+                  {buying ? "Открываем оплату…" : "Открыть Plus за 300 Stars"}
+                </button>
+              )}
+              <p className="mt-3 text-center text-[11px] text-white/35">30 дней · разовый платёж · без автопродления</p>
+              {paymentError ? <p className="mt-3 rounded-xl border border-red-300/20 bg-red-300/10 p-3 text-center text-xs text-red-200">{paymentError}</p> : null}
             </section>
           )}
 
@@ -481,6 +618,26 @@ export default function TelegramPilot({ initialCars }: { initialCars: TelegramCa
                   </div>
                 )) : <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-white/45">Пока пусто — свайпните понравившийся автомобиль вправо.</div>}
               </div>
+            </section>
+          )}
+
+          {stage === "sell" && (
+            <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
+              <button type="button" onClick={() => setStage(index ? "deck" : "welcome")} className="mb-5 w-fit text-sm text-white/55">← Назад</button>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff91a6]">Продать автомобиль</div>
+              <h1 className="mt-2 text-3xl font-black">Первое объявление бесплатно</h1>
+              <p className="mt-2 text-sm leading-6 text-white/55">Каждый следующий автомобиль — 150 Telegram Stars. Оплата разовая, без подписки.</p>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <label className="text-xs font-bold text-white/65">Марка<input value={listingMake} onChange={(event) => setListingMake(event.target.value)} placeholder="Toyota" className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+                <label className="text-xs font-bold text-white/65">Модель<input value={listingModel} onChange={(event) => setListingModel(event.target.value)} placeholder="RAV4" className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+                <label className="text-xs font-bold text-white/65">Год<input type="number" inputMode="numeric" value={listingYear} onChange={(event) => setListingYear(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+                <label className="text-xs font-bold text-white/65">Цена, ₽<input type="number" inputMode="numeric" min="10000" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="1800000" className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+              </div>
+              <label className="mt-4 text-xs font-bold text-white/65">Ссылка на фото (необязательно)<input type="url" value={listingPhotoUrl} onChange={(event) => setListingPhotoUrl(event.target.value)} placeholder="https://…" className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-[#ff4f70]/60" /></label>
+              <button type="button" onClick={() => void publishListing()} disabled={publishingListing || !listingMake.trim() || !listingModel.trim() || Number(listingPrice) < 10000} className="mt-6 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-50">
+                {publishingListing ? "Создаём объявление…" : "Опубликовать автомобиль"}
+              </button>
+              {listingMessage ? <p className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-center text-xs text-white/70">{listingMessage}</p> : null}
             </section>
           )}
 
