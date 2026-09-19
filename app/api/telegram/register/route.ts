@@ -22,6 +22,7 @@ interface RegisterBody {
     mileage?: number;
     hand?: number;
     photoUrl?: string;
+    photoUrls?: string[];
   };
 }
 
@@ -91,12 +92,13 @@ export async function POST(request: Request) {
     ? /^\d{7,8}$/.test(vehiclePlate)
     : /^[АВЕКМНОРСТУХABEKMHOPCTYX]\d{3}[АВЕКМНОРСТУХABEKMHOPCTYX]{2}\d{2,3}$/.test(vehiclePlate);
   if (!validPlate) return NextResponse.json({ error: "Invalid vehicle plate" }, { status: 400 });
-  let vehiclePhotoUrl: string | null = null;
-  if (vehicle?.photoUrl) {
+  const suppliedPhotoUrls = Array.from(new Set([...(vehicle?.photoUrls ?? []), ...(vehicle?.photoUrl ? [vehicle.photoUrl] : [])])).slice(0, 6);
+  const vehiclePhotoUrls: string[] = [];
+  for (const photoUrl of suppliedPhotoUrls) {
     try {
-      const parsed = new URL(vehicle.photoUrl);
+      const parsed = new URL(photoUrl);
       if (parsed.protocol !== "https:") throw new Error("invalid_protocol");
-      vehiclePhotoUrl = parsed.toString().slice(0, 1000);
+      vehiclePhotoUrls.push(parsed.toString().slice(0, 1000));
     } catch {
       return NextResponse.json({ error: "Invalid vehicle photo" }, { status: 400 });
     }
@@ -111,7 +113,18 @@ export async function POST(request: Request) {
     .eq("telegram_user_id", verified.user.id)
     .eq("market_country", market)
     .maybeSingle<{ founder_number: number | null; premium_until: string | null }>();
-  if (lookupError) return NextResponse.json({ error: "Registration lookup failed" }, { status: 500 });
+  if (lookupError) {
+    console.error(JSON.stringify({
+      level: "error",
+      route: "/api/telegram/register",
+      stage: "user_lookup",
+      code: lookupError.code,
+      message: lookupError.message,
+      details: lookupError.details,
+      hint: lookupError.hint,
+    }));
+    return NextResponse.json({ error: "Registration lookup failed", code: "user_lookup_failed" }, { status: 500 });
+  }
 
   const record = {
     telegram_user_id: verified.user.id,
@@ -138,7 +151,18 @@ export async function POST(request: Request) {
     ? supabase.from("telegram_pilot_users").update(record).eq("telegram_user_id", verified.user.id).eq("market_country", market).select("founder_number,premium_until").single()
     : supabase.from("telegram_pilot_users").insert(record).select("founder_number,premium_until").single();
   const { data, error } = await mutation;
-  if (error) return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+  if (error) {
+    console.error(JSON.stringify({
+      level: "error",
+      route: "/api/telegram/register",
+      stage: "user_write",
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    }));
+    return NextResponse.json({ error: "Registration failed", code: "user_write_failed" }, { status: 500 });
+  }
 
   const user = data as { founder_number: number | null; premium_until: string | null };
   const { error: vehicleError } = await supabase.from("market_vehicle_inventory").upsert({
@@ -154,13 +178,24 @@ export async function POST(request: Request) {
     currency: market === "IL" ? "ILS" : "RUB",
     latitude: hasLocation ? Number(body.latitude!.toFixed(3)) : null,
     longitude: hasLocation ? Number(body.longitude!.toFixed(3)) : null,
-    photo_urls: vehiclePhotoUrl ? [vehiclePhotoUrl] : [],
+    photo_urls: vehiclePhotoUrls,
     status: "active",
     source_payload: { city: body.city, plate: vehiclePlate, mileage: Math.round(vehicleMileage), hand: vehicleHand, for_sale: true, for_swap: true },
     synced_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }, { onConflict: "market_country,source_name,source_listing_id" });
-  if (vehicleError) return NextResponse.json({ error: "Vehicle profile failed" }, { status: 500 });
+  if (vehicleError) {
+    console.error(JSON.stringify({
+      level: "error",
+      route: "/api/telegram/register",
+      stage: "vehicle_write",
+      code: vehicleError.code,
+      message: vehicleError.message,
+      details: vehicleError.details,
+      hint: vehicleError.hint,
+    }));
+    return NextResponse.json({ error: "Vehicle profile failed", code: "vehicle_write_failed" }, { status: 500 });
+  }
   return NextResponse.json({
     founderNumber: user.founder_number,
     founder: Boolean(user.founder_number),
@@ -168,3 +203,4 @@ export async function POST(request: Request) {
     hasBuyerAccess: Boolean(user.founder_number) || Boolean(user.premium_until && new Date(user.premium_until) > new Date()),
   });
 }
+
