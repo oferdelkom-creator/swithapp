@@ -52,7 +52,8 @@ body {
    making the server layout depend on a client pathname. */
 body:has(.telegram-app) > header,
 body:has(.telegram-app) > main + nav,
-body:has(.telegram-app) > main + div[role="navigation"] {
+body:has(.telegram-app) > main + div[role="navigation"],
+body:has(.telegram-app) > main + div {
   display: none;
 }
 
@@ -105,3 +106,4 @@ body:has(.telegram-app) > main {
     display: none;
   }
 }
+
