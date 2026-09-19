@@ -529,7 +529,9 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
     setTelegramUser(app.initDataUnsafe?.user ?? null);
     setTelegramInitData(app.initData ?? "");
     const requestedMarket = app.initDataUnsafe?.start_param?.toLowerCase();
-    if ((requestedMarket === "il" || app.initDataUnsafe?.user?.language_code === "he") && initialMarket !== "IL") {
+    if (requestedMarket === "dealer_ru") {
+      window.location.replace("/telegram/dealer");
+    } else if ((requestedMarket === "il" || app.initDataUnsafe?.user?.language_code === "he") && initialMarket !== "IL") {
       window.location.replace("/telegram?market=IL");
     } else if (requestedMarket === "ru" && initialMarket !== "RU") {
       window.location.replace("/telegram?market=RU");
@@ -556,6 +558,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               {isIsrael ? "🇮🇱 עברית · RU" : "🇷🇺 Русский · HE"}
             </button>
           </header>
+          {!isIsrael ? <button type="button" onClick={() => router.push("/telegram/dealer")} className="mb-4 rounded-2xl border border-[#ff4f70]/30 bg-[#ff4f70]/10 px-4 py-3 text-left text-xs font-bold text-[#ffb0bf]">Автосалон или импортёр? Открыть бизнес-кабинет →</button> : null}
 
           {stage === "welcome" && (
             <section className="flex flex-1 flex-col justify-center py-8">
