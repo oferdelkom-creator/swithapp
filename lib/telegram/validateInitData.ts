@@ -1,4 +1,27 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, createPublicKey, timingSafeEqual, verify } from "node:crypto";
+
+const TELEGRAM_PRODUCTION_PUBLIC_KEY = "e7bf03a2fa4602af4580703d88dda5bb59f32ed8b02a56c187fe7d34caed242d";
+const ED25519_SPKI_PREFIX = "302a300506032b6570032100";
+
+function verifyTelegramSignature(params: URLSearchParams, signature: string | null, botId: string | undefined) {
+  if (!signature || !botId || !/^\\d+$/.test(botId)) return false;
+  try {
+    const values = [...params.entries()]
+      .filter(([key]) => key !== "hash" && key !== "signature")
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\\n");
+    const dataCheckString = `${botId}:WebAppData\\n${values}`;
+    const publicKey = createPublicKey({
+      key: Buffer.from(`${ED25519_SPKI_PREFIX}${TELEGRAM_PRODUCTION_PUBLIC_KEY}`, "hex"),
+      format: "der",
+      type: "spki",
+    });
+    return verify(null, Buffer.from(dataCheckString), publicKey, Buffer.from(signature, "base64url"));
+  } catch {
+    return false;
+  }
+}
 
 export interface VerifiedTelegramUser {
   id: number;
@@ -17,12 +40,14 @@ export interface VerifiedTelegramInitData {
 export function validateTelegramInitData(
   initData: string,
   botToken: string,
-  maxAgeSeconds = 60 * 60
+  maxAgeSeconds = 60 * 60,
+  botId?: string
 ): VerifiedTelegramInitData | null {
   if (!initData || !botToken) return null;
 
   const params = new URLSearchParams(initData);
   const suppliedHash = params.get("hash");
+  const suppliedSignature = params.get("signature");
   if (!suppliedHash || !/^[a-f0-9]{64}$/i.test(suppliedHash)) return null;
 
   params.delete("hash");
@@ -37,7 +62,8 @@ export function validateTelegramInitData(
   const secretKey = createHmac("sha256", "WebAppData").update(botToken).digest();
   const expectedHash = createHmac("sha256", secretKey).update(dataCheckString).digest();
   const receivedHash = Buffer.from(suppliedHash, "hex");
-  if (receivedHash.length !== expectedHash.length || !timingSafeEqual(receivedHash, expectedHash)) return null;
+  const validBotHash = receivedHash.length === expectedHash.length && timingSafeEqual(receivedHash, expectedHash);
+  if (!validBotHash && !verifyTelegramSignature(new URLSearchParams(initData), suppliedSignature, botId)) return null;
 
   const authDateSeconds = Number(params.get("auth_date"));
   const nowSeconds = Math.floor(Date.now() / 1000);
