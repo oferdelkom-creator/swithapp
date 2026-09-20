@@ -605,14 +605,14 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <button type="button" onClick={requestLocation} disabled={locationStatus === "requesting"} className="mt-3 rounded-2xl border border-[#ff4f70]/35 bg-[#ff4f70]/10 px-4 py-3 text-left text-sm font-bold text-[#ffb0bf] disabled:opacity-60">
                 {locationStatus === "requesting" ? (isIsrael ? "מזהים מיקום…" : "Определяем местоположение…") : locationStatus === "granted" ? `✓ ${isIsrael ? "המיקום זוהה" : "Геолокация включена"} · ${city}` : isIsrael ? "⌖ זיהוי אוטומטי" : "⌖ Определить автоматически"}
               </button>
-              {locationStatus === "denied" ? <p className="mt-2 text-xs text-white/45">{isIsrael ? "אין גישה למיקום. בחרו עיר ידנית." : "Нет доступа к геолокации. Выберите город вручную."}</p> : null}
-              <div className="mt-3 flex flex-wrap gap-2">
+              {locationStatus === "denied" ? <p className="mt-2 rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-xs leading-5 text-red-100">{isIsrael ? "כדי להשתמש ב־SwitchApp חובה לאשר מיקום. הפעילו הרשאת מיקום ל־Telegram ולחצו שוב על זיהוי אוטומטי." : "Для входа в SwitchApp необходимо разрешить геолокацию. Разрешите доступ Telegram и повторите попытку."}</p> : null}
+              {locationStatus === "granted" ? <div className="mt-3 flex flex-wrap gap-2">
                 {marketOptions.cities.map((item) => (
                   <button key={item} type="button" onClick={() => setCity(item)} className={`rounded-full px-4 py-2 text-sm ${city === item ? "bg-white text-[#070b18]" : "border border-white/10 bg-white/5 text-white/70"}`}>
                     {item}
                   </button>
                 ))}
-              </div>
+              </div> : <p className="mt-3 text-xs text-white/45">{isIsrael ? "המיקום נדרש כדי לבחור את המדינה, העיר והמלאי המתאים." : "Геолокация нужна для выбора страны, города и подходящего каталога."}</p>}
 
               <label className="mt-6 text-sm font-bold">{isIsrael ? "רדיוס חיפוש" : "Радиус поиска"}</label>
               <div className="mt-3 grid grid-cols-4 gap-2">
@@ -710,7 +710,7 @@ export default function TelegramPilot({ initialCars, initialMarket }: { initialC
               <div className="mt-auto flex gap-3 pt-7">
                 {profileStep > 1 ? <button type="button" onClick={() => setProfileStep((profileStep - 1) as 1 | 2)} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-bold text-white/75">{isIsrael ? "חזרה" : "Назад"}</button> : null}
                 {profileStep < 3 ? (
-                  <button type="button" onClick={() => { setRegistrationError(null); setProfileStep((profileStep + 1) as 2 | 3); }} disabled={profileStep === 2 && (!primaryPlate.trim() || !primaryMake.trim() || !primaryModel.trim() || Number(primaryYear) < 1950 || !primaryMileage)} className="flex-1 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-40">{isIsrael ? "המשך" : "Продолжить"}</button>
+                  <button type="button" onClick={() => { setRegistrationError(null); setProfileStep((profileStep + 1) as 2 | 3); }} disabled={(profileStep === 1 && locationStatus !== "granted") || (profileStep === 2 && (!primaryPlate.trim() || !primaryMake.trim() || !primaryModel.trim() || Number(primaryYear) < 1950 || !primaryMileage))} className="flex-1 rounded-2xl bg-white px-5 py-4 text-base font-black text-[#070b18] disabled:opacity-40">{profileStep === 1 && locationStatus !== "granted" ? (isIsrael ? "נדרש אישור מיקום" : "Разрешите геолокацию") : isIsrael ? "המשך" : "Продолжить"}</button>
                 ) : (
                   <button type="button" onClick={() => void syncTelegramProfile(saved, true)} disabled={registering || !Number.isFinite(ownCarPrice) || ownCarPrice < 10000} className="flex-1 rounded-2xl bg-[#ff4f70] px-5 py-4 text-base font-black text-white shadow-[0_18px_50px_rgba(255,79,112,0.28)] disabled:opacity-60">
                     {registering ? (isIsrael ? "שומרים…" : "Сохраняем…") : isIsrael ? "מצאו לי רכבים" : "Показать автомобили"}
