@@ -68,11 +68,14 @@ export async function POST(request: Request) {
   if (typeof body.defaultSalePrice !== "number" || !Number.isFinite(body.defaultSalePrice) || body.defaultSalePrice < 10000 || body.defaultSalePrice > 1000000000) {
     return NextResponse.json({ error: "Invalid sale price" }, { status: 400 });
   }
-  const hasLocation = body.latitude != null || body.longitude != null;
-  if (hasLocation && (
+  const hasLocation = body.latitude != null && body.longitude != null;
+  if (!hasLocation) {
+    return NextResponse.json({ error: "Location permission required", code: "location_required" }, { status: 400 });
+  }
+  if (
     typeof body.latitude !== "number" || !Number.isFinite(body.latitude) || body.latitude < -90 || body.latitude > 90 ||
     typeof body.longitude !== "number" || !Number.isFinite(body.longitude) || body.longitude < -180 || body.longitude > 180
-  )) {
+  ) {
     return NextResponse.json({ error: "Invalid location" }, { status: 400 });
   }
 
