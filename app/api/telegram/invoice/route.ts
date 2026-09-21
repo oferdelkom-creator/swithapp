@@ -24,6 +24,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown product" }, { status: 400 });
   }
 
+  if (body.productId === "seller_listing") return NextResponse.json({ error: "Create a listing before paying" }, { status: 400 });
+
   const supabase = createClient(SUPABASE_URL, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: pilotUser } = await supabase
     .from("telegram_pilot_users")
@@ -42,20 +44,23 @@ export async function POST(request: Request) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (webhookSecret) {
     try {
-      await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+      const registration = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           url: "https://www.switchapp.co.il/api/telegram/webhook",
           secret_token: webhookSecret,
-          allowed_updates: ["message"],
+          allowed_updates: ["message", "pre_checkout_query"],
         }),
         cache: "no-store",
       });
+      const registered = await registration.json() as { ok?: boolean };
+      if (!registration.ok || !registered.ok) return NextResponse.json({ error: "Payments temporarily unavailable" }, { status: 503 });
     } catch {
-      // Invoice creation still works when Telegram's webhook API is temporarily unavailable.
+      return NextResponse.json({ error: "Payments temporarily unavailable" }, { status: 503 });
     }
   }
+  if (!webhookSecret) return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
   const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -73,3 +78,4 @@ export async function POST(request: Request) {
   }
   return NextResponse.json({ invoiceUrl: invoice.result });
 }
+
