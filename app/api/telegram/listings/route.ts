@@ -91,20 +91,23 @@ export async function POST(request: Request) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (webhookSecret) {
     try {
-      await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+      const registration = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           url: "https://www.switchapp.co.il/api/telegram/webhook",
           secret_token: webhookSecret,
-          allowed_updates: ["message"],
+          allowed_updates: ["message", "pre_checkout_query"],
         }),
         cache: "no-store",
       });
+      const registered = await registration.json() as { ok?: boolean };
+      if (!registration.ok || !registered.ok) return NextResponse.json({ error: "Payments temporarily unavailable" }, { status: 503 });
     } catch {
-      // A transient webhook registration issue must not discard the listing draft.
+      return NextResponse.json({ error: "Payments temporarily unavailable" }, { status: 503 });
     }
   }
+  if (!webhookSecret) return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
   const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -123,3 +126,4 @@ export async function POST(request: Request) {
   }
   return NextResponse.json({ published: false, free: false, listingId: listing.id, invoiceUrl: invoice.result, stars: product.stars });
 }
+

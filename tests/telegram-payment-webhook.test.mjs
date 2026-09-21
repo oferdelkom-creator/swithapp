@@ -1,0 +1,31 @@
+import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
+import vm from 'node:vm';
+import { timingSafeEqual } from 'node:crypto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const base=new URL('../',import.meta.url);
+const source=readFileSync(new URL('app/api/telegram/webhook/route.ts',base),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export async function POST','async function POST');
+const products={buyer_plus_30d:{stars:300},dealer_pro_30d:{stars:1000},seller_listing:{stars:150}};
+function setup({founder=null,missing=false,dbError=false,recordError=false,duplicate=false,deliveryError=false,listing=true}={}) {
+ const calls=[],writes=[];
+ const client={from(table){const q={};for(const method of ['select','eq','is'])q[method]=()=>q;
+ q.update=(v)=>{writes.push(v);return q};
+ q.maybeSingle=async()=>({data:table==='telegram_pilot_users'?(missing?null:{founder_number:founder}):(listing?{id:'listing'}:null),error:dbError?'unavailable':null});
+ q.then=(resolve)=>resolve({error:deliveryError?'unavailable':null});return q;},rpc:async()=>({data:!duplicate,error:recordError?'unavailable':null})};
+ const context={Buffer,URL,AbortSignal,console,timingSafeEqual,process:{env:{TELEGRAM_BOT_TOKEN:'test',TELEGRAM_WEBHOOK_SECRET:'test-secret',SUPABASE_SERVICE_ROLE_KEY:'test',TELEGRAM_MINI_APP_URL:'https://example.com/telegram?market=IL'}},SUPABASE_URL:'https://example.com',SITE_URL:'https://example.com',TELEGRAM_PRODUCTS:products,isTelegramProductId:id=>Object.hasOwn(products,id),createClient:()=>client,NextResponse:{json:(body,opts)=>({body,status:opts?.status??200})},fetch:async(url,opts)=>{calls.push({url,body:JSON.parse(opts.body)});return {ok:true,json:async()=>({ok:true})};}};
+ vm.createContext(context);vm.runInContext(stripTypeScriptTypes(source)+'\nthis.post=POST;',context);
+ return {calls,writes,post:(body,secret='test-secret')=>context.post({headers:new Headers({'x-telegram-bot-api-secret-token':secret}),json:async()=>body})};
+}
+const payload=(overrides={})=>JSON.stringify({productId:'buyer_plus_30d',telegramUserId:42,marketCountry:'RU',...overrides});
+const checkout=(changes={})=>({pre_checkout_query:{id:'q1',from:{id:42},currency:'XTR',total_amount:300,invoice_payload:payload(),...changes}});
+test('valid checkout answers Telegram before delivery',async()=>{const h=setup();assert.equal((await h.post(checkout())).status,200);assert.equal(h.calls[0].body.ok,true);assert.equal(h.writes.length,0)});
+test('wrong amount, user, currency, payload and product rejected',async()=>{for(const patch of [{total_amount:1},{from:{id:99}},{currency:'USD'},{invoice_payload:'bad'},{invoice_payload:'null'},{invoice_payload:payload({productId:'constructor'})},{invoice_payload:payload({marketCountry:'US'})}]){const h=setup();await h.post(checkout(patch));assert.equal(h.calls[0].body.ok,false)}});
+test('free founder, unknown customer and database outage rejected',async()=>{for(const options of [{founder:1},{missing:true},{dbError:true}]){const h=setup(options);await h.post(checkout());assert.equal(h.calls[0].body.ok,false)}});
+test('listing checkout requires owned unpaid draft',async()=>{const invoice_payload=JSON.stringify({p:'seller_listing',u:42,m:'RU',l:'12345678-1234-1234-1234-123456789012'});for(const listing of [true,false]){const h=setup({listing});await h.post(checkout({total_amount:150,invoice_payload}));assert.equal(h.calls[0].body.ok,listing)}});
+test('unauthenticated webhook cannot approve checkout',async()=>{const h=setup();assert.equal((await h.post(checkout(),'bad')).status,401);assert.equal(h.calls.length,0)});
+test('Russia default ignores Hebrew account locale and replaces old market',async()=>{const h=setup();await h.post({message:{chat:{id:42},from:{id:42,first_name:'Test',language_code:'he'},text:'/start'}});assert.equal(new URL(h.calls[0].body.reply_markup.inline_keyboard[0][0].web_app.url).search,'?market=RU')});
+test('Israel remains available with explicit /start il',async()=>{const h=setup();await h.post({message:{chat:{id:42},from:{id:42,first_name:'Test'},text:'/start il'}});assert.equal(new URL(h.calls[0].body.reply_markup.inline_keyboard[0][0].web_app.url).search,'?market=IL')});
+test('recording errors return retryable status',async()=>{const h=setup({recordError:true});assert.equal((await h.post({message:{chat:{id:42},from:{id:42},successful_payment:{currency:'XTR',total_amount:300,invoice_payload:payload(),telegram_payment_charge_id:'charge1'}}})).status,503)});
+test('listing delivery retries after payment record already exists',async()=>{const h=setup({duplicate:true});await h.post({message:{chat:{id:42},from:{id:42},successful_payment:{currency:'XTR',total_amount:150,invoice_payload:payload({productId:'seller_listing',listingId:'x'}),telegram_payment_charge_id:'charge1'}}});assert.equal(h.writes.length,1)});
+test('paysupport provides human contact',async()=>{const h=setup();await h.post({message:{chat:{id:42},text:'/paysupport'}});assert.match(h.calls[0].body.text,/@delkom/)});

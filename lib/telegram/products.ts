@@ -19,5 +19,6 @@ export const TELEGRAM_PRODUCTS = {
 export type TelegramProductId = keyof typeof TELEGRAM_PRODUCTS;
 
 export function isTelegramProductId(value: string): value is TelegramProductId {
-  return value in TELEGRAM_PRODUCTS;
+  return Object.prototype.hasOwnProperty.call(TELEGRAM_PRODUCTS, value);
 }
+
