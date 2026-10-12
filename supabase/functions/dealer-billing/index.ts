@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.1";
+import {mavenDocument, documentResult} from './maven.ts';
 
 const url = Deno.env.get("SUPABASE_URL")!;
 const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {auth:{persistSession:false}});
@@ -13,10 +14,30 @@ async function cardcom(path:string, body:Record<string,unknown>, config:Record<s
  return await res.json();
 }
 function documentFor(a:any,o:any) {
- return {DocumentTypeToCreate:'TaxInvoiceAndReceipt',Name:a.legal_name,TaxId:a.tax_id,Email:a.email,IsSendByEmail:true,IsVatFree:false,ExternalId:o.id,Comments:'SwitchApp — המחירים כוללים מע״מ',Products:[{Description:o.kind==='setup'?'SwitchApp — הקמת פלטפורמה ואולם תצוגה':`SwitchApp — אחזקה לחודש ${o.period}; שיא ${o.peak} רכבים`,Quantity:1,UnitCost:o.amount_agorot/100,TotalLineCost:o.amount_agorot/100,IsVatFree:false}]};
+ return {DocumentTypeToCreate:'TaxInvoiceAndReceipt',Name:a.legal_name,TaxId:a.tax_id,Email:a.email,IsSendByEmail:true,IsVatFree:false,ExternalId:o.id,Comments:'SwitchApp — המחירים כוללים מע״מ',Products:[{Description:o.kind==='setup'?(Number(o.amount_agorot)===49900?'SwitchApp — מנוי חודש ראשון':'SwitchApp — הקמת פלטפורמה ואולם תצוגה'):`SwitchApp — מנוי לחודש ${o.period}`,Quantity:1,UnitCost:o.amount_agorot/100,TotalLineCost:o.amount_agorot/100,IsVatFree:false}]};
 }
+async function issueInvoice(id:string) {
+ // Fetch secrets before claiming: temporary config failure leaves the job queued.
+ const config=checked(await db.rpc('switchapp_invoice_config'));
+ if(!config?.api_key || config.enabled!==true)throw new Error('invoice_not_configured');
+ const claim=checked(await db.from('dealer_billing_orders').update({document_status:'sending',document_attempted_at:new Date().toISOString()}).eq('id',id).eq('invoice_provider','maven').eq('payment_verified',true).eq('document_status','pending').is('document_number',null).select('*').maybeSingle());
+ if(!claim)return;
+ try {
+  const account=checked(await db.from('dealer_billing_accounts').select('*').eq('user_id',claim.user_id).single());
+  const body=mavenDocument(account,claim,config);
+  const response=await fetch('https://app.invoice-maven.co.il/api/documents/addDocument',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+  if(!response.ok)throw new Error('maven_transport_error');
+  const result=documentResult(await response.json());
+  checked(await db.from('dealer_billing_orders').update(result).eq('id',id).eq('document_status','sending'));
+ }catch{
+  // An ambiguous response may already have created a document. Never auto-reissue.
+  checked(await db.from('dealer_billing_orders').update({document_status:'review',document_error:'maven_requires_reconciliation'}).eq('id',id).eq('document_status','sending'));
+  console.error('Invoice requires review',{order:id});
+ }
+}
+async function tryInvoice(id:string){try{await issueInvoice(id);}catch{console.error('Invoice queued',{order:id});}}
 async function verifySetup(o:any,config:any) {
- if(o.status==='paid')return 'paid';
+ if(o.status==='paid'){if(o.invoice_provider==='maven')await tryInvoice(o.id);return 'paid';}
  const result=await cardcom('LowProfile/GetLpResult',{LowProfileId:o.low_profile_id},config);
  const tx=result.TranzactionInfo ?? result.TransactionInfo;
  if(Number(result.ResponseCode)!==0 || !tx || Number(tx.ResponseCode)!==0)return 'pending';
@@ -24,10 +45,12 @@ async function verifySetup(o:any,config:any) {
  if(result.ReturnValue!==o.id || String(result.LowProfileId).toLowerCase()!==o.low_profile_id.toLowerCase() || Number(result.TerminalNumber)!==Number(config.terminal) || Math.round(Number(tx.Amount)*100)!==Number(o.amount_agorot) || Number(tx.CoinId)!==1 || !/^[1-9][0-9]*$/.test(transaction) || tx.IsRefund===true || result.Operation!=='ChargeAndCreateToken')throw new Error('payment_verification_failed');
  const token=result.TokenInfo;
  if(!token?.Token || !Number.isInteger(Number(token.CardMonth)) || Number(token.CardMonth)<1 || Number(token.CardMonth)>12 || Number(token.CardYear)<2026){
-  checked(await db.from('dealer_billing_orders').update({status:'review',transaction_id:transaction,failure_code:'missing_token'}).eq('id',o.id));
+  checked(await db.from('dealer_billing_orders').update({status:'review',transaction_id:transaction,failure_code:'missing_token',payment_verified:true,paid_at:o.paid_at??new Date().toISOString(),...(o.invoice_provider==='maven'?{document_status:'pending'}:{})}).eq('id',o.id).eq('payment_verified',false).neq('status','paid'));
+  if(o.invoice_provider==='maven')await tryInvoice(o.id);
   return 'review';
  }
  checked(await db.rpc('confirm_dealer_setup',{p_order:o.id,p_transaction:transaction,p_token:token.Token,p_expiration:String(token.CardMonth).padStart(2,'0')+String(token.CardYear).slice(-2),p_document:result.DocumentInfo?.DocumentNumber?String(result.DocumentInfo.DocumentNumber):null,p_document_ok:result.DocumentInfo?.ResponseCode===0 && Boolean(result.DocumentInfo.DocumentNumber)}));
+ if(o.invoice_provider==='maven')await tryInvoice(o.id);
  return 'paid';
 }
 
@@ -42,7 +65,7 @@ Deno.serve(async req=>{
   if(Number(req.headers.get('content-length')??0)>16384)return reply({error:'request_too_large'},413);
   const config=checked(await db.rpc('switchapp_payment_config'));
   if(!config?.api_name)return reply({error:'billing_not_configured'},503);
-  if(action==='health')return reply({ready:Boolean(config?.api_name),provider:'cardcom',charges_performed:0});
+  if(action==='health'){const invoice=checked(await db.rpc('switchapp_invoice_config'));return reply({ready:Boolean(config?.api_name),provider:'cardcom',invoice_provider:'maven',invoice_ready:Boolean(invoice?.api_key&&invoice.enabled===true),charges_performed:0});}
   if(action==='webhook'){
    let body:any=Object.fromEntries(new URL(req.url).searchParams);
    if(req.method==='POST'){
@@ -57,6 +80,10 @@ Deno.serve(async req=>{
   }
   if(action==='close-month'){
    if(req.method!=='POST' || req.headers.get('x-billing-secret')!==config.cron_secret)return reply({error:'unauthorized'},401);
+   // Only queued, verified payments are retried. Timed-out sends require reconciliation.
+   checked(await db.from('dealer_billing_orders').update({document_status:'review',document_error:'maven_interrupted_send'}).eq('invoice_provider','maven').eq('document_status','sending').lt('document_attempted_at',new Date(Date.now()-300000).toISOString()));
+   const invoices=checked(await db.from('dealer_billing_orders').select('id').eq('invoice_provider','maven').eq('payment_verified',true).eq('document_status','pending').limit(10));
+   for(const invoice of invoices)await tryInvoice(invoice.id);
    checked(await db.rpc('prepare_dealer_monthly_orders'));
    const orders=checked(await db.from('dealer_billing_orders').select('*').eq('kind','monthly').in('status',['pending','processing']).order('created_at').limit(20));
    let paid=0,failed=0;
@@ -67,10 +94,10 @@ Deno.serve(async req=>{
      checked(await db.from('dealer_billing_orders').update({status:'processing'}).eq('id',o.id).in('status',['pending','processing']));
      if(Number(o.amount_agorot)===0){checked(await db.rpc('complete_dealer_monthly_order',{p_order:o.id,p_transaction:null,p_document:null}));paid++;continue;}
      // Repeating this exact ID returns the original result and cannot charge twice.
-     const result=await cardcom('Transactions/Transaction',{Amount:o.amount_agorot/100,Token:token.token,CardExpirationMMYY:token.expiration,ISOCoinId:1,NumOfPayments:1,ExternalUniqTranId:o.id,ExternalUniqTranIdResponse:true,Document:documentFor(a,o)},config);
+     const result=await cardcom('Transactions/Transaction',{Amount:o.amount_agorot/100,Token:token.token,CardExpirationMMYY:token.expiration,ISOCoinId:1,NumOfPayments:1,ExternalUniqTranId:o.id,ExternalUniqTranIdResponse:true,...(o.invoice_provider==='maven'?{}:{Document:documentFor(a,o)})},config);
      const tid=String(result.TranzactionId??'');
      if(Number(result.ResponseCode)===0 && /^[1-9][0-9]*$/.test(tid) && Math.round(Number(result.Amount)*100)===Number(o.amount_agorot) && Number(result.CoinId)===1 && Number(result.TerminalNumber)===Number(config.terminal)){
-      checked(await db.rpc('complete_dealer_monthly_order',{p_order:o.id,p_transaction:tid,p_document:result.DocumentNumber?String(result.DocumentNumber):null}));paid++;
+      checked(await db.rpc('complete_dealer_monthly_order',{p_order:o.id,p_transaction:tid,p_document:result.DocumentNumber?String(result.DocumentNumber):null}));paid++;if(o.invoice_provider==='maven')await tryInvoice(o.id);
      }else{
       checked(await db.from('dealer_billing_orders').update({status:tid && tid!=='0'?'review':'failed',failure_code:String(result.ResponseCode??'invalid_response')}).eq('id',o.id));failed++;
      }
@@ -92,13 +119,14 @@ Deno.serve(async req=>{
    if(body.accepted!==true || !['small','lot'].includes(body.plan))return reply({error:'accept_terms'},400);
    const name=clean(body.legal_name),tax=clean(body.tax_id),email=clean(body.email);
    if(name.length<2 || !/^\d{9}$/.test(tax) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reply({error:'invalid_details'},400);
+   const invoiceConfig=checked(await db.rpc('switchapp_invoice_config')); if(!invoiceConfig?.api_key || invoiceConfig.enabled!==true)return reply({error:'invoice_not_configured'},503);
    const o=checked(await db.rpc('begin_dealer_setup',{p_user:user.id,p_plan:body.plan,p_name:name,p_tax:tax,p_email:email}));
    if(o.status==='paid')return reply({status:'paid'});
    if(o.payment_url)return reply({url:o.payment_url});
    const claim=checked(await db.from('dealer_billing_orders').update({status:'creating'}).eq('id',o.id).eq('status','pending').select('id').maybeSingle());
    if(!claim)return reply({error:'payment_preparation_pending'},409);
    const account=checked(await db.from('dealer_billing_accounts').select('*').eq('user_id',user.id).single());
-   const result=await cardcom('LowProfile/Create',{Amount:3000,Operation:'ChargeAndCreateToken',ReturnValue:o.id,ProductName:'SwitchApp — הקמה חד פעמית',Language:'he',ISOCoinId:1,SuccessRedirectUrl:site+'/business/billing?order='+o.id,FailedRedirectUrl:site+'/business/billing?payment=failed',CancelRedirectUrl:site+'/business/billing?payment=cancelled',WebHookUrl:url+'/functions/v1/dealer-billing?action=webhook',UIDefinition:{CardOwnerNameValue:name,CardOwnerEmailValue:email,IsCardOwnerEmailRequired:true},Document:documentFor(account,o)},config);
+   const result=await cardcom('LowProfile/Create',{Amount:o.amount_agorot/100,Operation:'ChargeAndCreateToken',ReturnValue:o.id,ProductName:'SwitchApp — מנוי חודשי',Language:'he',ISOCoinId:1,SuccessRedirectUrl:site+'/business/billing?order='+o.id,FailedRedirectUrl:site+'/business/billing?payment=failed',CancelRedirectUrl:site+'/business/billing?payment=cancelled',WebHookUrl:url+'/functions/v1/dealer-billing?action=webhook',UIDefinition:{CardOwnerNameValue:name,CardOwnerEmailValue:email,IsCardOwnerEmailRequired:true},...(o.invoice_provider==='maven'?{}:{Document:documentFor(account,o)})},config);
    if(Number(result.ResponseCode)!==0 || !uuid.test(result.LowProfileId??'') || !result.Url){checked(await db.from('dealer_billing_orders').update({status:'review',failure_code:String(result.ResponseCode??'create_failed')}).eq('id',o.id));return reply({error:'payment_provider_rejected',code:result.ResponseCode},502);}
    const redirect=new URL(result.Url);if(redirect.protocol!=='https:' || !(redirect.hostname==='cardcom.solutions' || redirect.hostname.endsWith('.cardcom.solutions')))throw new Error('invalid_payment_url');
    checked(await db.from('dealer_billing_orders').update({status:'pending',low_profile_id:result.LowProfileId,payment_url:result.Url}).eq('id',o.id));

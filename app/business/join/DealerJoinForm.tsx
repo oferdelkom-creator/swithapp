@@ -44,7 +44,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     ? (requestedBusinessType as BusinessType)
     : "dealer";
   const [businessType, setBusinessType] = useState<BusinessType>(initialBusinessType);
-  const [tier, setTier] = useState<number | null | undefined>(undefined);
+  const [tier, setTier] = useState<number | null | undefined>(0);
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -216,7 +216,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         <h2 className="font-semibold mb-1">{t("businessJoin.pricingTitle")}</h2>
         <p className="text-sm text-neutral-500 mb-4">{t("businessJoin.pricingSubtitle")}</p>
         <p className="mb-4 text-sm font-medium text-emerald-700">{t("businessJoin.minimumInventory")}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
           {DEALER_TIERS.map((tierOption) => {
             const selected = tier === tierOption.requestValue;
             return (

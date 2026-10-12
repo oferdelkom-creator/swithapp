@@ -1,8 +1,8 @@
-# SwitchApp billing (2026-09-10)
+# SwitchApp billing (2026-10-12)
 
-Prices include VAT: setup ILS 3,000 once; small dealer up to 10 active vehicles at a fixed ILS 1,000/month even with fewer vehicles; lot ILS 50 each/month with a 40-vehicle minimum. A small plan does not silently upgrade: adding an 11th active vehicle is rejected after plan activation.
+Every service provider pays ILS 499/month including VAT, setup and inventory management. There is no separate setup fee, per-vehicle charge, minimum inventory charge or small-plan inventory limit. Legacy plan identifiers remain for compatibility.
 
-Inventory events start on the migration date. No earlier peaks are reconstructed. A vehicle is active when unsold and offered for sale or swap; seeded demo vehicles are excluded. Counters are updated atomically and historical peaks survive deletion/sale. Month boundaries use Asia/Jerusalem. Billing begins at verified setup activation; lot minimum applies to partial months. Existing users are not enrolled or charged retroactively.
+Inventory events and counters remain for reporting; inventory count no longer sets the subscription price. Month boundaries use Asia/Jerusalem. The ILS 499 activation payment covers the first calendar month, including a partial month. That month is excluded from recurring orders. Subsequent months cost ILS 499 at month end. Existing invoices and completed payments are preserved. Existing users are not automatically enrolled or charged retroactively.
 
 The Supabase dealer-billing Edge Function authenticates customer actions through auth.getUser. Provider webhooks require server-side GetLpResult verification of amount, currency, terminal, order reference and charge operation. Recurring tokens are service-role-only. Provider credentials and the scheduler secret live in Supabase Vault under switchapp_cardcom and are not committed.
 

@@ -106,7 +106,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
       <section id="pricing" className="scroll-mt-20 bg-slate-50">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.pricingTitle")}</h2><p className="mt-3 text-slate-600">{t("businessJoin.pricingSubtitle")}</p><p className="mt-2 text-sm font-semibold text-emerald-700">{t("businessJoin.minimumInventory")}</p></div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid gap-4 sm:grid-cols-1">
             {DEALER_TIERS.map((tier, index) => (
               <article key={tier.requestValue} className={`relative rounded-3xl border bg-white p-6 ${index === 1 ? "border-blue-600 shadow-xl shadow-blue-950/10" : "border-slate-200 shadow-sm"}`}>
                 {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
