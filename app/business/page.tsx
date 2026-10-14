@@ -1,4 +1,5 @@
 import InventoryBillingSummary from "./InventoryBillingSummary";
+import BotSaleReport from "./BotSaleReport";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -108,7 +109,7 @@ export default async function BusinessPage() {
             <p className="mt-1 text-sm text-muted">{t("business.myStoreNeedsSlug")}</p>
           </div>
         )}
-        {active ? (
+        {me.billing_plan === "per_listing" ? <p>מסלול חינמי פעיל — ללא דמי מנוי. עמלה של 3% ממכירת רכב דרך הבוטים של הפלטפורמה, בתוספת מע״מ.</p> : active ? (
           <Link href="/business/market" className="card p-5 transition-colors hover:border-brand-pink">
             <p className="font-semibold text-brand-blue-dark">{t("business.marketTitle")}</p>
             <p className="mt-1 text-sm text-muted">{t("business.marketDescription")}</p>
@@ -164,7 +165,7 @@ export default async function BusinessPage() {
 
       <div className="card p-6 space-y-3 text-sm">
         <p>{t("business.plan", { plan: me.billing_plan ?? t("business.notSet") })}</p>
-        {active ? (
+        {me.billing_plan === "per_listing" ? <p>מסלול חינמי פעיל — ללא דמי מנוי. עמלה של 3% ממכירת רכב דרך הבוטים של הפלטפורמה, בתוספת מע״מ.</p> : active ? (
           <p>
             {t("business.subscription")}{" "}
             <span className="text-emerald-700 font-medium">
@@ -183,6 +184,7 @@ export default async function BusinessPage() {
       </div>
 
       <InventoryBillingSummary userId={user.id} />
+      <BotSaleReport cars={inventory} />
 
       <PublicPageLink
         userId={user.id}

@@ -13,6 +13,8 @@ import CarAdminActions from "./CarAdminActions";
 import ReportActions from "./ReportActions";
 import RemoveSeedDataButton from "./RemoveSeedDataButton";
 import FeatureRequestActions from "./FeatureRequestActions";
+import BotSaleReview from "./BotSaleReview";
+import VisitorContacts from "./VisitorContacts";
 import { tierForRequestedCap } from "@/lib/dealerPricing";
 
 type CarRow = Car & { users: { name: string } | null };
@@ -116,6 +118,8 @@ export default async function AdminPage() {
         <p className="text-neutral-500">{t("admin.subtitle")}</p>
       </div>
 
+      <BotSaleReview />
+      <VisitorContacts />
       {!!seedUserCount && (
         <section className="card px-6 py-5 flex items-center justify-between">
           <div>
@@ -330,4 +334,3 @@ export default async function AdminPage() {
     </div>
   );
 }
-

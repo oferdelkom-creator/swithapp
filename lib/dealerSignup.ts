@@ -26,7 +26,7 @@ export async function finishDealerSignup(
     .update({
       role,
       business_name: businessName,
-      billing_plan: "subscription",
+      billing_plan: cap === 1 ? "per_listing" : "subscription",
       requested_car_cap: cap,
       dealer_slug: dealerSlug,
       custom_domain: customDomain,

@@ -44,7 +44,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     ? (requestedBusinessType as BusinessType)
     : "dealer";
   const [businessType, setBusinessType] = useState<BusinessType>(initialBusinessType);
-  const [tier, setTier] = useState<number | null | undefined>(0);
+  const [tier, setTier] = useState<number | null | undefined>(searchParams.get("plan") === "free" ? 1 : 0);
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,6 +54,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   useEffect(() => captureMarketingAttribution(), []);
@@ -74,6 +75,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!acceptedTerms) { setError(t("businessJoin.saleTerms")); return; }
     if (tier === undefined) {
       setError(t("businessJoin.selectTierError"));
       return;
@@ -149,7 +151,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       setLoading(false);
       return;
     }
-    router.push("/business/billing");
+    router.push(tier === 1 ? "/business" : "/business/billing");
     router.refresh();
     } catch {
       setError("לא הצלחנו להתחבר כרגע. בדקו את החיבור ונסו שוב. אם כבר אישרתם אימייל, נסו להתחבר לחשבון.");
@@ -216,7 +218,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         <h2 className="font-semibold mb-1">{t("businessJoin.pricingTitle")}</h2>
         <p className="text-sm text-neutral-500 mb-4">{t("businessJoin.pricingSubtitle")}</p>
         <p className="mb-4 text-sm font-medium text-emerald-700">{t("businessJoin.minimumInventory")}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {DEALER_TIERS.map((tierOption) => {
             const selected = tier === tierOption.requestValue;
             return (
@@ -229,14 +231,10 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
                 }`}
               >
                 <p className="font-medium">
-                  {tierOption.cap
-                    ? t("businessJoin.tierRange", { min: tierOption.minCars, max: tierOption.cap })
-                    : t("businessJoin.tierFrom", { count: tierOption.minCars })}
+                  {tierOption.requestValue === 1 ? t("businessJoin.freePlan") : t("businessJoin.tierFrom", { count: tierOption.minCars })}
                 </p>
                 <p className="text-sm text-neutral-500 mt-1">
-                  {tierOption.monthlyPrice ? t("businessJoin.fixedMonth", { price: tierOption.monthlyPrice }) : tierOption.pricePerCar
-                    ? t("businessJoin.perCarMonth", { price: tierOption.pricePerCar })
-                    : t("businessJoin.tierCustomPrice")}
+                  {tierOption.requestValue === 1 ? t("businessJoin.freePlanPrice") : t("businessJoin.paidPlanPrice")}
                 </p>
               </button>
             );
@@ -309,6 +307,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
             className="field"
           />
         </div>
+
+        <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" required checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="mt-1" /><span>{t("businessJoin.saleTerms")}</span></label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

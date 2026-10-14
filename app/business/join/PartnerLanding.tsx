@@ -106,13 +106,13 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
       <section id="pricing" className="scroll-mt-20 bg-slate-50">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-black tracking-tight sm:text-4xl">{t("businessJoin.pricingTitle")}</h2><p className="mt-3 text-slate-600">{t("businessJoin.pricingSubtitle")}</p><p className="mt-2 text-sm font-semibold text-emerald-700">{t("businessJoin.minimumInventory")}</p></div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-1">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {DEALER_TIERS.map((tier, index) => (
               <article key={tier.requestValue} className={`relative rounded-3xl border bg-white p-6 ${index === 1 ? "border-blue-600 shadow-xl shadow-blue-950/10" : "border-slate-200 shadow-sm"}`}>
                 {index === 1 ? <span className="absolute -top-3 end-5 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">SwitchAuto AI</span> : null}
-                <p className="font-bold text-slate-900">{tier.cap ? t("businessJoin.tierRange", { min: tier.minCars, max: tier.cap }) : t("businessJoin.tierFrom", { count: tier.minCars })}</p>
-                <p className="mt-4 text-2xl font-black text-blue-700">{tier.monthlyPrice ? t("businessJoin.fixedMonth", { price: tier.monthlyPrice }) : tier.pricePerCar ? t("businessJoin.perCarMonth", { price: tier.pricePerCar }) : t("businessJoin.tierCustomPrice")}</p>
-                <Link href="/business/join/signup" onClick={trackSignupClick} className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</Link>
+                <p className="font-bold text-slate-900">{tier.requestValue === 1 ? t("businessJoin.freePlan") : t("businessJoin.tierFrom", { count: tier.minCars })}</p>
+                <p className="mt-4 text-2xl font-black text-blue-700">{tier.requestValue === 1 ? t("businessJoin.freePlanPrice") : t("businessJoin.paidPlanPrice")}</p>
+                <Link href={`/business/join/signup?plan=${tier.requestValue === 1 ? "free" : "paid"}`} onClick={trackSignupClick} className="mt-7 inline-flex w-full justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">{t("businessJoin.submit")}</Link>
               </article>
             ))}
           </div>

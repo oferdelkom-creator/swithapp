@@ -10,6 +10,7 @@ import MatchNotifier from "@/components/MatchNotifier";
 import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import MarketingPixels from "@/components/MarketingPixels";
 import BrandLinks from "@/components/BrandLinks";
+import SmartAssistant from "@/components/SmartAssistant";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -111,6 +112,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {user && <PresenceHeartbeat userId={user.id} />}
           <Analytics />
           <MarketingPixels />
+          <SmartAssistant loggedIn={!!user} isBusiness={isBusiness} />
         </LocaleProvider>
       </body>
     </html>
