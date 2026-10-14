@@ -32,7 +32,7 @@ export default function HomeAssistant(){
   }catch(cause){if(cause instanceof Error&&cause.name==="AbortError")return;setError(messageFor(cause instanceof Error?cause.message:""));setMessages(prior);setDraft(next.content);}finally{setBusy(false);}
  }
  async function choose(value:Intent){if(busy)return;setBusy(true);setError("");try{
-  const response=await fetch("/api/visitor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"intent",intent:value})});const data=await response.json();if(!response.ok)throw new Error(data.error);setIntent(value);setStep("chat");setCars([]);await answer(prompts[value],[]);
+  const response=await fetch("/api/visitor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"intent",intent:value})});const data=await response.json();if(!response.ok)throw new Error(data.error);setIntent(value);setStep("chat");setCars([]);await answer(prompts[value]+` Please answer in ${{he:"Hebrew",en:"English",ru:"Russian",ar:"Arabic"}[locale]}.`,[]);
  }catch(cause){setError(messageFor(cause instanceof Error?cause.message:""));}finally{setBusy(false);}}
  return <section className="mx-auto max-w-6xl px-5 py-10 sm:py-16">
   <div className="mx-auto max-w-3xl text-center"><p className="mb-3 text-sm font-bold uppercase tracking-widest text-blue-700">SwitchApp ✦</p><h1 className="text-4xl font-black leading-tight text-slate-950 sm:text-5xl">{c.title}</h1><p className="mt-4 text-lg leading-8 text-slate-600">{c.subtitle}</p></div>
