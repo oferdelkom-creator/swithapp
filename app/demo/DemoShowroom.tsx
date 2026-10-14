@@ -27,7 +27,7 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
         <p className="mt-4 max-w-2xl text-white/80">{subtitle}</p>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link href="/business/join/signup" className="rounded-full bg-white px-6 py-3 font-semibold text-brand-blue">
-            פתחו אולם תצוגה — 499 ₪ לחודש
+            פתחו אולם תצוגה — מסלול חינמי או מנוי
           </Link>
           <a href="#inventory" className="rounded-full border border-white/40 px-6 py-3 font-semibold text-white">
             לצפייה במלאי לדוגמה
@@ -72,7 +72,7 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
 
       <section className="mt-10 rounded-3xl bg-neutral-50 p-7 text-center">
         <h2 className="text-2xl font-bold">המקום שלכם יכול להיראות כך</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">499 ₪ לחודש כולל מע״מ, לכל ספק שירות. הקמה וניהול מלאי כלולים; פרסום בתשלום נפרד.</p>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">מסלול חינמי או 499 ₪ לחודש כולל מע״מ. בשניהם: 3% ממכירה דרך הבוטים, בתוספת מע״מ. פרסום בתשלום נפרד.</p>
         <Link href="/business/join/signup" className="btn-primary mt-5 inline-flex px-8 py-3">לפתיחת חשבון עסקי</Link>
       </section>
     </main>
