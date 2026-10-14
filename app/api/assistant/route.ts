@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runAssistant, validateChat, type AssistantCar } from "@/lib/assistant";
 
-import { consumeVisitorLimit, getVisitorSession, requestBucket } from "@/lib/visitorSession";
+import { consumeVisitorLimit, getVisitorSession, requestBucket, visitorService } from "@/lib/visitorSession";
 
 export const maxDuration = 60;
 
@@ -27,7 +27,17 @@ export async function POST(request: Request) {
   const business = body.mode === "business";
   if (business && (!profile || !["dealer", "importer"].includes(profile.role))) return fail("business_required", 403);
   let intent: string | undefined;
+  let homeVisitor: Awaited<ReturnType<typeof getVisitorSession>> = null;
   try {
+    if (body.homeConversation === true) {
+      homeVisitor = await getVisitorSession();
+      if(!homeVisitor)return fail('details_required',401);
+      if(typeof body.conversationId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.conversationId))return fail('invalid_chat',400);
+      const {data:conversation,error}=await visitorService().from('visitor_conversations').select('intent,ended_at').eq('id',body.conversationId).eq('visitor_id',homeVisitor.id).maybeSingle();
+      if(error)return fail('temporarily_unavailable',503);
+      if(!conversation||conversation.ended_at)return fail('conversation_ended',409);
+      intent=conversation.intent;
+    }
     if (user) {
       const {data:allowed,error}=await db.rpc("consume_assistant_request");
       if(error)return fail("temporarily_unavailable",503);
@@ -58,6 +68,10 @@ export async function POST(request: Request) {
         return { inventory: rows.map(({ description, ...car }) => ({ ...car, description: description?.slice(0, 500) })), lead_counts: leads ?? [], note: "Only your own inventory, maximum 40 most recent listings. Leads are aggregate counts; no customer contact details." };
       },
     });
+    if(homeVisitor){
+      const {data:saved,error}=await visitorService().rpc('append_visitor_conversation',{p_id:body.conversationId,p_visitor:homeVisitor.id,p_user:messages.at(-1)!.content,p_assistant:answer.text,p_filters:answer.searchFilters,p_no_match:answer.noMatch});
+      if(error||!saved)return fail('temporarily_unavailable',503);
+    }
     return NextResponse.json(answer, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const code = error instanceof Error && error.message === "ai_limit" ? "ai_limit" : "temporarily_unavailable";

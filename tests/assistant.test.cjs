@@ -30,3 +30,10 @@ test('Customer cannot invoke a supplier tool emitted by the model',async()=>{
 test('Model failure returns a safe error instead of provider credentials or payload',async()=>{
  await assert.rejects(assistantExports.runAssistant({messages:[{role:'user',content:'hello'}],business:false,locale:'en',apiKey:'test',execute:async()=>({}),fetcher:async()=>({ok:false,status:429})}),/ai_limit/);
 });
+test('Email follow-up is triggered by a successful empty inventory search, never by a tool failure',async()=>{
+ for(const failing of [false,true]){
+  const responses=[{output:[{type:'function_call',name:'find_cars',call_id:'empty',arguments:JSON.stringify(filters)}]},answer];
+  const r=await assistantExports.runAssistant({messages:[{role:'user',content:'Find a car'}],business:false,locale:'he',apiKey:'test',execute:async()=>{if(failing)throw Error('db unavailable');return {cars:[]};},fetcher:async()=>({ok:true,json:async()=>responses.shift()})});
+  assert.equal(r.noMatch,!failing);assert.equal(r.searched,!failing);
+ }
+});

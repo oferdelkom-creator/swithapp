@@ -16,9 +16,12 @@ export async function POST(request:Request){
   if(body.action==="intent"){
    const visitor=await getVisitorSession();if(!visitor)return fail("details_required",401);
    if(!VISITOR_INTENTS.includes(body.intent))return fail("invalid_intent",400);
+   if(!await consumeVisitorLimit(`intent:${visitor.id}`,12))return fail('hourly_limit',429);
    const {error}=await visitorService().from("visitor_contacts").update({intent:body.intent}).eq("id",visitor.id);
    if(error)return fail("unavailable",503);
-   return NextResponse.json({visitor:{...visitor,intent:body.intent}},{headers:{"Cache-Control":"no-store"}});
+   const {data:conversation,error:conversationError}=await visitorService().from('visitor_conversations').insert({visitor_id:visitor.id,intent:body.intent,locale:['he','en','ru','ar'].includes(body.locale)?body.locale:'he'}).select('id').single();
+   if(conversationError)return fail('unavailable',503);
+   return NextResponse.json({visitor:{...visitor,intent:body.intent},conversationId:conversation.id},{headers:{"Cache-Control":"no-store"}});
   }
   let details;try{details=validateVisitorDetails(body);}catch{return fail("invalid_details",400);}
   if(!await consumeVisitorLimit(requestBucket(request,"register"),5))return fail("hourly_limit",429);
