@@ -9,6 +9,10 @@ export async function POST(request:Request){
   const origin=request.headers.get("origin");if(!origin||new URL(origin).origin!==new URL(request.url).origin)return fail("invalid_origin",403);
   const text=await request.text();if(text.length>2000)return fail("invalid_details",400);
   let body;try{body=JSON.parse(text);}catch{return fail("invalid_details",400);}
+  if(body.action==="reset"){
+   (await cookies()).delete(VISITOR_COOKIE);
+   return NextResponse.json({reset:true},{headers:{"Cache-Control":"no-store"}});
+  }
   if(body.action==="intent"){
    const visitor=await getVisitorSession();if(!visitor)return fail("details_required",401);
    if(!VISITOR_INTENTS.includes(body.intent))return fail("invalid_intent",400);
