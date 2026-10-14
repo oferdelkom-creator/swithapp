@@ -121,10 +121,6 @@ export async function proxy(request: NextRequest) {
     if (consumerPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
       return NextResponse.redirect(new URL(pathname, "https://www.switchapp.co.il"));
     }
-  } else if (CONSUMER_HOSTS.has(normalizeHostname(host)) && pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/swipe";
-    return NextResponse.redirect(url);
   } else if (host.includes("switchapp.co.il") && pathname.startsWith("/business")) {
     const partnerPath = pathname === "/business/join"
       ? "/"

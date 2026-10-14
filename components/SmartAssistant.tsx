@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useLocale } from "./LocaleProvider";
 import type { AssistantCar, ChatMessage } from "@/lib/assistant";
 
@@ -14,6 +15,7 @@ const copy = {
 
 export default function SmartAssistant({ loggedIn, isBusiness }: { loggedIn: boolean; isBusiness: boolean }) {
   const { locale } = useLocale();
+  const pathname = usePathname();
   const c = copy[locale];
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"customer" | "business">("customer");
@@ -51,6 +53,7 @@ export default function SmartAssistant({ loggedIn, isBusiness }: { loggedIn: boo
     } finally { setBusy(false); }
   }
 
+  if (pathname === "/") return null;
   return <aside dir={locale === "he" || locale === "ar" ? "rtl" : "ltr"}>
     <button onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="switchapp-assistant" className="fixed bottom-24 end-4 z-40 rounded-full bg-slate-950 px-5 py-3 font-bold text-white shadow-xl md:bottom-6">✦ {c.open}</button>
     {open && <section id="switchapp-assistant" aria-label={c.title} className="fixed bottom-40 end-3 z-50 flex max-h-[75dvh] w-[calc(100%-1.5rem)] max-w-md flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-950 shadow-2xl md:bottom-24">
