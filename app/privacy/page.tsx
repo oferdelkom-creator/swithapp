@@ -158,6 +158,7 @@ export default function PrivacyPage() {
         </header>
 
         <div className="mt-10 space-y-10 leading-8 text-slate-300">
+          <section><h2>Optional Vercel Analytics</h2><p lang="en">With your permission, Vercel Analytics counts visits to public landing pages only. Account, customer and form content is excluded; URL queries and fragments are removed. Your choice is stored locally for 180 days. Use Analytics preferences on a landing page to decline or withdraw.</p><p lang="he">מדידת Vercel מופעלת רק לאחר אישור ובדפי נחיתה ציבוריים בלבד. פרטי חשבון, לקוחות ותוכן טפסים אינם נשלחים, ופרמטרים ומקטעים בכתובת מוסרים. ההעדפה נשמרת מקומית ל־180 יום וניתנת לשינוי בהעדפות המדידה.</p></section>
           {sections.map((section) => (
             <section key={section.title}>
               <h2 className="mb-3 text-2xl font-semibold text-white">{section.title}</h2>

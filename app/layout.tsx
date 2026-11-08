@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
+import VercelPageviews from "@/components/VercelPageviews";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -110,7 +110,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           )}
           {user && !partnerSite && <MatchNotifier userId={user.id} enabled={profile?.notify_on_match ?? false} />}
           {user && <PresenceHeartbeat userId={user.id} />}
-          <Analytics />
+          <VercelPageviews />
           <MarketingPixels />
           <SmartAssistant loggedIn={!!user} isBusiness={isBusiness} />
         </LocaleProvider>
