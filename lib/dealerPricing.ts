@@ -8,9 +8,12 @@ export interface DealerTier {
 
 // All prices include VAT. Every provider uses the same flat subscription.
 export const DEALER_MONTHLY_PRICE = 499;
+// Review-only release gate: commission workflows are disabled. No database changes.
+export const SALE_COMMISSION_ENABLED = false;
 export const SALE_COMMISSION_RATE = 0.03;
 export const SALE_COMMISSION_VAT_RATE = 0.18;
 export function saleCommission(salePrice: number) {
+  if (!SALE_COMMISSION_ENABLED) throw new Error("Sale commission is disabled");
   if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice > 100000000) throw new Error("Invalid sale price");
   const feeAgorot = Math.round(salePrice * 100 * SALE_COMMISSION_RATE);
   const vatAgorot = Math.round(feeAgorot * SALE_COMMISSION_VAT_RATE);

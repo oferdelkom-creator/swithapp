@@ -72,7 +72,7 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
 
       <section className="mt-10 rounded-3xl bg-neutral-50 p-7 text-center">
         <h2 className="text-2xl font-bold">המקום שלכם יכול להיראות כך</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">מסלול חינמי או 499 ₪ לחודש כולל מע״מ. בשניהם: 3% ממכירה דרך הבוטים, בתוספת מע״מ. פרסום בתשלום נפרד.</p>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">מסלול מנוי של 499 ₪ לחודש כולל מע״מ. מסלול חינמי זמין.</p>
         <Link href="/business/join/signup" className="btn-primary mt-5 inline-flex px-8 py-3">לפתיחת חשבון עסקי</Link>
       </section>
     </main>

@@ -17,9 +17,9 @@ test('Visitor token is random; only its hash is stored',()=>{
 });
 test('No visitor cookie means no privileged database request',async()=>{assert.equal(await visitorExports.getVisitorSession(),null);});
 const pricingExports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/dealerPricing.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:pricingExports});
-test('Both plans use 3% commission with VAT applied only to the fee',()=>{
- const amount=pricingExports.saleCommission(100000);
- assert.equal(amount.fee,3000);assert.equal(amount.vat,540);assert.equal(amount.total,3540);
+test('Both plans retain pricing while commission is disabled',()=>{
+ assert.equal(pricingExports.SALE_COMMISSION_ENABLED,false);
+ assert.throws(()=>pricingExports.saleCommission(100000),/disabled/);
  assert.equal(pricingExports.DEALER_TIERS[0].monthlyPrice,0);assert.equal(pricingExports.DEALER_TIERS[1].monthlyPrice,499);
  assert.throws(()=>pricingExports.saleCommission(-1));assert.throws(()=>pricingExports.saleCommission(Infinity));
 });

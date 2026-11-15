@@ -1,4 +1,5 @@
 "use client";
+import { SALE_COMMISSION_ENABLED } from "@/lib/dealerPricing";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -6,6 +7,11 @@ import { saleCommission } from "@/lib/dealerPricing";
 
 type Car = { id:string; make:string; model:string; price:number|null; sold_at:string|null };
 export default function BotSaleReport({ cars }: { cars:Car[] }) {
+ if (!SALE_COMMISSION_ENABLED) return null;
+ return <BotSaleReportEnabled cars={cars} />;
+}
+
+function BotSaleReportEnabled({ cars }: { cars:Car[] }) {
  const router=useRouter();
  const [car,setCar]=useState(""),[price,setPrice]=useState(""),[reference,setReference]=useState(""),[accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState("");
  const value=Number(price); const fee=value>0&&value<=100000000?saleCommission(value):null;

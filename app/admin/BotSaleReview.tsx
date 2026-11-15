@@ -1,8 +1,14 @@
 "use client";
+import { SALE_COMMISSION_ENABLED } from "@/lib/dealerPricing";
 import {useEffect,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 type Sale={id:string;sale_price:number;commission_agorot:number;vat_agorot:number;bot_reference:string;status:string};
-export default function BotSaleReview(){
+export default function BotSaleReview() {
+ if (!SALE_COMMISSION_ENABLED) return null;
+ return <BotSaleReviewEnabled />;
+}
+
+function BotSaleReviewEnabled() {
  const [sales,setSales]=useState<Sale[]>([]),[busy,setBusy]=useState(""),[notice,setNotice]=useState("");
  useEffect(()=>{let stopped=false;createClient().from("bot_sale_commissions").select("id,sale_price,commission_agorot,vat_agorot,bot_reference,status").order("created_at",{ascending:false}).limit(100).then(({data,error})=>{if(!stopped){setSales(data??[]);if(error)setNotice("לא ניתן לטעון דיווחי מכירה.");}});return()=>{stopped=true;};},[]);
  async function review(id:string,status:string){setBusy(id);setNotice("");try{const {error}=await createClient().rpc("review_bot_vehicle_sale",{p_id:id,p_status:status});if(error)setNotice("עדכון סטטוס נכשל.");else setSales(rows=>rows.map(s=>s.id===id?{...s,status}:s));}catch{setNotice("עדכון סטטוס נכשל.");}finally{setBusy("");}}

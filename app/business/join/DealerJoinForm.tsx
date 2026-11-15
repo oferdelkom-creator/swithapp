@@ -54,7 +54,6 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   useEffect(() => captureMarketingAttribution(), []);
@@ -75,7 +74,6 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!acceptedTerms) { setError(t("businessJoin.saleTerms")); return; }
     if (tier === undefined) {
       setError(t("businessJoin.selectTierError"));
       return;
@@ -308,7 +306,6 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
           />
         </div>
 
-        <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" required checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="mt-1" /><span>{t("businessJoin.saleTerms")}</span></label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
