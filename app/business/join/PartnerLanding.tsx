@@ -34,7 +34,7 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
   const trackSignupClick = () => trackMarketingEvent("partner_signup_start", { source: "landing_cta" });
 
   return (
-    <main className="overflow-hidden bg-white text-slate-950">
+    <div className="overflow-hidden bg-white text-slate-950">
       <section className="relative isolate border-b border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#eef2ff_48%,#fff1f2_100%)]">
         <div className="absolute inset-0 -z-10 opacity-60 [background-image:radial-gradient(circle_at_20%_15%,rgba(29,78,216,.16),transparent_28%),radial-gradient(circle_at_85%_85%,rgba(255,68,88,.14),transparent_30%)]" />
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
@@ -127,6 +127,6 @@ export default function PartnerLanding({ remainingTrialSlots }: { remainingTrial
           <div className="relative"><h2 className="text-3xl font-black tracking-tight sm:text-5xl">{t("businessJoin.heroTitle")}</h2><p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">{t("businessJoin.heroSubtitle")}</p><Link href="/business/join/signup" onClick={trackSignupClick} className="mt-8 inline-flex rounded-full bg-white px-8 py-3.5 font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-blue-50">{t("businessJoin.submit")}</Link></div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

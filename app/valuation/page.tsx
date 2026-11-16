@@ -61,7 +61,7 @@ export default function VehicleValuationPage() {
     }
   }
 
-  return <main dir="rtl" className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
+  return <div dir="rtl" className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
     <div className="mx-auto max-w-5xl">
       <div className="mb-7">
         <p className="font-bold text-blue-700">SwitchAuto AI</p>
@@ -124,7 +124,7 @@ export default function VehicleValuationPage() {
         </section>}
       </div>
     </div>
-  </main>;
+  </div>;
 }
 
 function Box({title,value}:{title:string;value:string}) { return <div className="rounded-2xl bg-white/10 p-4"><p className="text-xs text-slate-300">{title}</p><p className="mt-2 font-bold">{value}</p></div>; }

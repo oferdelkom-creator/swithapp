@@ -55,7 +55,7 @@ export default function BusinessLoginForm() {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-3.5rem)] bg-[#07111f] px-4 py-12 text-white sm:py-20">
+    <div className="min-h-[calc(100dvh-3.5rem)] bg-[#07111f] px-4 py-12 text-white sm:py-20">
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <section>
           <p className="text-sm font-semibold tracking-[0.18em] text-cyan-300">SWITCHAUTO AI</p>
@@ -77,12 +77,12 @@ export default function BusinessLoginForm() {
           <p className="mt-2 text-sm text-neutral-500">{t("partnerLogin.formSubtitle")}</p>
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">{t("login.email")}</label>
-              <input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+              <label htmlFor="business-login-email" className="mb-1 block text-sm font-medium">{t("login.email")}</label>
+              <input required type="email" autoComplete="email" id="business-login-email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">{t("login.password")}</label>
-              <input required type="password" autoComplete="current-password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="field" />
+              <label htmlFor="business-login-password" className="mb-1 block text-sm font-medium">{t("login.password")}</label>
+              <input required type="password" autoComplete="current-password" minLength={6} id="business-login-password" value={password} onChange={(e) => setPassword(e.target.value)} className="field" />
             </div>
             {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <button type="submit" disabled={loading} className="w-full rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:opacity-50">
@@ -97,7 +97,7 @@ export default function BusinessLoginForm() {
           </p>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 

@@ -162,7 +162,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       <div className="max-w-md mx-auto px-4 py-16 text-center">
         <div className="card p-8">
           <p className="text-lg font-medium mb-2">{t("businessJoin.confirmEmailTitle")}</p>
-          <p className="text-neutral-500 text-sm">{t("businessJoin.confirmEmailBody")}</p>
+          <p className="text-neutral-600 text-sm">{t("businessJoin.confirmEmailBody")}</p>
         </div>
       </div>
     );
@@ -172,7 +172,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-10">
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">{t("businessJoin.heroTitle")}</h1>
-        <p className="mt-3 text-neutral-500">{t("businessJoin.heroSubtitle")}</p>
+        <p className="mt-3 text-neutral-600">{t("businessJoin.heroSubtitle")}</p>
         <p className={`mt-3 rounded-xl px-4 py-3 text-sm font-medium ${remainingTrialSlots > 0 ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-600"}`}>
           {remainingTrialSlots > 0
             ? t("businessJoin.freeTrialDescription", { remaining: remainingTrialSlots })
@@ -193,7 +193,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
               }`}
             >
               <p className="font-semibold">{t(type.labelKey)}</p>
-              <p className="mt-1 text-xs text-neutral-500">{t(type.descriptionKey)}</p>
+              <p className="mt-1 text-xs text-neutral-600">{t(type.descriptionKey)}</p>
             </button>
           );
         })}
@@ -213,7 +213,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
 
       <div>
         <h2 className="font-semibold mb-1">{t("businessJoin.pricingTitle")}</h2>
-        <p className="text-sm text-neutral-500 mb-4">{t("businessJoin.pricingSubtitle")}</p>
+        <p className="text-sm text-neutral-600 mb-4">{t("businessJoin.pricingSubtitle")}</p>
         <p className="mb-4 text-sm font-medium text-emerald-700">{t("businessJoin.minimumInventory")}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {DEALER_TIERS.map((tierOption) => {
@@ -230,7 +230,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
                 <p className="font-medium">
                   {tierOption.requestValue === 1 ? t("businessJoin.freePlan") : t("businessJoin.tierFrom", { count: tierOption.minCars })}
                 </p>
-                <p className="text-sm text-neutral-500 mt-1">
+                <p className="text-sm text-neutral-600 mt-1">
                   {tierOption.requestValue === 1 ? t("businessJoin.freePlanPrice") : t("businessJoin.paidPlanPrice")}
                 </p>
               </button>
@@ -244,8 +244,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">
         <h2 className="font-semibold">{t("businessJoin.formTitle")}</h2>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.businessName")}</label>
-          <input
+          <label htmlFor="dealer-businessName" className="block text-sm font-medium mb-1">{t("businessJoin.businessName")}</label>
+          <input id="dealer-businessName"
             required
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
@@ -256,33 +256,33 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.storeAddress")}</label>
+          <label htmlFor="dealer-dealerSlug" className="block text-sm font-medium mb-1">{t("businessJoin.storeAddress")}</label>
           <div className="flex" dir="ltr">
-            <input value={dealerSlug} onChange={(e) => setDealerSlug(normalizeDealerSlug(e.target.value))} placeholder="my-dealership (optional)" className="field w-full rounded-r-none" />
+            <input id="dealer-dealerSlug" value={dealerSlug} onChange={(e) => setDealerSlug(normalizeDealerSlug(e.target.value))} placeholder="my-dealership (optional)" className="field w-full rounded-r-none" />
             <span className="inline-flex items-center rounded-r-xl border border-l-0 border-neutral-300 bg-neutral-50 px-3 text-xs text-neutral-600">.switchapp.co.il</span>
           </div>
-          <p className="mt-1 text-xs text-neutral-500">{t("businessJoin.storeAddressHint")}</p>
+          <p className="mt-1 text-xs text-neutral-600">{t("businessJoin.storeAddressHint")}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.existingDomain")}</label>
-          <input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="www.my-dealership.co.il" className="field" dir="ltr" />
-          <p className="mt-1 text-xs text-neutral-500">{t("businessJoin.existingDomainHint")}</p>
+          <label htmlFor="dealer-customDomain" className="block text-sm font-medium mb-1">{t("businessJoin.existingDomain")}</label>
+          <input id="dealer-customDomain" value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="www.my-dealership.co.il" className="field" dir="ltr" />
+          <p className="mt-1 text-xs text-neutral-600">{t("businessJoin.existingDomainHint")}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.contactName")}</label>
-          <input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="field" />
+          <label htmlFor="dealer-contactName" className="block text-sm font-medium mb-1">{t("businessJoin.contactName")}</label>
+          <input id="dealer-contactName" required value={contactName} onChange={(e) => setContactName(e.target.value)} className="field" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.email")}</label>
-          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+          <label htmlFor="dealer-email" className="block text-sm font-medium mb-1">{t("businessJoin.email")}</label>
+          <input id="dealer-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.phone")}</label>
+          <label htmlFor="dealer-phone" className="block text-sm font-medium mb-1">{t("businessJoin.phone")}</label>
           <div className="flex" dir="ltr">
             <span className="inline-flex items-center rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm font-medium text-neutral-600">
               +972
             </span>
-            <input
+            <input id="dealer-phone"
               type="tel"
               inputMode="tel"
               autoComplete="tel-national"
@@ -294,8 +294,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("businessJoin.password")}</label>
-          <input
+          <label htmlFor="dealer-password" className="block text-sm font-medium mb-1">{t("businessJoin.password")}</label>
+          <input id="dealer-password"
             required
             type="password"
             minLength={6}
@@ -312,9 +312,9 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
           {loading ? t("businessJoin.wait") : t("businessJoin.submit")}
         </button>
 
-        <p className="text-center text-sm text-neutral-500">
+        <p className="text-center text-sm text-neutral-600">
           {t("businessJoin.alreadyHaveAccount")}{" "}
-          <Link href="/business/login?next=/business" className="text-brand-blue">
+          <Link href="/business/login?next=/business" className="text-brand-blue underline">
             {t("login.signIn")}
           </Link>
         </p>

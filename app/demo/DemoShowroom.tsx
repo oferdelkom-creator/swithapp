@@ -15,7 +15,7 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
     : "כך יכול להיראות המגרש הדיגיטלי שלכם: מלאי, פניות וטרייד־אין בעמוד ממותג אחד.";
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 sm:py-12" dir="rtl">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12" dir="rtl">
       <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         עמוד הדגמה בלבד — העסק והרכבים המוצגים כאן אינם מודעות פעילות.
       </div>
@@ -39,15 +39,15 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
         {[["24", "רכבים במלאי"], ["12", "פניות השבוע"], ["5", "בקשות טרייד־אין"]].map(([value, label]) => (
           <div key={label} className="card p-4">
             <p className="text-2xl font-bold text-brand-blue">{value}</p>
-            <p className="mt-1 text-xs text-neutral-500">{label}</p>
+            <p className="mt-1 text-xs text-neutral-600">{label}</p>
           </div>
         ))}
       </section>
 
       <section id="inventory" className="mt-10 scroll-mt-6">
         <div className="flex items-end justify-between gap-3">
-          <div><p className="text-sm font-semibold text-brand-pink">מלאי לדוגמה</p><h2 className="text-2xl font-bold">רכבים זמינים</h2></div>
-          <span className="text-sm text-neutral-500">החלקה · קנייה · החלפה</span>
+          <div><p className="text-sm font-semibold text-brand-blue">מלאי לדוגמה</p><h2 className="text-2xl font-bold">רכבים זמינים</h2></div>
+          <span className="text-sm text-neutral-600">החלקה · קנייה · החלפה</span>
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {vehicles.map((vehicle) => (
@@ -58,7 +58,7 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
               </div>
               <div className="p-5">
                 <h3 className="text-lg font-bold">{vehicle.make} {vehicle.model}</h3>
-                <p className="mt-1 text-sm text-neutral-500">שנת {vehicle.year} · ₪{vehicle.price}</p>
+                <p className="mt-1 text-sm text-neutral-600">שנת {vehicle.year} · ₪{vehicle.price}</p>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
                   <button className="rounded-xl bg-neutral-100 px-2 py-2">דלג</button>
                   <button className="rounded-xl bg-amber-100 px-2 py-2 text-amber-800">החלפה</button>
@@ -75,6 +75,6 @@ export default function DemoShowroom({ type }: { type: "dealer" | "importer" }) 
         <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">מסלול מנוי של 499 ₪ לחודש כולל מע״מ. מסלול חינמי זמין.</p>
         <Link href="/business/join/signup" className="btn-primary mt-5 inline-flex px-8 py-3">לפתיחת חשבון עסקי</Link>
       </section>
-    </main>
+    </div>
   );
 }

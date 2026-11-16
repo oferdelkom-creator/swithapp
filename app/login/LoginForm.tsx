@@ -182,12 +182,12 @@ export default function LoginForm() {
           {phoneStep === "enter" ? (
             <form onSubmit={handleSendCode} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">{t("login.phoneNumber")}</label>
+                <label htmlFor="login-phone" className="block text-sm font-medium mb-1">{t("login.phoneNumber")}</label>
                 <div className="flex" dir="ltr">
                   <span className="inline-flex items-center rounded-l-xl border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm font-medium text-neutral-600">
                     +972
                   </span>
-                  <input
+                  <input id="login-phone"
                     required
                     type="tel"
                     inputMode="tel"
@@ -199,7 +199,7 @@ export default function LoginForm() {
                   />
                 </div>
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className="btn-primary w-full">
                 {loading ? t("login.wait") : t("login.sendCode")}
               </button>
@@ -208,8 +208,8 @@ export default function LoginForm() {
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <p className="text-sm text-muted">{t("login.codeSent", { phone: toE164Israel(phone) })}</p>
               <div>
-                <label className="block text-sm font-medium mb-1">{t("login.verificationCode")}</label>
-                <input
+                <label htmlFor="login-code" className="block text-sm font-medium mb-1">{t("login.verificationCode")}</label>
+                <input id="login-code"
                   required
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -218,7 +218,7 @@ export default function LoginForm() {
                   className="field"
                 />
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className="btn-primary w-full">
                 {loading ? t("login.wait") : t("login.verifyAndContinue")}
               </button>
@@ -238,7 +238,7 @@ export default function LoginForm() {
         {t("login.backToWelcome")}
       </button>
       <h1 className="text-2xl font-semibold mb-2">{t("login.title")}</h1>
-      <p className="text-neutral-500 mb-8 text-sm">{t("login.subtitle")}</p>
+      <p className="text-neutral-600 mb-8 text-sm">{t("login.subtitle")}</p>
       <div className="card p-6">
         <div className="flex gap-2 mb-6 text-sm">
           <button
@@ -260,13 +260,13 @@ export default function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "signup" && (
             <div>
-              <label className="block text-sm font-medium mb-1">{t("login.fullName")}</label>
-              <input required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+              <label htmlFor="login-name" className="block text-sm font-medium mb-1">{t("login.fullName")}</label>
+              <input id="login-name" required value={name} onChange={(e) => setName(e.target.value)} className="field" />
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1">{t("login.email")}</label>
-            <input
+            <label htmlFor="login-email" className="block text-sm font-medium mb-1">{t("login.email")}</label>
+            <input id="login-email"
               required
               type="email"
               value={email}
@@ -275,8 +275,8 @@ export default function LoginForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("login.password")}</label>
-            <input
+            <label htmlFor="login-password" className="block text-sm font-medium mb-1">{t("login.password")}</label>
+            <input id="login-password"
               required
               type="password"
               minLength={6}
@@ -286,7 +286,7 @@ export default function LoginForm() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? t("login.wait") : mode === "signup" ? t("login.signUp") : t("login.signIn")}

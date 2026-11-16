@@ -255,9 +255,9 @@ export default function CarForm({ car }: { car?: Car }) {
       className="min-w-0 max-w-full rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white m-4"
     >
         <div className="p-5 border-b border-neutral-100">
-          <label className="block text-xs text-muted mb-1">{t("carForm.plateNumber")}</label>
+          <label htmlFor="car-plate" className="block text-xs text-muted mb-1">{t("carForm.plateNumber")}</label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <input
+            <input id="car-plate"
               value={plate}
               onChange={(e) => setPlate(e.target.value)}
               placeholder={t("carForm.plateNumberPlaceholder")}
@@ -279,7 +279,7 @@ export default function CarForm({ car }: { car?: Car }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photoUrls[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <label className="absolute inset-0 flex flex-col items-center justify-center gap-2 cursor-pointer text-neutral-400 hover:bg-neutral-200/60 transition-colors">
+          <label className="absolute inset-0 flex flex-col items-center justify-center gap-2 cursor-pointer text-neutral-600 hover:bg-neutral-200/60 transition-colors">
             <CameraIcon />
             <span className="text-sm font-medium">
               {uploading ? t("carForm.uploading") : t("carForm.addPhotos")}
@@ -358,7 +358,7 @@ export default function CarForm({ car }: { car?: Car }) {
           <div className="flex flex-wrap items-baseline gap-2">
             <select
               required
-              value={make}
+              aria-label={t("carForm.make")} value={make}
               onChange={(e) => handleMakeChange(e.target.value)}
               className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
             >
@@ -373,7 +373,7 @@ export default function CarForm({ car }: { car?: Car }) {
             </select>
             <select
               required
-              value={model}
+              aria-label={t("carForm.model")} value={model}
               onChange={(e) => setModel(e.target.value)}
               className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
             >
@@ -388,7 +388,7 @@ export default function CarForm({ car }: { car?: Car }) {
             </select>
             <input
               type="number"
-              value={year}
+              aria-label={t("carForm.year")} value={year}
               onChange={(e) => setYear(e.target.value)}
               placeholder={t("carForm.year")}
               className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1 w-24"
@@ -399,7 +399,7 @@ export default function CarForm({ car }: { car?: Car }) {
               {make === OTHER && (
                 <input
                   required
-                  value={makeOther}
+                  aria-label={t("carForm.make")} value={makeOther}
                   onChange={(e) => setMakeOther(e.target.value)}
                   className="field"
                   placeholder={t("carForm.make")}
@@ -408,7 +408,7 @@ export default function CarForm({ car }: { car?: Car }) {
               {model === OTHER && (
                 <input
                   required
-                  value={modelOther}
+                  aria-label={t("carForm.model")} value={modelOther}
                   onChange={(e) => setModelOther(e.target.value)}
                   className="field"
                   placeholder={t("carForm.model")}
@@ -442,12 +442,12 @@ export default function CarForm({ car }: { car?: Car }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
-            <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
+            <label htmlFor="car-color" className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
+            <input id="car-color" value={color} onChange={(e) => setColor(e.target.value)} className="field" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>
-            <input
+            <label htmlFor="car-mileage" className="block text-sm font-medium mb-1">{t("carForm.mileage")}</label>
+            <input id="car-mileage"
               type="number"
               value={mileage}
               onChange={(e) => setMileage(e.target.value)}
@@ -455,8 +455,8 @@ export default function CarForm({ car }: { car?: Car }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.transmission")}</label>
-            <select
+            <label htmlFor="car-transmission" className="block text-sm font-medium mb-1">{t("carForm.transmission")}</label>
+            <select id="car-transmission"
               value={transmission}
               onChange={(e) => setTransmission(e.target.value)}
               className="field"
@@ -466,8 +466,8 @@ export default function CarForm({ car }: { car?: Car }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.fuelType")}</label>
-            <select
+            <label htmlFor="car-fuelType" className="block text-sm font-medium mb-1">{t("carForm.fuelType")}</label>
+            <select id="car-fuelType"
               value={fuelType}
               onChange={(e) => setFuelType(e.target.value as FuelType)}
               className="field"
@@ -481,8 +481,8 @@ export default function CarForm({ car }: { car?: Car }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.region")}</label>
-            <select value={region} onChange={(e) => setRegion(e.target.value as CarRegion)} className="field">
+            <label htmlFor="car-region" className="block text-sm font-medium mb-1">{t("carForm.region")}</label>
+            <select id="car-region" value={region} onChange={(e) => setRegion(e.target.value as CarRegion)} className="field">
               <option value="">-</option>
               {REGIONS.map((r) => (
                 <option key={r} value={r}>
@@ -492,18 +492,18 @@ export default function CarForm({ car }: { car?: Car }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
-            <input required type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
+            <label htmlFor="car-price" className="block text-sm font-medium mb-1">{t("carForm.price")}</label>
+            <input id="car-price" required type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
-            <input type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
+            <label htmlFor="car-hand" className="block text-sm font-medium mb-1">{t("carForm.hand")}</label>
+            <input id="car-hand" type="number" min="0" value={hand} onChange={(e) => setHand(e.target.value)} className="field" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">{t("carForm.description")}</label>
-          <textarea
+          <label htmlFor="car-description" className="block text-sm font-medium mb-1">{t("carForm.description")}</label>
+          <textarea id="car-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("carForm.descriptionPlaceholder")}
@@ -526,12 +526,12 @@ export default function CarForm({ car }: { car?: Car }) {
         {forSwap && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
-              <input value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
+              <label htmlFor="car-wantMake" className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
+              <input id="car-wantMake" value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t("carForm.wantModel")}</label>
-              <input value={wantModel} onChange={(e) => setWantModel(e.target.value)} className="field" />
+              <label htmlFor="car-wantModel" className="block text-sm font-medium mb-1">{t("carForm.wantModel")}</label>
+              <input id="car-wantModel" value={wantModel} onChange={(e) => setWantModel(e.target.value)} className="field" />
             </div>
           </div>
         )}
