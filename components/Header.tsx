@@ -24,7 +24,7 @@ export default async function Header({
 
   return (
     <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-4 min-h-14 py-2 flex flex-wrap items-center justify-between gap-2 md:gap-4">
         <Link href="/" className={`flex items-center gap-2 font-bold text-lg tracking-tight shrink-0 ${partnerSite ? "text-slate-950" : "text-brand-blue-dark"}`}>
           {partnerSite ? <Image src="/brand/switchautoai-mark.svg" alt="" width={32} height={32} priority /> : null}
           <span>{partnerSite ? "SwitchAuto AI" : "SwitchApp"}</span>
@@ -44,7 +44,7 @@ export default async function Header({
             unreadMatches={unreadMatches}
           />
         )}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
           {loggedIn ? (
             <SignOutButton />
           ) : (

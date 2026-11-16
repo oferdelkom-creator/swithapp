@@ -95,6 +95,12 @@ export default async function BusinessPage() {
         <p className="text-neutral-500 text-sm">{me.business_name ?? "-"}</p>
       </div>
 
+      {inventory.length === 0 && (
+        <Link href="/cars" className="btn-primary block w-full text-center">
+          {locale === "he" ? "הוספת הרכב הראשון" : t("business.addNewCar")}
+        </Link>
+      )}
+
       {stats && <ProfileStats stats={stats} />}
 
       <div className="grid gap-3 sm:grid-cols-2">

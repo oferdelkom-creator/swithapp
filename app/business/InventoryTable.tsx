@@ -1,4 +1,6 @@
 "use client";
+import { normalizeVehicleMake } from "@/lib/vehicleMake";
+
 
 import { useState } from "react";
 import Link from "next/link";
@@ -23,7 +25,7 @@ export default function InventoryTable({ inventory }: { inventory: InventoryCar[
     if (filter === "sold" && !c.sold_at) return false;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
-      if (!`${c.make} ${c.model}`.toLowerCase().includes(q)) return false;
+      if (!`${normalizeVehicleMake(c.make)} ${c.model}`.toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -73,7 +75,7 @@ export default function InventoryTable({ inventory }: { inventory: InventoryCar[
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">
-                  {c.make} {c.model} {c.year ?? ""}
+                  {normalizeVehicleMake(c.make)} {c.model} {c.year ?? ""}
                 </p>
                 <p className="text-xs text-muted">
                   {c.sold_at && <span className="text-neutral-700 font-medium">{t("cars.sold")} · </span>}

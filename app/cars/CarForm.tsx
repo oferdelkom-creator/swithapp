@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeVehicleMake } from "@/lib/vehicleMake";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -35,10 +36,11 @@ export default function CarForm({ car }: { car?: Car }) {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
 
-  const initialMakeInList = car ? getMakes(car.category).includes(car.make) : true;
-  const initialModelInList = car ? getModels(car.category, car.make).includes(car.model) : true;
-  const [make, setMake] = useState(initialMakeInList ? car?.make ?? "" : OTHER);
-  const [makeOther, setMakeOther] = useState(initialMakeInList ? "" : car?.make ?? "");
+  const displayMake = car ? normalizeVehicleMake(car.make) : "";
+  const initialMakeInList = car ? getMakes(car.category).includes(displayMake) : true;
+  const initialModelInList = car ? getModels(car.category, displayMake).includes(car.model) : true;
+  const [make, setMake] = useState(initialMakeInList ? displayMake : OTHER);
+  const [makeOther, setMakeOther] = useState(initialMakeInList ? "" : displayMake);
   const [model, setModel] = useState(initialModelInList ? car?.model ?? "" : OTHER);
   const [modelOther, setModelOther] = useState(initialModelInList ? "" : car?.model ?? "");
   const [year, setYear] = useState(car?.year?.toString() ?? "");
@@ -195,7 +197,8 @@ export default function CarForm({ car }: { car?: Car }) {
 
     const payload = {
       category: vehicleType,
-      make: resolvedMake,
+      // Display normalization alone must not rewrite an existing record on edit.
+      make: isEdit && resolvedMake === displayMake ? car!.make : isEdit ? resolvedMake : normalizeVehicleMake(resolvedMake),
       model: resolvedModel,
       year: year ? Number(year) : null,
       color: color || null,
@@ -249,8 +252,28 @@ export default function CarForm({ car }: { car?: Car }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white m-4"
+      className="min-w-0 max-w-full rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] bg-white m-4"
     >
+        <div className="p-5 border-b border-neutral-100">
+          <label className="block text-xs text-muted mb-1">{t("carForm.plateNumber")}</label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={plate}
+              onChange={(e) => setPlate(e.target.value)}
+              placeholder={t("carForm.plateNumberPlaceholder")}
+              className="field min-w-0 flex-1 text-sm"
+            />
+            <button
+              type="button"
+              onClick={lookupPlate}
+              disabled={lookupLoading || !plate.trim()}
+              className="btn-secondary whitespace-nowrap text-xs"
+            >
+              {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
+            </button>
+          </div>
+          {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
+        </div>
       <div className="relative w-full aspect-[4/5] bg-neutral-100">
         {photoUrls[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -337,7 +360,7 @@ export default function CarForm({ car }: { car?: Car }) {
               required
               value={make}
               onChange={(e) => handleMakeChange(e.target.value)}
-              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
+              className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
             >
               <option value="" disabled>
                 {t("carForm.make")}
@@ -352,7 +375,7 @@ export default function CarForm({ car }: { car?: Car }) {
               required
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
+              className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1"
             >
               <option value="" disabled>
                 {t("carForm.model")}
@@ -368,7 +391,7 @@ export default function CarForm({ car }: { car?: Car }) {
               value={year}
               onChange={(e) => setYear(e.target.value)}
               placeholder={t("carForm.year")}
-              className="text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1 w-24"
+              className="min-w-0 max-w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 focus:outline-none focus:border-brand-pink px-0 py-1 w-24"
             />
           </div>
           {(make === OTHER || model === OTHER) && (
@@ -417,7 +440,7 @@ export default function CarForm({ car }: { car?: Car }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">{t("carForm.color")}</label>
             <input value={color} onChange={(e) => setColor(e.target.value)} className="field" />
@@ -501,7 +524,7 @@ export default function CarForm({ car }: { car?: Car }) {
         </div>
 
         {forSwap && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">{t("carForm.wantMake")}</label>
               <input value={wantMake} onChange={(e) => setWantMake(e.target.value)} className="field" />
@@ -513,26 +536,7 @@ export default function CarForm({ car }: { car?: Car }) {
           </div>
         )}
 
-        <div className="pt-2 border-t border-neutral-100">
-          <label className="block text-xs text-muted mb-1">{t("carForm.plateNumber")}</label>
-          <div className="flex gap-2">
-            <input
-              value={plate}
-              onChange={(e) => setPlate(e.target.value)}
-              placeholder={t("carForm.plateNumberPlaceholder")}
-              className="field flex-1 text-sm"
-            />
-            <button
-              type="button"
-              onClick={lookupPlate}
-              disabled={lookupLoading || !plate.trim()}
-              className="btn-secondary whitespace-nowrap text-xs"
-            >
-              {lookupLoading ? t("carForm.lookupPlateLoading") : t("carForm.lookupPlate")}
-            </button>
-          </div>
-          {lookupMessage && <p className="text-xs text-muted mt-1">{lookupMessage}</p>}
-        </div>
+
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

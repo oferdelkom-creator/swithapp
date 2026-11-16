@@ -1,4 +1,6 @@
 "use client";
+import { normalizeVehicleMake } from "@/lib/vehicleMake";
+
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -122,7 +124,7 @@ export default function CarDetail({
               <img
                 key={url}
                 src={url}
-                alt={`${car.make} ${car.model}`}
+                alt={`${normalizeVehicleMake(car.make)} ${car.model}`}
                 className="w-full h-full object-cover shrink-0 snap-center"
               />
             ))}
@@ -169,7 +171,7 @@ export default function CarDetail({
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">
-            {car.year ?? ""} {car.make} {car.model}
+            {car.year ?? ""} {normalizeVehicleMake(car.make)} {car.model}
           </h1>
           <p className="text-neutral-500 mt-1">
             {[

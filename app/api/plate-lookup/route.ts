@@ -1,3 +1,4 @@
+import { normalizeVehicleMake } from "@/lib/vehicleMake";
 import { NextRequest, NextResponse } from "next/server";
 import type { FuelType, VehicleType } from "@/lib/types";
 
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
     country: "IL",
     provider: "משרד התחבורה והבטיחות בדרכים · data.gov.il",
     plate,
-    make: record.tozeret_nm?.trim() || null,
+    make: record.tozeret_nm ? normalizeVehicleMake(record.tozeret_nm) || null : null,
     model: (record.kinuy_mishari || record.degem_nm)?.trim() || null,
     year: year && year > 1950 && year < 2100 ? year : null,
     color: record.tzeva_rechev?.trim() || null,

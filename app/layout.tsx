@@ -85,7 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={locale === "he" || locale === "ar" ? "rtl" : "ltr"} className={`h-full antialiased ${inter.variable}`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full min-w-0 max-w-full flex flex-col bg-background text-foreground">
         <LocaleProvider locale={locale}>
           <Header
             loggedIn={!!user}
@@ -98,7 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* BottomNav's own bar is mobile-only (md:hidden); the bottom padding that
               makes room for it should disappear at the same breakpoint, otherwise
               desktop pages carry dead space where a fixed bar no longer is. */}
-          <main className="flex-1">{children}</main>
+          <main className="min-w-0 max-w-full flex-1">{children}</main>
           <div className={user && !partnerSite ? "pb-20 md:pb-0" : ""}><BrandLinks locale={locale} /></div>
           {user && !partnerSite && (
             <BottomNav

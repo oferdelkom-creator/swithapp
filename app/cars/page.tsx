@@ -1,3 +1,4 @@
+import { normalizeVehicleMake } from "@/lib/vehicleMake";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -64,7 +65,7 @@ export default async function CarsPage() {
                 <div className="flex-1 flex items-start justify-between">
                   <div>
                     <p className="font-medium">
-                      {c.make} {c.model} {c.year ?? ""}
+                      {normalizeVehicleMake(c.make)} {c.model} {c.year ?? ""}
                     </p>
                     <p className="text-sm text-muted">
                       {c.sold_at && (
