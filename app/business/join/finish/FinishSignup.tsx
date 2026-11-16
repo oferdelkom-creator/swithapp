@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
+import { dealerSignupDraft } from "@/lib/signupAuth";
 import { finishDealerSignup } from "@/lib/dealerSignup";
 import { trackMarketingEvent } from "@/lib/marketingAnalytics";
 
@@ -13,24 +14,31 @@ export default function FinishSignup() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
+  const started = useRef(false);
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     async function run() {
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        router.push("/business/login?next=/business/join");
+        router.push("/business/login?next=/business/join/finish");
         return;
       }
 
-      const businessName = searchParams.get("business_name") ?? "";
-      const capParam = searchParams.get("cap");
-      const cap = capParam ? Number(capParam) : null;
-      const phone = searchParams.get("phone") ?? "";
-      const role = searchParams.get("role") === "importer" ? "importer" : "dealer";
-      const dealerSlug = searchParams.get("dealer_slug") ?? "";
-      const customDomain = searchParams.get("custom_domain") || null;
+      // Metadata is only an untrusted signup draft; strict parsing never permits admin roles.
+      // Legacy links retain a validated fallback, but new emails contain no business PII.
+      const draft = dealerSignupDraft(user.user_metadata?.dealer_signup ?? {
+        businessName: searchParams.get("business_name") ?? "",
+        cap: searchParams.get("cap") === "1" ? 1 : searchParams.get("cap") === "0" ? 0 : null,
+        phone: searchParams.get("phone") ?? "",
+        role: searchParams.get("role") ?? "dealer",
+        dealerSlug: searchParams.get("dealer_slug") ?? "",
+        customDomain: searchParams.get("custom_domain") || null,
+      });
+      const { businessName, cap, phone, role, dealerSlug, customDomain } = draft;
       const shouldSetPassword = searchParams.get("set_password") === "1";
 
       await finishDealerSignup(supabase, { userId: user.id, businessName, cap, phone, role, dealerSlug, customDomain });
@@ -39,7 +47,7 @@ export default function FinishSignup() {
       router.push(shouldSetPassword ? "/business/set-password" : cap === 1 ? "/business" : "/business/billing");
       router.refresh();
     }
-    run().catch((err) => setError(err instanceof Error ? err.message : String(err)));
+    run().catch(() => setError("לא ניתן לאשר את השלמת פרטי העסק. אין לנסות שוב אוטומטית; פנו לתמיכה. לא בוצע חיוב."));
   }, [router, searchParams]);
 
   return (

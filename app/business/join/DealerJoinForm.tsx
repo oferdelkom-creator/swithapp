@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
 import PricingDetails from "./PricingDetails";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
+import { dealerSignupDraft } from "@/lib/signupAuth";
 import { finishDealerSignup } from "@/lib/dealerSignup";
 import { isValidDealerSlug, normalizeCustomDomain, normalizeDealerSlug } from "@/lib/dealerDomains";
 import { captureMarketingAttribution, trackMarketingEvent } from "@/lib/marketingAnalytics";
@@ -106,16 +107,14 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
     }
 
     const role = BUSINESS_TYPES.find((type) => type.value === businessType)!.role;
-    const finishPath = `/business/join/finish?business_name=${encodeURIComponent(businessName)}&cap=${
-      tier ?? ""
-    }&phone=${encodeURIComponent(phone)}&role=${role}&dealer_slug=${encodeURIComponent(cleanedSlug)}&custom_domain=${encodeURIComponent(cleanedDomain ?? "")}`;
+    const draft = dealerSignupDraft({ businessName, cap: tier, phone, role, dealerSlug: cleanedSlug, customDomain: cleanedDomain });
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name: contactName },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(finishPath)}`,
+        data: { name: contactName, dealer_signup: draft },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/business/join/finish")}`,
       },
     });
 

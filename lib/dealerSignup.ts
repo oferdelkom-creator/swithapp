@@ -1,3 +1,4 @@
+import { dealerSignupDraft } from "./signupAuth";
 import { createClient } from "@/lib/supabase/client";
 
 // Shared by DealerJoinForm (immediate case - email confirmation is off, a session
@@ -19,9 +20,18 @@ export async function finishDealerSignup(
     customDomain: string | null;
   }
 ) {
-  const { userId, businessName, cap, phone, role, dealerSlug, customDomain } = params;
+  const { userId } = params;
+  const { businessName, cap, phone, role, dealerSlug, customDomain } = dealerSignupDraft(params);
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) throw new Error("Authentication required");
+  const { data: existing, error: profileError } = await supabase.from("users")
+    .select("id, role, is_admin").eq("id", userId).maybeSingle();
+  if (profileError || !existing || existing.is_admin) throw new Error("Profile requires review");
+  // Reopening a confirmation must not reset an existing dealer's plan/domain.
+  if (existing.role === "dealer" || existing.role === "importer") return;
+  if (existing.role !== "private") throw new Error("Profile requires review");
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("users")
     .update({
       role,
@@ -32,8 +42,8 @@ export async function finishDealerSignup(
       custom_domain: customDomain,
       custom_domain_active: false,
     })
-    .eq("id", userId);
-  if (error) throw error;
+    .eq("id", userId).eq("role", "private").eq("is_admin", false).select("id").maybeSingle();
+  if (error || !updated) throw new Error("Signup completion requires review");
 
   if (phone.trim()) {
     // Best-effort - a duplicate phone (unique constraint) shouldn't block the signup.

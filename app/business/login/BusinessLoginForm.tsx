@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
+import { dealerSignupDraft, safeAuthNext } from "@/lib/signupAuth";
 import { createClient } from "@/lib/supabase/client";
 
 export default function BusinessLoginForm() {
@@ -34,6 +35,13 @@ export default function BusinessLoginForm() {
       .eq("id", data.user.id)
       .maybeSingle<{ role: string; is_admin: boolean }>();
 
+    if (profile?.role === "private" && !profile.is_admin && data.user.user_metadata?.dealer_signup) {
+      try {
+        dealerSignupDraft(data.user.user_metadata.dealer_signup);
+        router.push("/business/join/finish"); router.refresh(); return;
+      } catch { /* Do not treat malformed metadata as business authorization. */ }
+    }
+
     if (!profile || (!profile.is_admin && profile.role !== "dealer" && profile.role !== "importer")) {
       await supabase.auth.signOut();
       setError(t("partnerLogin.notBusinessAccount"));
@@ -41,7 +49,7 @@ export default function BusinessLoginForm() {
       return;
     }
 
-    const next = searchParams.get("next");
+    const next = safeAuthNext(searchParams.get("next"));
     router.push(next?.startsWith("/business") ? next : "/business");
     router.refresh();
   }
