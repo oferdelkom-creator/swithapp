@@ -10,7 +10,7 @@ const headers = {
   "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   "Content-Type": "text/html; charset=utf-8",
 };
-const validToken = (v: unknown): v is string => typeof v === "string" && /^[a-f0-9]{40,128}$/i.test(v);
+const validToken = (v: unknown): v is string => typeof v === "string" && /^(?:pkce_)?[a-f0-9]{40,128}$(?![\s\S])/i.test(v);
 function page(message: string, form = "", status = 200) {
   return new NextResponse(`<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>אימות מייל | SwitchApp</title><body style="font-family:Arial;max-width:560px;margin:60px auto;padding:24px"><h1>SwitchApp</h1><p>${message}</p>${form}<p><a href="/login">חזרה להתחברות</a></p></body></html>`, { status, headers });
 }
