@@ -15,6 +15,7 @@ function isBusinessRouteProtected(pathname: string): boolean {
   // must also stay reachable while Supabase is restoring the one-time-link session
   // from the URL. The actual business dashboard remains private.
   return pathname.startsWith("/business")
+    && pathname !== "/business/terms"
     && !pathname.startsWith("/business/join")
     && !pathname.startsWith("/business/set-password");
 }
