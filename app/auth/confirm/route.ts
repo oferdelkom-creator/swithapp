@@ -5,7 +5,7 @@ import { dealerSignupDraft } from "@/lib/signupAuth";
 export const dynamic = "force-dynamic";
 const headers = {
   "Cache-Control": "no-store, max-age=0",
-  "Referrer-Policy": "no-referrer",
+  "Referrer-Policy": "strict-origin",
   "X-Robots-Tag": "noindex, nofollow",
   "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   "Content-Type": "text/html; charset=utf-8",
