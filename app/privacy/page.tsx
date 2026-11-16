@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { privacyUpdates, LEGAL_UPDATED } from "@/lib/legalContent";
 
 export const metadata: Metadata = {
   title: "מדיניות פרטיות | SwitchApp",
@@ -142,7 +143,7 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-950 text-slate-100">
+    <article lang="he" dir="rtl" className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
         <Link
           href="/"
@@ -154,11 +155,12 @@ export default function PrivacyPage() {
         <header className="mt-10 border-b border-white/10 pb-8">
           <p className="mb-3 text-sm font-medium text-cyan-400">SwitchApp · SwitchAuto AI</p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">מדיניות פרטיות</h1>
-          <p className="mt-4 text-sm text-slate-400">עדכון אחרון: 2 בספטמבר 2026</p>
+          <p className="mt-4 text-sm text-slate-400">עודכן לאחרונה: {LEGAL_UPDATED}</p>
         </header>
 
         <div className="mt-10 space-y-10 leading-8 text-slate-300">
           <section><h2>Optional Vercel Analytics</h2><p lang="en">With your permission, Vercel Analytics counts visits to public landing pages only. Account, customer and form content is excluded; URL queries and fragments are removed. Your choice is stored locally for 180 days. Use Analytics preferences on a landing page to decline or withdraw.</p><p lang="he">מדידת Vercel מופעלת רק לאחר אישור ובדפי נחיתה ציבוריים בלבד. פרטי חשבון, לקוחות ותוכן טפסים אינם נשלחים, ופרמטרים ומקטעים בכתובת מוסרים. ההעדפה נשמרת מקומית ל־180 יום וניתנת לשינוי בהעדפות המדידה.</p></section>
+          <section aria-labelledby="company-privacy"><h2 id="company-privacy" className="mb-3 text-2xl font-semibold text-white">פרטי החברה ועיבוד מידע</h2><div className="space-y-4">{privacyUpdates.map((p,i)=><p key={i}>{p}</p>)}</div></section>
           {sections.map((section) => (
             <section key={section.title}>
               <h2 className="mb-3 text-2xl font-semibold text-white">{section.title}</h2>
@@ -181,6 +183,6 @@ export default function PrivacyPage() {
           </section>
         </div>
       </div>
-    </main>
+    </article>
   );
 }

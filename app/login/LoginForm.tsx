@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -133,7 +134,7 @@ export default function LoginForm() {
           <p className="mt-3 text-white/80 text-sm max-w-xs">{t("login.heroTagline")}</p>
         </div>
         <div className="px-6 pb-10 space-y-4">
-          <p className="text-center text-[11px] leading-relaxed text-white/70">{t("login.termsDisclaimer")}</p>
+          <p className="text-center text-[11px] leading-relaxed text-white/70"><Link href="/terms" className="underline">{t("login.termsDisclaimer")}</Link></p>
           <div className="space-y-2">
             <button
               type="button"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/components/LocaleProvider";
+import { legalConsentMetadata } from "@/lib/legalConsent";
 import PricingDetails from "./PricingDetails";
 import { DEALER_TIERS } from "@/lib/dealerPricing";
 import { dealerSignupDraft } from "@/lib/signupAuth";
@@ -53,6 +54,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   const [dealerSlug, setDealerSlug] = useState("");
   const [customDomain, setCustomDomain] = useState("");
   const [password, setPassword] = useState("");
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [marketingAccepted, setMarketingAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
@@ -75,6 +78,8 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (loading) return;
+    if (!legalAccepted) { setError("יש לאשר את הסכם המנוי ותנאי השימוש לפני הרשמה."); return; }
     if (tier === undefined) {
       setError(t("businessJoin.selectTierError"));
       return;
@@ -113,7 +118,7 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
       email,
       password,
       options: {
-        data: { name: contactName, dealer_signup: draft },
+        data: { name: contactName, dealer_signup: draft, ...legalConsentMetadata(legalAccepted, marketingAccepted) },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/business/join/finish")}`,
       },
     });
@@ -306,7 +311,13 @@ export default function DealerJoinForm({ remainingTrialSlots }: { remainingTrial
         </div>
 
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <fieldset lang="he" dir="rtl" disabled={loading} className="space-y-3 text-sm">
+          <legend className="font-semibold">הסכמות הרשמה</legend>
+          <div className="flex items-start gap-2"><input id="dealer-legal" type="checkbox" required checked={legalAccepted} onChange={e => setLegalAccepted(e.target.checked)} className="mt-1 shrink-0" /><label htmlFor="dealer-legal">קראתי ואני מסכים/ה ל<Link href="/business/terms" target="_blank" rel="noopener noreferrer" className="underline">הסכם המנוי לעסקים</Link> ול<Link href="/terms" target="_blank" rel="noopener noreferrer" className="underline">תנאי השימוש</Link> של דלקום ע י קום בע״מ (הקישורים נפתחים בלשונית חדשה).</label></div>
+          <div className="flex items-start gap-2"><input id="dealer-marketing" type="checkbox" checked={marketingAccepted} onChange={e => setMarketingAccepted(e.target.checked)} className="mt-1 shrink-0" /><label htmlFor="dealer-marketing">אני מעוניין/ת לקבל דיוור שיווקי מ-SwitchApp (רשות). ניתן לבטל בכל עת בפנייה ל-info@switchapp.co.il.</label></div>
+          <p>ההרשמה וההסכמה לתנאים אינן הרשאה לחיוב. מנוי בתשלום מחייב אישור נפרד במסך התשלום. <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">מדיניות פרטיות (לשונית חדשה)</Link></p>
+        </fieldset>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? t("businessJoin.wait") : t("businessJoin.submit")}
