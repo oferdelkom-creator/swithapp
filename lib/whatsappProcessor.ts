@@ -4,16 +4,31 @@ import { sendDealerLeadAlert } from "@/lib/email/dealerLeadAlert";
 
 export type TwilioCreds = { accountSid: string; authToken: string; from: string; apiKey: string };
 
+// The production Supabase project ref. Used only to refuse the live DB while in test mode.
+const PRODUCTION_SUPABASE_REF = "hltpqflqngtrmprayyvd";
+
 // Service-role client for the WhatsApp channel (writes bypass RLS; reads are admin-only).
 // No production fallback: unlike lib/supabase/config, the WhatsApp channel must NEVER silently
 // write to the live DB when the URL env is missing (e.g. a misconfigured preview). The URL must
-// be set explicitly, so a misconfiguration fails loudly instead of hitting production.
+// be set explicitly, so a misconfiguration fails loudly instead of hitting production. And in
+// isolated test mode it hard-refuses the production database.
 export function whatsappService(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error("not_configured");
+  if (process.env.WHATSAPP_TEST_MODE === "1" && url.includes(PRODUCTION_SUPABASE_REF)) {
+    throw new Error("test_mode_cannot_use_production_db");
+  }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
+
+// Isolated-test OpenAI stub: returns a canned assistant reply so the pipeline can be verified
+// without calling OpenAI. Used only when WHATSAPP_TEST_MODE=1.
+const testAssistantFetcher: typeof fetch = async () =>
+  new Response(
+    JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text: "תשובת בדיקה מבודדת (WHATSAPP_TEST_MODE) — לא נעשתה קריאה ל-OpenAI." }] }] }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 
 // Returns the Twilio + model credentials, or null if the channel is not fully configured.
 export function readTwilioCreds(): TwilioCreds | null {
@@ -162,6 +177,7 @@ export async function processWhatsAppMessage(
       apiKey: creds.apiKey,
       model: process.env.OPENAI_ASSISTANT_MODEL,
       channel: "whatsapp",
+      fetcher: process.env.WHATSAPP_TEST_MODE === "1" ? testAssistantFetcher : undefined,
       execute: async (name, args) => {
         if (name === "capture_dealer_lead") {
           const { data, error } = await db.rpc("capture_whatsapp_dealer_lead", {
