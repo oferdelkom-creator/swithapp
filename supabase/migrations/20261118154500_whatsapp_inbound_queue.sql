@@ -87,12 +87,14 @@ grant execute on function public.begin_whatsapp_send(text, uuid) to service_role
 create function public.mark_whatsapp_inbound_processed(p_sid text, p_token uuid, p_ok boolean, p_error text)
 returns void language plpgsql security invoker set search_path = '' as $$
 begin
+  -- Only the current lease owner, and only while the row is still unprocessed, so a late
+  -- worker can never overwrite a resolution (e.g. a 'send_unconfirmed' row).
   if p_ok then
     update public.whatsapp_inbound set processed_at = now(), last_error = null
-    where message_sid = p_sid and lease_token = p_token;
+    where message_sid = p_sid and lease_token = p_token and processed_at is null;
   else
     update public.whatsapp_inbound set attempts = attempts + 1, last_error = left(coalesce(p_error, ''), 500)
-    where message_sid = p_sid and lease_token = p_token;
+    where message_sid = p_sid and lease_token = p_token and processed_at is null;
   end if;
 end; $$;
 revoke all on function public.mark_whatsapp_inbound_processed(text, uuid, boolean, text) from public, anon, authenticated;
@@ -105,7 +107,9 @@ create function public.resolve_stuck_whatsapp_sends(p_older_seconds integer)
 returns integer language plpgsql security invoker set search_path = '' as $$
 declare n_resolved integer;
 begin
-  update public.whatsapp_inbound set processed_at = now(), last_error = 'send_unconfirmed'
+  -- Clear lease_token too, so no worker's token matches afterward and the resolution
+  -- cannot be overwritten by a late mark.
+  update public.whatsapp_inbound set processed_at = now(), last_error = 'send_unconfirmed', lease_token = null
   where processed_at is null
     and send_attempted_at is not null
     and send_attempted_at < now() - make_interval(secs => greatest(p_older_seconds, 0));
