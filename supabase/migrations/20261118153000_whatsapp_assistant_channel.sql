@@ -47,14 +47,21 @@ begin
     now()
   )
   on conflict (phone_e164) do update set
-    messages = case
-      when jsonb_array_length(c.messages) < 120
-        then c.messages || jsonb_build_array(
-          jsonb_build_object('role', 'user', 'content', p_user),
-          jsonb_build_object('role', 'assistant', 'content', p_assistant)
-        )
-      else c.messages
-    end,
+    -- Append the new pair, then keep only the newest 120 messages (rolling window).
+    messages = (
+      select coalesce(jsonb_agg(elem order by idx), '[]'::jsonb)
+      from (
+        select elem, idx
+        from jsonb_array_elements(
+          c.messages || jsonb_build_array(
+            jsonb_build_object('role', 'user', 'content', p_user),
+            jsonb_build_object('role', 'assistant', 'content', p_assistant)
+          )
+        ) with ordinality as t(elem, idx)
+        order by idx desc
+        limit 120
+      ) recent
+    ),
     search_filters = coalesce(excluded.search_filters, c.search_filters),
     no_match = case when excluded.search_filters is null then c.no_match else excluded.no_match end,
     locale = coalesce(nullif(p_locale, ''), c.locale),
