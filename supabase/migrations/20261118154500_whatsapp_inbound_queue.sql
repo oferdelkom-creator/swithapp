@@ -65,6 +65,21 @@ end; $$;
 revoke all on function public.lease_stale_whatsapp_inbound(integer, integer, integer) from public, anon, authenticated;
 grant execute on function public.lease_stale_whatsapp_inbound(integer, integer, integer) to service_role;
 
+-- Atomically claim the right to send for this message: set send_attempted_at only if it is
+-- still null, and return true only to the caller that set it. This stops the original
+-- processor and the sweep from both sending the same reply.
+create function public.begin_whatsapp_send(p_sid text)
+returns boolean language plpgsql security invoker set search_path = '' as $$
+declare n_updated integer;
+begin
+  update public.whatsapp_inbound set send_attempted_at = now()
+  where message_sid = p_sid and send_attempted_at is null;
+  get diagnostics n_updated = row_count;
+  return n_updated = 1;
+end; $$;
+revoke all on function public.begin_whatsapp_send(text) from public, anon, authenticated;
+grant execute on function public.begin_whatsapp_send(text) to service_role;
+
 -- Mark an inbound row processed (ok) or bump its retry counter and record the error (not
 -- ok). On failure the lease is left in place so the row backs off until it expires.
 create function public.mark_whatsapp_inbound_processed(p_sid text, p_ok boolean, p_error text)

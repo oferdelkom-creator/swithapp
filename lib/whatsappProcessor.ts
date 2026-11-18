@@ -88,10 +88,13 @@ export async function processWhatsAppMessage(
   // retries rows where no send was ever attempted, so a crash after this point is never
   // auto-resent — we do not rely on Twilio deduping the outbound by idempotency key.
   const deliver = async (body: string, idempotencyKey: string) => {
+    // Atomically claim the send under valid ownership (sets send_attempted_at only if still
+    // null). If we cannot record the attempt — a DB error, or another processor already
+    // claimed it — do not send, so a message is never sent without the duplicate guard.
     try {
-      await db.from("whatsapp_inbound").update({ send_attempted_at: new Date().toISOString() }).eq("message_sid", messageSid);
+      const { data, error } = await db.rpc("begin_whatsapp_send", { p_sid: messageSid });
+      if (error || data !== true) return false;
     } catch {
-      // if we cannot record the attempt, do not send (avoid an un-tracked, possibly duplicated send)
       return false;
     }
     return sendWhatsApp(creds, phone, body, idempotencyKey);
@@ -157,13 +160,20 @@ export async function processWhatsAppMessage(
           });
           if (error) throw error;
           if (data === true) {
-            // Proactive human handoff: alert the team by email (best-effort; never blocks the reply).
-            await sendDealerLeadAlert({
+            // Proactive human handoff: alert the team by email (best-effort; never blocks the
+            // reply). The lead row itself is the durable handoff; only claim "notified" if the
+            // email actually sent.
+            const alert = await sendDealerLeadAlert({
               phone,
               businessName: String(args.business_name),
               city: typeof args.city === "string" ? args.city : null,
-            }).catch(() => {});
-            return { ok: true, note: "Lead recorded and the team was notified; they will follow up. No account created, no payment taken." };
+            }).catch(() => ({ sent: false as const }));
+            return {
+              ok: true,
+              note: alert.sent
+                ? "Lead recorded and the team was notified; they will follow up. No account created, no payment taken."
+                : "Lead recorded; the team will follow up. No account created, no payment taken.",
+            };
           }
           return { error: "Could not record the lead; ask the user to repeat the business or lot name." };
         }
