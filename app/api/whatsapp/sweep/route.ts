@@ -24,8 +24,20 @@ export async function GET(request: Request) {
   if (!secretOk(provided, expected)) return new Response("forbidden", { status: 403 });
 
   const db = whatsappService();
-  // Atomically lease stale pending rows (lease 5 min >> the 60s processing budget), so the
-  // sweep never reprocesses a message the original webhook call still holds.
+
+  // Resolve messages stuck after a send was attempted (older than 10 min) as
+  // 'send_unconfirmed' so they stop lingering as pending and an admin can review them.
+  let resolved = 0;
+  try {
+    const { data } = await db.rpc("resolve_stuck_whatsapp_sends", { p_older_seconds: 600 });
+    resolved = typeof data === "number" ? data : 0;
+  } catch {
+    // best-effort
+  }
+
+  // Atomically lease stale, never-sent pending rows (lease 5 min >> the 60s processing
+  // budget) with a fresh fencing token, so the sweep never reprocesses a message the
+  // original webhook call still holds.
   const { data, error } = await db.rpc("lease_stale_whatsapp_inbound", {
     p_limit: 10,
     p_max_attempts: 3,
@@ -33,11 +45,11 @@ export async function GET(request: Request) {
   });
   if (error) return new Response("error", { status: 503 });
 
-  const rows = (data ?? []) as { message_sid: string; phone_e164: string; body: string }[];
+  const rows = (data ?? []) as { message_sid: string; phone_e164: string; body: string; lease_token: string }[];
   after(async () => {
     for (const row of rows) {
-      await processWhatsAppMessage(db, creds, row.message_sid, row.phone_e164, row.body);
+      await processWhatsAppMessage(db, creds, row.message_sid, row.phone_e164, row.body, row.lease_token);
     }
   });
-  return Response.json({ picked: rows.length });
+  return Response.json({ picked: rows.length, resolved });
 }

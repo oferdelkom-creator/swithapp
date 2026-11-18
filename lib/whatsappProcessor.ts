@@ -75,10 +75,11 @@ export async function processWhatsAppMessage(
   messageSid: string,
   phone: string,
   userMsg: string,
+  leaseToken: string,
 ): Promise<void> {
   const finish = async (ok: boolean, error?: string) => {
     try {
-      await db.rpc("mark_whatsapp_inbound_processed", { p_sid: messageSid, p_ok: ok, p_error: error ?? null });
+      await db.rpc("mark_whatsapp_inbound_processed", { p_sid: messageSid, p_token: leaseToken, p_ok: ok, p_error: error ?? null });
     } catch {
       // best-effort; the sweep will see it as still pending and retry
     }
@@ -92,7 +93,7 @@ export async function processWhatsAppMessage(
     // null). If we cannot record the attempt — a DB error, or another processor already
     // claimed it — do not send, so a message is never sent without the duplicate guard.
     try {
-      const { data, error } = await db.rpc("begin_whatsapp_send", { p_sid: messageSid });
+      const { data, error } = await db.rpc("begin_whatsapp_send", { p_sid: messageSid, p_token: leaseToken });
       if (error || data !== true) return false;
     } catch {
       return false;

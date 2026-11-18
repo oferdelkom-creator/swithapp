@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   // Durably claim the inbound before acking: the row survives a crash, and a duplicate
   // MessageSid (Twilio retry) is a no-op, so each message is processed at most once here.
   const db = whatsappService();
-  let claimed = false;
+  let leaseToken: string | null = null;
   try {
     const { data, error } = await db.rpc("claim_whatsapp_inbound", {
       p_sid: messageSid,
@@ -53,13 +53,14 @@ export async function POST(request: Request) {
     });
     // DB error claiming: return 5xx so Twilio retries rather than silently dropping it.
     if (error) return new Response("error", { status: 500 });
-    claimed = data === true;
+    leaseToken = typeof data === "string" ? data : null;
   } catch {
     return new Response("error", { status: 500 });
   }
-  if (!claimed) return ack(); // duplicate (Twilio retry) or invalid input — safe to drop
+  if (!leaseToken) return ack(); // duplicate (Twilio retry) or invalid input — safe to drop
 
   // Respond to Twilio immediately; do the slow model work + outbound reply after the response.
-  after(() => processWhatsAppMessage(db, creds, messageSid, phone, userMsg));
+  const token = leaseToken;
+  after(() => processWhatsAppMessage(db, creds, messageSid, phone, userMsg, token));
   return ack();
 }
