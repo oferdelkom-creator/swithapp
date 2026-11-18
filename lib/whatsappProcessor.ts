@@ -1,15 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { SUPABASE_URL } from "@/lib/supabase/config";
 import { runAssistant, type AssistantCar, type ChatMessage } from "@/lib/assistant";
 import { sendDealerLeadAlert } from "@/lib/email/dealerLeadAlert";
 
 export type TwilioCreds = { accountSid: string; authToken: string; from: string; apiKey: string };
 
 // Service-role client for the WhatsApp channel (writes bypass RLS; reads are admin-only).
+// No production fallback: unlike lib/supabase/config, the WhatsApp channel must NEVER silently
+// write to the live DB when the URL env is missing (e.g. a misconfigured preview). The URL must
+// be set explicitly, so a misconfiguration fails loudly instead of hitting production.
 export function whatsappService(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
-  if (!key) throw new Error("not_configured");
-  return createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (!url || !key) throw new Error("not_configured");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 // Returns the Twilio + model credentials, or null if the channel is not fully configured.
@@ -47,6 +50,12 @@ export async function sendWhatsApp(
   body: string,
   idempotencyKey?: string,
 ): Promise<boolean> {
+  // Isolated test mode: never call the real Twilio API; simulate acceptance so the flow and
+  // DB separation can be verified without sending real messages.
+  if (process.env.WHATSAPP_TEST_MODE === "1") {
+    console.log("[wa-test-mode] simulated WhatsApp send", { to: toPhone, chars: body.length });
+    return true;
+  }
   try {
     const auth = Buffer.from(`${creds.accountSid}:${creds.authToken}`).toString("base64");
     const headers: Record<string, string> = {

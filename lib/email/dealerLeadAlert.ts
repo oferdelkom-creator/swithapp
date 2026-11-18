@@ -5,6 +5,10 @@ function escapeHtml(value: string) {
 // Proactive human handoff for a dealer captured over WhatsApp: email the team so a person
 // follows up. Best-effort — returns { sent:false } when Resend is not configured or errors.
 export async function sendDealerLeadAlert(lead: { phone: string; businessName: string; city: string | null }): Promise<{ sent: boolean }> {
+  if (process.env.WHATSAPP_TEST_MODE === "1") {
+    console.log("[wa-test-mode] simulated dealer-lead alert", { business: lead.businessName });
+    return { sent: false };
+  }
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { sent: false };
 

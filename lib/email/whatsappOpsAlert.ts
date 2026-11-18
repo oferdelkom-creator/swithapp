@@ -5,6 +5,10 @@ function escapeHtml(value: string) {
 // Alert the team when WhatsApp replies could not be confirmed delivered (resolved as
 // 'send_unconfirmed'), so a person can check and follow up. Best-effort.
 export async function sendWhatsappStuckAlert(rows: { message_sid: string; phone_e164: string }[]): Promise<{ sent: boolean }> {
+  if (process.env.WHATSAPP_TEST_MODE === "1") {
+    console.log("[wa-test-mode] simulated stuck alert", { count: rows.length });
+    return { sent: false };
+  }
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || rows.length === 0) return { sent: false };
 
