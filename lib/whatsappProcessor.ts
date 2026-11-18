@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import { runAssistant, type AssistantCar, type ChatMessage } from "@/lib/assistant";
+import { sendDealerLeadAlert } from "@/lib/email/dealerLeadAlert";
 
 export type TwilioCreds = { accountSid: string; authToken: string; from: string; apiKey: string };
 
@@ -35,9 +36,11 @@ function publicCars(rows: Record<string, unknown>[]): AssistantCar[] {
 }
 
 // Send an outbound WhatsApp message via Twilio REST and report whether Twilio ACCEPTED it
-// (2xx). Note: acceptance means Twilio queued the message, not that the customer received
-// it — true delivery needs Twilio status callbacks (a follow-up). An idempotencyKey makes a
-// resend (e.g. from the sweep) a no-op on Twilio's side, so the customer is not messaged twice.
+// (2xx). Acceptance means Twilio queued the message, not that the customer received it —
+// true delivery needs Twilio status callbacks (a follow-up). The idempotencyKey is sent as a
+// best-effort hint only; the Messages API is not documented to dedupe on it, so duplicate
+// safety comes from never resending a message a send was already attempted for (send_attempted_at),
+// not from this header.
 export async function sendWhatsApp(
   creds: TwilioCreds,
   toPhone: string,
@@ -81,6 +84,19 @@ export async function processWhatsAppMessage(
     }
   };
 
+  // Record that a send was attempted BEFORE calling Twilio, then send. The sweep only
+  // retries rows where no send was ever attempted, so a crash after this point is never
+  // auto-resent — we do not rely on Twilio deduping the outbound by idempotency key.
+  const deliver = async (body: string, idempotencyKey: string) => {
+    try {
+      await db.from("whatsapp_inbound").update({ send_attempted_at: new Date().toISOString() }).eq("message_sid", messageSid);
+    } catch {
+      // if we cannot record the attempt, do not send (avoid an un-tracked, possibly duplicated send)
+      return false;
+    }
+    return sendWhatsApp(creds, phone, body, idempotencyKey);
+  };
+
   const limit = async (bucket: string, max: number) => {
     const { data, error } = await db.rpc("consume_visitor_request", { p_bucket: bucket, p_limit: max });
     return !error && data === true;
@@ -88,7 +104,7 @@ export async function processWhatsAppMessage(
 
   try {
     if (!(await limit(`wa:${phone}`, 20)) || !(await limit("wa_global", 300))) {
-      const sent = await sendWhatsApp(creds, phone, "קיבלנו הרבה הודעות ברצף 🙏 נסה שוב בעוד כמה דקות.", `wa-throttle-${messageSid}`);
+      const sent = await deliver("קיבלנו הרבה הודעות ברצף 🙏 נסה שוב בעוד כמה דקות.", `wa-throttle-${messageSid}`);
       await finish(sent, sent ? undefined : "throttle_send_failed");
       return;
     }
@@ -140,9 +156,16 @@ export async function processWhatsAppMessage(
             p_city: args.city ?? null,
           });
           if (error) throw error;
-          return data === true
-            ? { ok: true, note: "Lead recorded; the team will contact them. No account created, no payment taken." }
-            : { error: "Could not record the lead; ask the user to repeat the business or lot name." };
+          if (data === true) {
+            // Proactive human handoff: alert the team by email (best-effort; never blocks the reply).
+            await sendDealerLeadAlert({
+              phone,
+              businessName: String(args.business_name),
+              city: typeof args.city === "string" ? args.city : null,
+            }).catch(() => {});
+            return { ok: true, note: "Lead recorded and the team was notified; they will follow up. No account created, no payment taken." };
+          }
+          return { error: "Could not record the lead; ask the user to repeat the business or lot name." };
         }
         if (name !== "find_cars") throw new Error("not_allowed");
         const { data, error } = await db
@@ -161,14 +184,14 @@ export async function processWhatsAppMessage(
       },
     });
   } catch {
-    const sent = await sendWhatsApp(creds, phone, "מצטער, יש תקלה רגעית אצלי 🙏 נסה שוב בעוד רגע.", `wa-error-${messageSid}`);
+    const sent = await deliver("מצטער, יש תקלה רגעית אצלי 🙏 נסה שוב בעוד רגע.", `wa-error-${messageSid}`);
     await finish(sent, "model_error");
     return;
   }
 
-  // Send first and check Twilio accepted it; the idempotency key makes a sweep resend a
-  // no-op on Twilio's side, so the customer is never messaged twice.
-  const accepted = await sendWhatsApp(creds, phone, answer.text, `wa-reply-${messageSid}`);
+  // Record the attempt, then send and check Twilio accepted it (2xx = accepted by the
+  // provider, not confirmed delivered). A crash after the attempt is never auto-resent.
+  const accepted = await deliver(answer.text, `wa-reply-${messageSid}`);
   if (!accepted) {
     await finish(false, "send_failed");
     return;

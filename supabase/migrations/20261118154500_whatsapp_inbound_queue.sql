@@ -9,6 +9,7 @@ create table public.whatsapp_inbound (
   body text not null,
   received_at timestamptz not null default now(),
   processing_at timestamptz,
+  send_attempted_at timestamptz,
   processed_at timestamptz,
   attempts integer not null default 0,
   last_error text
@@ -52,6 +53,7 @@ begin
   where w.message_sid in (
     select s.message_sid from public.whatsapp_inbound s
     where s.processed_at is null
+      and s.send_attempted_at is null  -- never auto-resend a message a send was already attempted for
       and s.attempts < p_max_attempts
       and (s.processing_at is null or s.processing_at < now() - make_interval(secs => p_lease_seconds))
     order by s.received_at
