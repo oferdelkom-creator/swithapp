@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { processWhatsAppMessage, readTwilioCreds, whatsappService } from "@/lib/whatsappProcessor";
+import { sendWhatsappStuckAlert } from "@/lib/email/whatsappOpsAlert";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,11 +27,11 @@ export async function GET(request: Request) {
   const db = whatsappService();
 
   // Resolve messages stuck after a send was attempted (older than 10 min) as
-  // 'send_unconfirmed' so they stop lingering as pending and an admin can review them.
-  let resolved = 0;
+  // 'send_unconfirmed' so they stop lingering as pending; the team is then alerted to review.
+  let resolvedRows: { message_sid: string; phone_e164: string }[] = [];
   try {
     const { data } = await db.rpc("resolve_stuck_whatsapp_sends", { p_older_seconds: 600 });
-    resolved = typeof data === "number" ? data : 0;
+    resolvedRows = (data ?? []) as { message_sid: string; phone_e164: string }[];
   } catch {
     // best-effort
   }
@@ -47,9 +48,10 @@ export async function GET(request: Request) {
 
   const rows = (data ?? []) as { message_sid: string; phone_e164: string; body: string; lease_token: string }[];
   after(async () => {
+    if (resolvedRows.length) await sendWhatsappStuckAlert(resolvedRows).catch(() => {});
     for (const row of rows) {
       await processWhatsAppMessage(db, creds, row.message_sid, row.phone_e164, row.body, row.lease_token);
     }
   });
-  return Response.json({ picked: rows.length, resolved });
+  return Response.json({ picked: rows.length, resolved: resolvedRows.length });
 }

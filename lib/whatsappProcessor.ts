@@ -142,6 +142,7 @@ export async function processWhatsAppMessage(
     { role: "user" as const, content: userMsg },
   ].slice(-12);
 
+  let capturedLead: { businessName: string; city: string | null } | null = null;
   let answer: Awaited<ReturnType<typeof runAssistant>>;
   try {
     answer = await runAssistant({
@@ -161,20 +162,10 @@ export async function processWhatsAppMessage(
           });
           if (error) throw error;
           if (data === true) {
-            // Proactive human handoff: alert the team by email (best-effort; never blocks the
-            // reply). The lead row itself is the durable handoff; only claim "notified" if the
-            // email actually sent.
-            const alert = await sendDealerLeadAlert({
-              phone,
-              businessName: String(args.business_name),
-              city: typeof args.city === "string" ? args.city : null,
-            }).catch(() => ({ sent: false as const }));
-            return {
-              ok: true,
-              note: alert.sent
-                ? "Lead recorded and the team was notified; they will follow up. No account created, no payment taken."
-                : "Lead recorded; the team will follow up. No account created, no payment taken.",
-            };
+            // Record the lead now (idempotent upsert). The team alert is deferred until after
+            // the ownership-gated reply is delivered, so a worker that lost its lease never emails.
+            capturedLead = { businessName: String(args.business_name), city: typeof args.city === "string" ? args.city : null };
+            return { ok: true, note: "Lead recorded; our team will follow up. No account created, no payment taken." };
           }
           return { error: "Could not record the lead; ask the user to repeat the business or lot name." };
         }
@@ -220,6 +211,14 @@ export async function processWhatsAppMessage(
     if (saveError || saved === false) console.error("whatsapp_append_failed", { error: saveError?.message, saved });
   } catch (e) {
     console.error("whatsapp_append_threw", e instanceof Error ? e.message : e);
+  }
+
+  // Ownership-gated human handoff: we only reach here after a successful, owned send, so the
+  // team is alerted exactly once by the worker that actually delivered the reply. (The cast
+  // is needed because the value is assigned inside the runAssistant tool closure above.)
+  const lead = capturedLead as { businessName: string; city: string | null } | null;
+  if (lead) {
+    await sendDealerLeadAlert({ phone, businessName: lead.businessName, city: lead.city }).catch(() => {});
   }
 
   await finish(true);

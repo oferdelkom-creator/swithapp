@@ -104,17 +104,17 @@ grant execute on function public.mark_whatsapp_inbound_processed(text, uuid, boo
 -- never completed). These are never auto-resent; after a threshold they are resolved as
 -- 'send_unconfirmed' so they stop lingering as pending and an admin can review them.
 create function public.resolve_stuck_whatsapp_sends(p_older_seconds integer)
-returns integer language plpgsql security invoker set search_path = '' as $$
-declare n_resolved integer;
+returns setof public.whatsapp_inbound language plpgsql security invoker set search_path = '' as $$
 begin
   -- Clear lease_token too, so no worker's token matches afterward and the resolution
-  -- cannot be overwritten by a late mark.
+  -- cannot be overwritten by a late mark. Returns the rows it resolved so the caller can
+  -- alert a human about messages that could not be confirmed delivered.
+  return query
   update public.whatsapp_inbound set processed_at = now(), last_error = 'send_unconfirmed', lease_token = null
   where processed_at is null
     and send_attempted_at is not null
-    and send_attempted_at < now() - make_interval(secs => greatest(p_older_seconds, 0));
-  get diagnostics n_resolved = row_count;
-  return n_resolved;
+    and send_attempted_at < now() - make_interval(secs => greatest(p_older_seconds, 0))
+  returning *;
 end; $$;
 revoke all on function public.resolve_stuck_whatsapp_sends(integer) from public, anon, authenticated;
 grant execute on function public.resolve_stuck_whatsapp_sends(integer) to service_role;
