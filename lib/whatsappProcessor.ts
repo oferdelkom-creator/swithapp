@@ -16,19 +16,43 @@ export function whatsappService(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error("not_configured");
-  if (process.env.WHATSAPP_TEST_MODE === "1" && url.includes(PRODUCTION_SUPABASE_REF)) {
-    throw new Error("test_mode_cannot_use_production_db");
+  if (process.env.WHATSAPP_TEST_MODE === "1") {
+    // Positive allowlist: the target DB must be the explicitly named test branch (not just
+    // "not the known production ref"), so an inherited/wrong URL cannot slip through.
+    const expected = process.env.WHATSAPP_TEST_EXPECTED_REF;
+    if (!expected || !url.includes(expected)) throw new Error("test_mode_url_not_allowlisted");
+    if (url.includes(PRODUCTION_SUPABASE_REF)) throw new Error("test_mode_cannot_use_production_db");
   }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-// Isolated-test OpenAI stub: returns a canned assistant reply so the pipeline can be verified
-// without calling OpenAI. Used only when WHATSAPP_TEST_MODE=1.
-const testAssistantFetcher: typeof fetch = async () =>
-  new Response(
-    JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text: "תשובת בדיקה מבודדת (WHATSAPP_TEST_MODE) — לא נעשתה קריאה ל-OpenAI." }] }] }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+// Isolated-test OpenAI stub (WHATSAPP_TEST_MODE=1 only): returns a canned flow without calling
+// OpenAI. If the user's message looks like a dealer ("סוחר"/"מגרש"/dealer/lot), it drives the
+// capture_dealer_lead tool so the dealer path is exercised too; otherwise a plain reply.
+const testAssistantFetcher: typeof fetch = async (_url, init) => {
+  let userText = "";
+  let hasToolOutput = false;
+  try {
+    const raw = typeof init?.body === "string" ? init.body : "";
+    const body = JSON.parse(raw) as { input?: Array<{ type?: string; role?: string; content?: unknown }> };
+    const input = Array.isArray(body.input) ? body.input : [];
+    hasToolOutput = input.some((i) => i?.type === "function_call_output");
+    for (let i = input.length - 1; i >= 0; i--) {
+      if (input[i]?.role === "user" && typeof input[i]?.content === "string") {
+        userText = input[i].content as string;
+        break;
+      }
+    }
+  } catch {
+    // fall through to a plain reply
+  }
+  const dealer = /סוחר|מגרש|dealer|lot/i.test(userText);
+  const output =
+    dealer && !hasToolOutput
+      ? [{ type: "function_call", name: "capture_dealer_lead", call_id: "test_call_1", arguments: JSON.stringify({ business_name: "מגרש בדיקה", city: "תל אביב" }) }]
+      : [{ type: "message", content: [{ type: "output_text", text: dealer ? "רשמנו את הפרטים, הצוות יחזור אליך. (בדיקה מבודדת)" : "תשובת בדיקה מבודדת (WHATSAPP_TEST_MODE) — לא נעשתה קריאה ל-OpenAI." }] }];
+  return new Response(JSON.stringify({ output }), { status: 200, headers: { "Content-Type": "application/json" } });
+};
 
 // Returns the Twilio + model credentials, or null if the channel is not fully configured.
 export function readTwilioCreds(): TwilioCreds | null {
