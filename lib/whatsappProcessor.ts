@@ -7,6 +7,15 @@ export type TwilioCreds = { accountSid: string; authToken: string; from: string;
 // The production Supabase project ref. Used only to refuse the live DB while in test mode.
 const PRODUCTION_SUPABASE_REF = "hltpqflqngtrmprayyvd";
 
+// Exact host match (not a substring): the URL's hostname must be exactly <ref>.supabase.co.
+function supabaseHostIs(url: string, ref: string): boolean {
+  try {
+    return new URL(url).hostname === `${ref}.supabase.co`;
+  } catch {
+    return false;
+  }
+}
+
 // Service-role client for the WhatsApp channel (writes bypass RLS; reads are admin-only).
 // No production fallback: unlike lib/supabase/config, the WhatsApp channel must NEVER silently
 // write to the live DB when the URL env is missing (e.g. a misconfigured preview). The URL must
@@ -17,11 +26,11 @@ export function whatsappService(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error("not_configured");
   if (process.env.WHATSAPP_TEST_MODE === "1") {
-    // Positive allowlist: the target DB must be the explicitly named test branch (not just
-    // "not the known production ref"), so an inherited/wrong URL cannot slip through.
+    // Positive allowlist by exact host: the target DB's hostname must be exactly the named test
+    // branch's <ref>.supabase.co, so an inherited/wrong/substring URL cannot slip through.
     const expected = process.env.WHATSAPP_TEST_EXPECTED_REF;
-    if (!expected || !url.includes(expected)) throw new Error("test_mode_url_not_allowlisted");
-    if (url.includes(PRODUCTION_SUPABASE_REF)) throw new Error("test_mode_cannot_use_production_db");
+    if (!expected || !supabaseHostIs(url, expected)) throw new Error("test_mode_url_not_allowlisted");
+    if (supabaseHostIs(url, PRODUCTION_SUPABASE_REF)) throw new Error("test_mode_cannot_use_production_db");
   }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
@@ -31,12 +40,13 @@ export function whatsappService(): SupabaseClient {
 // capture_dealer_lead tool so the dealer path is exercised too; otherwise a plain reply.
 const testAssistantFetcher: typeof fetch = async (_url, init) => {
   let userText = "";
-  let hasToolOutput = false;
+  let toolOutput: string | null = null;
   try {
     const raw = typeof init?.body === "string" ? init.body : "";
-    const body = JSON.parse(raw) as { input?: Array<{ type?: string; role?: string; content?: unknown }> };
+    const body = JSON.parse(raw) as { input?: Array<{ type?: string; role?: string; content?: unknown; output?: unknown }> };
     const input = Array.isArray(body.input) ? body.input : [];
-    hasToolOutput = input.some((i) => i?.type === "function_call_output");
+    const outItem = input.find((i) => i?.type === "function_call_output");
+    if (outItem && typeof outItem.output === "string") toolOutput = outItem.output;
     for (let i = input.length - 1; i >= 0; i--) {
       if (input[i]?.role === "user" && typeof input[i]?.content === "string") {
         userText = input[i].content as string;
@@ -47,11 +57,30 @@ const testAssistantFetcher: typeof fetch = async (_url, init) => {
     // fall through to a plain reply
   }
   const dealer = /סוחר|מגרש|dealer|lot/i.test(userText);
-  const output =
-    dealer && !hasToolOutput
-      ? [{ type: "function_call", name: "capture_dealer_lead", call_id: "test_call_1", arguments: JSON.stringify({ business_name: "מגרש בדיקה", city: "תל אביב" }) }]
-      : [{ type: "message", content: [{ type: "output_text", text: dealer ? "רשמנו את הפרטים, הצוות יחזור אליך. (בדיקה מבודדת)" : "תשובת בדיקה מבודדת (WHATSAPP_TEST_MODE) — לא נעשתה קריאה ל-OpenAI." }] }];
-  return new Response(JSON.stringify({ output }), { status: 200, headers: { "Content-Type": "application/json" } });
+
+  // First step for a dealer: drive the capture_dealer_lead tool.
+  if (dealer && toolOutput === null) {
+    return new Response(
+      JSON.stringify({ output: [{ type: "function_call", name: "capture_dealer_lead", call_id: "test_call_1", arguments: JSON.stringify({ business_name: "מגרש בדיקה", city: "תל אביב" }) }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  // Final reply. If a tool ran, reflect its actual result instead of claiming success blindly.
+  let text = "תשובת בדיקה מבודדת (WHATSAPP_TEST_MODE) — לא נעשתה קריאה ל-OpenAI.";
+  if (toolOutput !== null) {
+    let ok = false;
+    try {
+      ok = (JSON.parse(toolOutput) as { ok?: boolean }).ok === true;
+    } catch {
+      ok = false;
+    }
+    text = ok ? "רשמנו את הפרטים, הצוות יחזור אליך. (בדיקה מבודדת)" : "לא הצלחתי לרשום כרגע, אפשר לנסות שוב? (בדיקה מבודדת)";
+  }
+  return new Response(
+    JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text }] }] }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 };
 
 // Returns the Twilio + model credentials, or null if the channel is not fully configured.
