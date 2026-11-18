@@ -133,6 +133,17 @@ export async function processWhatsAppMessage(
       model: process.env.OPENAI_ASSISTANT_MODEL,
       channel: "whatsapp",
       execute: async (name, args) => {
+        if (name === "capture_dealer_lead") {
+          const { data, error } = await db.rpc("capture_whatsapp_dealer_lead", {
+            p_phone: phone,
+            p_business: args.business_name,
+            p_city: args.city ?? null,
+          });
+          if (error) throw error;
+          return data === true
+            ? { ok: true, note: "Lead recorded; the team will contact them. No account created, no payment taken." }
+            : { error: "Could not record the lead; ask the user to repeat the business or lot name." };
+        }
         if (name !== "find_cars") throw new Error("not_allowed");
         const { data, error } = await db
           .rpc("cars_for_sale", {
