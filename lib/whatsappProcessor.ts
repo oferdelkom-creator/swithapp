@@ -34,14 +34,26 @@ function publicCars(rows: Record<string, unknown>[]): AssistantCar[] {
   }));
 }
 
-// Send an outbound WhatsApp message via Twilio REST and report whether Twilio accepted it.
-// Returns true only on a 2xx response, so a failed send is never recorded as delivered.
-export async function sendWhatsApp(creds: TwilioCreds, toPhone: string, body: string): Promise<boolean> {
+// Send an outbound WhatsApp message via Twilio REST and report whether Twilio ACCEPTED it
+// (2xx). Note: acceptance means Twilio queued the message, not that the customer received
+// it — true delivery needs Twilio status callbacks (a follow-up). An idempotencyKey makes a
+// resend (e.g. from the sweep) a no-op on Twilio's side, so the customer is not messaged twice.
+export async function sendWhatsApp(
+  creds: TwilioCreds,
+  toPhone: string,
+  body: string,
+  idempotencyKey?: string,
+): Promise<boolean> {
   try {
     const auth = Buffer.from(`${creds.accountSid}:${creds.authToken}`).toString("base64");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${auth}`,
+    };
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.accountSid}/Messages.json`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${auth}` },
+      headers,
       body: new URLSearchParams({ From: creds.from, To: `whatsapp:${toPhone}`, Body: body.slice(0, 1500) }).toString(),
       signal: AbortSignal.timeout(10000),
     });
@@ -76,7 +88,7 @@ export async function processWhatsAppMessage(
 
   try {
     if (!(await limit(`wa:${phone}`, 20)) || !(await limit("wa_global", 300))) {
-      const sent = await sendWhatsApp(creds, phone, "קיבלנו הרבה הודעות ברצף 🙏 נסה שוב בעוד כמה דקות.");
+      const sent = await sendWhatsApp(creds, phone, "קיבלנו הרבה הודעות ברצף 🙏 נסה שוב בעוד כמה דקות.", `wa-throttle-${messageSid}`);
       await finish(sent, sent ? undefined : "throttle_send_failed");
       return;
     }
@@ -138,14 +150,15 @@ export async function processWhatsAppMessage(
       },
     });
   } catch {
-    const sent = await sendWhatsApp(creds, phone, "מצטער, יש תקלה רגעית אצלי 🙏 נסה שוב בעוד רגע.");
+    const sent = await sendWhatsApp(creds, phone, "מצטער, יש תקלה רגעית אצלי 🙏 נסה שוב בעוד רגע.", `wa-error-${messageSid}`);
     await finish(sent, "model_error");
     return;
   }
 
-  // Send first and verify delivery; only a delivered reply is recorded.
-  const delivered = await sendWhatsApp(creds, phone, answer.text);
-  if (!delivered) {
+  // Send first and check Twilio accepted it; the idempotency key makes a sweep resend a
+  // no-op on Twilio's side, so the customer is never messaged twice.
+  const accepted = await sendWhatsApp(creds, phone, answer.text, `wa-reply-${messageSid}`);
+  if (!accepted) {
     await finish(false, "send_failed");
     return;
   }

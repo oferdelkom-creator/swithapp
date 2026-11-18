@@ -24,13 +24,13 @@ export async function GET(request: Request) {
   if (!secretOk(provided, expected)) return new Response("forbidden", { status: 403 });
 
   const db = whatsappService();
-  const { data, error } = await db
-    .from("whatsapp_inbound")
-    .select("message_sid,phone_e164,body")
-    .is("processed_at", null)
-    .lt("attempts", 3)
-    .order("received_at", { ascending: true })
-    .limit(10);
+  // Atomically lease stale pending rows (lease 5 min >> the 60s processing budget), so the
+  // sweep never reprocesses a message the original webhook call still holds.
+  const { data, error } = await db.rpc("lease_stale_whatsapp_inbound", {
+    p_limit: 10,
+    p_max_attempts: 3,
+    p_lease_seconds: 300,
+  });
   if (error) return new Response("error", { status: 503 });
 
   const rows = (data ?? []) as { message_sid: string; phone_e164: string; body: string }[];
