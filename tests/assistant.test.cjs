@@ -68,8 +68,22 @@ test('WhatsApp accepts links to returned cars; a blocked reply after empty inven
   if(carFound)assert.equal(result.text,text); else assert.match(result.text,/didn’t find a match/);
  }
 });
-test('Website behavior is not filtered by this WhatsApp-only change',async()=>{
- const value='Try another website.';
- const {result,requests}=await waReply(value,{channel:'web'});
- assert.equal(result.text,value);assert.match(requests[0].instructions,/separate offers form/);
+test('Web bot directs selling and swaps to SwitchApp without changing its no-match form',async()=>{
+ const {result,requests}=await waReply('אפשר לפרסם ב־SwitchApp דרך /cars.',{channel:'web'});
+ assert.match(result.text,/SwitchApp/); assert.match(result.text,/\/cars/);
+ assert.match(requests[0].instructions,/list on SwitchApp at/);
+ assert.match(requests[0].instructions,/possible swap through SwitchApp/);
+ assert.match(requests[0].instructions,/separate offers form/);
+});
+test('Web bot blocks competitors or external URLs while preserving the empty-inventory form',async()=>{
+ for(const value of ['מומלץ לפנות ליד־2 או לקבוצות פייסבוק', 'Find it on https://outside.example']) {
+  const responses=[{output:[{type:'function_call',name:'find_cars',call_id:'lookup',arguments:JSON.stringify(filters)}]},candidateReply(value)];
+  const {result}=await waReply(value,{channel:'web',execute:async()=>({cars:[]}),fetcher:async()=>({ok:true,json:async()=>responses.shift()})});
+  assert.equal(result.noMatch,true);
+  assert.match(result.text,/בטופס/); assert.doesNotMatch(result.text,/פייסבוק|outside/);
+ }
+});
+test('Filtering a supplier answer does not funnel an authenticated dealer into the visitor offer form',async()=>{
+ const {result}=await waReply('Try Facebook.',{channel:'web',business:true});
+ assert.match(result.text,/המלאי/); assert.doesNotMatch(result.text,/טופס/);
 });
