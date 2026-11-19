@@ -37,3 +37,39 @@ test('Email follow-up is triggered by a successful empty inventory search, never
   assert.equal(r.noMatch,!failing);assert.equal(r.searched,!failing);
  }
 });
+const candidateReply = (value) => ({output:[{type:'message',content:[{type:'output_text',text:value}]}]});
+async function waReply(value, overrides = {}) {
+ const requests = [];
+ const result = await assistantExports.runAssistant({messages:[{role:'user',content:'אני רוצה למכור ולקנות רכב אחר'}],business:false,locale:'he',apiKey:'fixture',channel:'whatsapp',execute:async()=>({}),fetcher:async(_url,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>candidateReply(value)};},...overrides});
+ return {result,requests};
+}
+test('WhatsApp sales and trade-in instructions do not conflict with web-only form guidance',async()=>{
+ const {requests}=await waReply('אפשר לפרסם באתר.');
+ assert.match(requests[0].instructions,/For selling, offer to publish on SwitchApp/);
+ assert.match(requests[0].instructions,/offer a possible swap/);
+ assert.match(requests[0].instructions,/there is currently no plate lookup tool/i);
+ assert.doesNotMatch(requests[0].instructions,/separate offers form below the chat/);
+ assert.match(requests[0].instructions,/lead was recorded only on tool success/);
+});
+test('WhatsApp blocks known competitor variants and external or invented listing URLs',async()=>{
+ for(const value of ['נסה יד־2', 'תנסה יד שתיים', 'Find it on Yad2', 'נסה פייסבוק', 'Try Fаcebook https://fb.com', 'מומלץ evil.example/path', 'https://www.switchapp.co.il.evil.example/cars', 'https://www.switchapp.co.il/cars/fabricated']) {
+  const {result}=await waReply(value); assert.match(result.text,/SwitchApp/); assert.notEqual(result.text,value);
+ }
+});
+test('WhatsApp passes the real listing link with normal punctuation through unchanged',async()=>{
+ const value='אפשר להתחיל ב־https://www.switchapp.co.il/cars.';
+ assert.equal((await waReply(value)).result.text,value);
+});
+test('WhatsApp accepts links to returned cars; a blocked reply after empty inventory offers a new search',async()=>{
+ for(const carFound of [true,false]) {
+  const text=carFound?'Available: https://www.switchapp.co.il/cars/car-1':'Try yad2';
+  const responses=[{output:[{type:'function_call',name:'find_cars',call_id:'find',arguments:JSON.stringify(filters)}]},candidateReply(text)];
+  const {result}=await waReply(text,{locale:'en',execute:async()=>({cars:carFound?[{id:'car-1',make:'Toyota',model:'Corolla',year:2023,price:90000}]:[]}),fetcher:async()=>({ok:true,json:async()=>responses.shift()})});
+  if(carFound)assert.equal(result.text,text); else assert.match(result.text,/didn’t find a match/);
+ }
+});
+test('Website behavior is not filtered by this WhatsApp-only change',async()=>{
+ const value='Try another website.';
+ const {result,requests}=await waReply(value,{channel:'web'});
+ assert.equal(result.text,value);assert.match(requests[0].instructions,/separate offers form/);
+});
