@@ -1,3 +1,5 @@
+import { plateConversation } from "@/lib/plateConversation";
+import { getWhatsAppConfiguredStore } from "@/lib/whatsappProductionBootstrap";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runAssistant, validateChat, type AssistantCar } from "@/lib/assistant";
@@ -51,7 +53,14 @@ export async function POST(request: Request) {
     }
   } catch { return fail("temporarily_unavailable",503); }
   try {
-    const answer = await runAssistant({ messages, business, intent, locale: ["he", "en", "ru", "ar"].includes(body.locale) ? body.locale : "he", apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_ASSISTANT_MODEL,
+    const locale = ["he", "en", "ru", "ar"].includes(body.locale) ? body.locale : "he";
+    const plateText = await plateConversation({ text: messages.at(-1)!.content, locale,
+      disabled: Boolean(process.env.WHATSAPP_TEST_MODE),
+      lookup: plate => getWhatsAppConfiguredStore().lookupPlateWeb(plate),
+    });
+    const answer = plateText !== null
+      ? { text: plateText, cars: [] as AssistantCar[], searched: false, noMatch: false, searchFilters: null }
+      : await runAssistant({ messages, business, intent, locale: ["he", "en", "ru", "ar"].includes(body.locale) ? body.locale : "he", apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_ASSISTANT_MODEL,
       execute: async (name, args) => {
         if (name === "find_cars") {
           const { data, error } = await db.rpc("cars_for_sale", { my_id: user?.id ?? null, p_make: args.make, p_model: args.model, p_min_price: args.min_price, p_max_price: args.max_price, p_min_year: args.min_year, p_fuel_type: args.electric_only ? "Electric" : null }).limit(8);

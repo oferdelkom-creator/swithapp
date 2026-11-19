@@ -6,7 +6,7 @@ type Context = { sid: string; token: string };
 type Credential = { accessToken: string; subject: string; publishableKey: string };
 type Provider = () => Promise<Credential>;
 export type RpcResult = { data: unknown; error: { message: string } | null };
-const operations = new Set(['settle_unsent', 'claim', 'history', 'rate_limit', 'find_cars', 'capture_lead', 'begin_attempt', 'record_receipt', 'append_history', 'finish']);
+const operations = new Set(['lookup_plate_web', 'lookup_plate', 'settle_unsent', 'claim', 'history', 'rate_limit', 'find_cars', 'capture_lead', 'begin_attempt', 'record_receipt', 'append_history', 'finish']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function createWhatsAppMachineRpc(enabled: boolean, credentials: Provider, fetcher: typeof fetch = fetch) {
   async function call(operation: string, args: Record<string, unknown>): Promise<RpcResult> {
@@ -66,6 +66,8 @@ export function createWhatsAppMachineRpc(enabled: boolean, credentials: Provider
     }),
     settleUnsentOwned: (sid, token, reason) => checked('settle_unsent', { ...args(sid, token), p_reason: reason }, bool),
     rateLimitOwned: (sid, token) => checked('rate_limit', args(sid, token), bool),
+    lookupPlateWeb: (plate) => /^\d{7,8}$/.test(plate) ? checked('lookup_plate_web', { p_plate: plate }, (x): x is Record<string, unknown>[] => Array.isArray(x) && x.length <= 1 && x.every(row => row && typeof row === 'object' && !Array.isArray(row))) : Promise.resolve({data:null,error:{message:'invalid_plate'}}),
+    lookupPlateOwned: (sid, token, plate) => /^\d{7,8}$/.test(plate) ? checked('lookup_plate', { ...args(sid, token), p_plate: plate }, (x): x is Record<string, unknown>[] => Array.isArray(x) && x.length <= 1 && x.every(row => row && typeof row === 'object' && !Array.isArray(row))) : Promise.resolve({data:null,error:{message:'invalid_plate'}}),
     findCarsOwned: (sid, token, filters) => checked('find_cars', { ...args(sid, token), p_filters: filters }, (x): x is Record<string, unknown>[] => Array.isArray(x) && x.length <= 8 && x.every(row => row && typeof row === 'object' && !Array.isArray(row))),
     captureLeadOwned: (sid, token, business, city) => checked('capture_lead', { ...args(sid, token), p_business: business, p_city: city }, bool),
     beginAttemptOwned: (sid, token, body) => checked('begin_attempt', { ...args(sid, token), p_body: body }, id),

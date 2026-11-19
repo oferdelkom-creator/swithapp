@@ -7,6 +7,8 @@ export interface WhatsAppProductionStore {
   historyOwned(sid: string, token: string): Result<History>;
   settleUnsentOwned(sid: string, token: string, reason: 'rate_denied' | 'dependency_error'): Result<boolean>;
   rateLimitOwned(sid: string, token: string): Result<boolean>;
+  lookupPlateWeb(plate: string): Result<Record<string, unknown>[]>;
+  lookupPlateOwned(sid: string, token: string, plate: string): Result<Record<string, unknown>[]>;
   findCarsOwned(sid: string, token: string, filters: Record<string, unknown>): Result<Record<string, unknown>[]>;
   claimInbound(sid: string, account: string, from: string, to: string, body: string): Result<{ status: 'claimed'; token: string } | { status: 'duplicate' | 'queued' | 'denied' }>;
   captureLeadOwned(sid: string, token: string, business: string, city: string | null): Result<boolean>;

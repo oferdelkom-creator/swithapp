@@ -47,7 +47,7 @@ test('WhatsApp sales and trade-in instructions do not conflict with web-only for
  const {requests}=await waReply('אפשר לפרסם באתר.');
  assert.match(requests[0].instructions,/For selling, offer to publish on SwitchApp/);
  assert.match(requests[0].instructions,/offer a possible swap/);
- assert.match(requests[0].instructions,/there is currently no plate lookup tool/i);
+ assert.match(requests[0].instructions,/dedicated server lookup before this model/i);
  assert.doesNotMatch(requests[0].instructions,/separate offers form below the chat/);
  assert.match(requests[0].instructions,/lead was recorded only on tool success/);
 });

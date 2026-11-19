@@ -1,6 +1,7 @@
 import { verifyTwilioInboundFreshness } from "./twilioInboundFreshness";
 import type { WhatsAppProductionStore } from "./whatsappProductionStore";
 import { getWhatsAppConfiguredStore } from "./whatsappProductionBootstrap";
+import { plateConversation } from "./plateConversation";
 import { runAssistant, type AssistantCar, type ChatMessage } from "@/lib/assistant";
 
 
@@ -133,6 +134,7 @@ export async function processWhatsAppMessage(
   userMsg: string,
   leaseToken: string,
 ): Promise<void> {
+  if (process.env.WHATSAPP_TEST_MODE) return; // Production processor never contacts providers in isolated test mode.
   let outboundAttempt: string | null = null;
   const finish = async (ok: boolean, _error?: string) => {
     if (!ok || !outboundAttempt) return false;
@@ -190,6 +192,13 @@ export async function processWhatsAppMessage(
     { role: "user" as const, content: userMsg },
   ].slice(-12);
 
+  const plateAnswer = await plateConversation({ text: userMsg, locale,
+    lookup: plate => db.lookupPlateOwned(messageSid, leaseToken, plate) });
+  if (plateAnswer !== null) {
+    const sent = await deliver(plateAnswer, `wa-plate-${messageSid}`);
+    await finish(sent, 'plate_lookup');
+    return;
+  }
   let capturedLead: { businessName: string; city: string | null } | null = null;
   let answer: Awaited<ReturnType<typeof runAssistant>>;
   try {
