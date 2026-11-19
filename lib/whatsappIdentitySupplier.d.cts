@@ -1,0 +1,1 @@
+export function createSupplier(options: { createClient: (...args: any[]) => any; subject: string; publishableKey: string; credential: () => Promise<{ email: string; password: string }>; now?: () => number }): { getCredential(): Promise<{ accessToken: string; subject: string; publishableKey: string }>; invalidate(): void; close(): void };
